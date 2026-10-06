@@ -25,11 +25,9 @@
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts"
   },
   "dependencies": {
-    "@opennextjs/cloudflare": "1.20.1",
-    "@payloadcms/db-d1-sqlite": "3.90.0",
+    "@payloadcms/db-postgres": "3.90.0",
     "@payloadcms/next": "3.90.0",
     "@payloadcms/richtext-lexical": "3.90.0",
-    "@payloadcms/storage-r2": "3.90.0",
     "@payloadcms/ui": "3.90.0",
     "cross-env": "^7.0.3",
     "dotenv": "16.4.7",
