@@ -20,7 +20,7 @@ export default buildConfig({
   },
   collections: [Users, Media],
   editor: lexicalEditor(),
-  storage: [
+  plugins: [
     s3Storage({
       enabled: Boolean(process.env.R2_BUCKET),
       collections: { media: true },
