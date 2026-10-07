@@ -20,7 +20,7 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media, Articles, Categories],
+  collections: [Users, Media, Categories, Articles],
   editor: lexicalEditor(),
   plugins: [
     s3Storage({
