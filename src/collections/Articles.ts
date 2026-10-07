@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { lexicalEditor } from '@payloadcms/richtext-lexical'
 
 export const Articles: CollectionConfig = {
   slug: 'articles',
@@ -10,7 +11,12 @@ export const Articles: CollectionConfig = {
     { name: 'headline', type: 'text', required: true },
     { name: 'slug', type: 'text', required: true, unique: true, index: true },
     { name: 'deck', label: 'Summary / Deck', type: 'textarea', required: true },
-    { name: 'body', type: 'richText', required: true },
+    {
+      name: 'body',
+      type: 'richText',
+      required: true,
+      editor: lexicalEditor({}),
+    },
     { name: 'featuredImage', type: 'upload', relationTo: 'media', required: true },
     { name: 'categories', type: 'relationship', relationTo: 'categories' as any, hasMany: true },
     {
