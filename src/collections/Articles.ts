@@ -12,7 +12,7 @@ export const Articles: CollectionConfig = {
     { name: 'deck', label: 'Summary / Deck', type: 'textarea', required: true },
     { name: 'body', type: 'richText', required: true },
     { name: 'featuredImage', type: 'upload', relationTo: 'media', required: true },
-    { name: 'categories', type: 'relationship', relationTo: 'categories', hasMany: true },
+    { name: 'categories', type: 'relationship', relationTo: 'categories' as any, hasMany: true },
     {
       name: 'status',
       type: 'select',
