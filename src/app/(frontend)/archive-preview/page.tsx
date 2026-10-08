@@ -78,7 +78,7 @@ export default function ArchivePreview() {
   <header className="masthead"><Brand/><p>Understand what happened. Know why it matters.</p></header>
   <div className="ad-slot ad-leaderboard" aria-label="Reserved advertising space"><span>ADVERTISEMENT</span><small>HEADER LEADERBOARD · RESPONSIVE</small></div>
   <nav className="nav" aria-label="Main navigation"><Link href="/">Latest</Link><Link href="/archive-preview/category/geopolitics">Geopolitics</Link><Link href="/archive-preview/category/conflict">Conflict</Link><Link href="/archive-preview/category/security">Security</Link></nav>
-  <main className="coverage">
+  <main className="coverage"><section className="about" style={{marginBottom:24,borderLeft:"4px solid #ff5964"}}><span className="eyebrow">NEW · 8 OCTOBER 2026 · CONFLICT</span><h2>Syria Weighs Military Support for Saudi Arabia as Houthi Attacks Widen Yemen War</h2><p>Deadly Saudi airport attacks raise the prospect of wider regional military involvement.</p><Link className="eyebrow" href="/briefings/syria-saudi-houthi-escalation">READ TODAY’S BRIEFING →</Link></section>
    <div className="section-heading"><span>RECOVERED ARCHIVE / DESIGN PREVIEW</span><span>10 HISTORICAL CONTENT LEADS</span></div>
    <section className="archive-lead" aria-label="Lead archive story">
     <div className="archive-lead-copy">
