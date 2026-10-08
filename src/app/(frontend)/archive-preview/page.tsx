@@ -78,21 +78,22 @@ export default function ArchivePreview() {
   <header className="masthead"><Brand/><p>Understand what happened. Know why it matters.</p></header>
   <div className="ad-slot ad-leaderboard" aria-label="Reserved advertising space"><span>ADVERTISEMENT</span><small>HEADER LEADERBOARD · RESPONSIVE</small></div>
   <nav className="nav" aria-label="Main navigation"><Link href="/">Latest</Link><Link href="/archive-preview/category/geopolitics">Geopolitics</Link><Link href="/archive-preview/category/conflict">Conflict</Link><Link href="/archive-preview/category/security">Security</Link></nav>
-  <main className="coverage"><section className="about" style={{marginBottom:24,borderLeft:"4px solid #ff5964"}}><span className="eyebrow">NEW · 8 OCTOBER 2026 · CONFLICT</span><h2>Syria Weighs Military Support for Saudi Arabia as Houthi Attacks Widen Yemen War</h2><p>Deadly Saudi airport attacks raise the prospect of wider regional military involvement.</p><Link className="eyebrow" href="/briefings/syria-saudi-houthi-escalation">READ TODAY’S BRIEFING →</Link></section>
-   <div className="section-heading"><span>RECOVERED ARCHIVE / DESIGN PREVIEW</span><span>10 HISTORICAL CONTENT LEADS</span></div>
-   <section className="archive-lead" aria-label="Lead archive story">
+  <main className="coverage">
+   <div className="section-heading"><span>TODAY'S LEAD / CONFLICT &amp; SECURITY</span><span>8 OCTOBER 2026</span></div>
+   <section className="archive-lead" aria-label="Lead story: Syria and Saudi Arabia">
     <div className="archive-lead-copy">
-     <Link className="eyebrow" href="/archive-preview/category/conflict">LEAD STORY / CONFLICT / ARCHIVE PREVIEW →</Link>
-     <h1>Three Years After October 7 — Gaza Still Has No Endgame</h1>
-     <p className="archive-lead-deck">A recovered Faultline Brief anniversary graphic explores the war’s human cost, regional consequences and the unresolved questions about Gaza’s future.</p>
-     <p className="archive-lead-note">Source material: 7 October 2026 · Editorial preview only · Facebook publication date unverified</p>
-     <p className="archive-lead-note">The historical article body has not yet been recovered; this is not a published news report.</p>
+     <Link className="eyebrow" href="/briefings/syria-saudi-houthi-escalation">LEAD STORY / CONFLICT →</Link>
+     <h1><Link href="/briefings/syria-saudi-houthi-escalation" style={{color:"inherit",textDecoration:"none"}}>Syria Weighs Military Support for Saudi Arabia as Houthi Attacks Widen Yemen War</Link></h1>
+     <p className="archive-lead-deck">Deadly attacks on Saudi airports have raised the prospect of Syrian involvement in Yemen's renewed conflict, adding another layer of risk to an already volatile Middle East.</p>
+     <p className="archive-lead-note">8 October 2026 · Faultline Brief analysis · Reporting basis: Reuters</p>
+     <Link className="eyebrow" href="/briefings/syria-saudi-houthi-escalation">READ FULL ANALYSIS →</Link>
     </div>
     <figure className="archive-lead-figure">
-     <Image src={storyPhotos[9].src} alt={storyPhotos[9].caption} width={960} height={540} priority quality={65} sizes="(max-width: 800px) 100vw, 48vw" />
-     <figcaption>{storyPhotos[9].caption} · <a href={storyPhotos[9].source} target="_blank" rel="noopener noreferrer">Image source and license</a></figcaption>
+     <Image src={storyPhotos[6].src} alt={storyPhotos[6].caption} width={960} height={540} priority quality={65} sizes="(max-width: 800px) 100vw, 48vw" />
+     <figcaption>{storyPhotos[6].caption} · <a href={storyPhotos[6].source} target="_blank" rel="noopener noreferrer">Image source and license</a></figcaption>
     </figure>
    </section>
+   <div className="section-heading" style={{marginTop:32}}><span>MORE COVERAGE / RECOVERED ARCHIVE</span><span>HISTORICAL PREVIEWS · NOT PUBLISHED REPORTS</span></div>
    <div className="newsroom-layout"><div className="newsroom-primary"><div className="section-heading"><span>LATEST ARCHIVE BRIEFINGS</span><span>RECOVERED STORIES</span></div><div className="story-grid">{previews.map((story,i)=><article className="story-card" key={i}>
     <div style={{width:"100%",aspectRatio:"16 / 9",overflow:"hidden",background:"#081725",border:"1px solid #294358",marginBottom:20}}><Image src={storyPhotos[i].src} alt={storyPhotos[i].caption} width={640} height={360} quality={65} loading="lazy" sizes="(max-width: 760px) 100vw, (max-width: 1000px) 48vw, 32vw" style={{display:"block",width:"100%",height:"100%",maxWidth:"100%",aspectRatio:"16 / 9",objectFit:"cover",objectPosition:"center",margin:0}} /></div><p className="photo-credit">{storyPhotos[i].caption} · <a href={storyPhotos[i].source} target="_blank" rel="noopener noreferrer">Source / license</a></p>
     <Link className="eyebrow" href={`/archive-preview/category/${story.category.toLowerCase()}`}>{story.category.toUpperCase()} / ARCHIVE PREVIEW →</Link>
