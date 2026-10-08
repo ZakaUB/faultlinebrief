@@ -66,7 +66,7 @@ export default async function HomePage() {
             <div className="newsroom-primary">
               <div className="story-grid">
                 {!lead && <article className="story-card" style={{padding:24}}>
-                  <div style={{position:"relative",aspectRatio:"16 / 9",marginBottom:16,overflow:"hidden",borderRadius:12}}><Image src="https://commons.wikimedia.org/wiki/Special:FilePath/Donald%20Trump%20state%20visit%20to%20Saudi%20Arabia%2C%202025-05-13%20P20250513DT-0272.jpg?width=960" alt="President Donald Trump during an official visit to Saudi Arabia in May 2025; archival photo, not Iran military planning" fill sizes="(max-width: 760px) 100vw, 45vw" style={{objectFit:"cover"}} /></div><span className="eyebrow">GEOPOLITICS / NEW ANALYSIS</span>
+                  <div style={{position:"relative",aspectRatio:"16 / 9",marginBottom:16,overflow:"hidden",borderRadius:12}}><Image src="https://commons.wikimedia.org/wiki/Special:FilePath/January%202025%20Official%20Presidential%20Portrait%20of%20Donald%20J.%20Trump.jpg?width=960" alt="Official portrait of U.S. President Donald Trump, January 2025; archival image, not a photograph of Iran strike planning" fill sizes="(max-width: 760px) 100vw, 45vw" style={{objectFit:"cover",objectPosition:"center 25%"}} /></div><span className="eyebrow">GEOPOLITICS / NEW ANALYSIS</span>
                   <h2><Link href="/briefings/trump-iran-strikes-midterms">Trump Weighs New Iran Strikes Before U.S. Midterms</Link></h2>
                   <p>The Pentagon is preparing options for renewed action. What the election, energy markets and diplomacy mean for the next phase.</p>
                   <Link className="read-link" href="/briefings/trump-iran-strikes-midterms">READ ANALYSIS →</Link>
