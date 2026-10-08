@@ -94,6 +94,12 @@ export default function ArchivePreview() {
     </figure>
    </section>
    <div className="section-heading" style={{marginTop:32}}><span>MORE COVERAGE / RECOVERED ARCHIVE</span><span>HISTORICAL PREVIEWS · NOT PUBLISHED REPORTS</span></div>
+   <section className="story-card" style={{marginBottom:28,padding:24}}>
+    <Link className="eyebrow" href="/briefings/trump-iran-strikes-midterms">LATEST ANALYSIS / GEOPOLITICS →</Link>
+    <h2><Link href="/briefings/trump-iran-strikes-midterms" style={{color:"inherit",textDecoration:"none"}}>Trump Weighs New Iran Strikes Before U.S. Midterms</Link></h2>
+    <p>Pentagon planning, election pressure and the danger of renewed escalation around the Strait of Hormuz.</p>
+    <Link className="eyebrow" href="/briefings/trump-iran-strikes-midterms">READ ANALYSIS →</Link>
+   </section>
    <div className="newsroom-layout"><div className="newsroom-primary"><div className="section-heading"><span>LATEST ARCHIVE BRIEFINGS</span><span>RECOVERED STORIES</span></div><div className="story-grid">{previews.map((story,i)=><article className="story-card" key={i}>
     <div style={{width:"100%",aspectRatio:"16 / 9",overflow:"hidden",background:"#081725",border:"1px solid #294358",marginBottom:20}}><Image src={storyPhotos[i].src} alt={storyPhotos[i].caption} width={640} height={360} quality={65} loading="lazy" sizes="(max-width: 760px) 100vw, (max-width: 1000px) 48vw, 32vw" style={{display:"block",width:"100%",height:"100%",maxWidth:"100%",aspectRatio:"16 / 9",objectFit:"cover",objectPosition:"center",margin:0}} /></div><p className="photo-credit">{storyPhotos[i].caption} · <a href={storyPhotos[i].source} target="_blank" rel="noopener noreferrer">Source / license</a></p>
     <Link className="eyebrow" href={`/archive-preview/category/${story.category.toLowerCase()}`}>{story.category.toUpperCase()} / ARCHIVE PREVIEW →</Link>
