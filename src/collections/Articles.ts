@@ -5,39 +5,7 @@ export const Articles: CollectionConfig = {
   slug: 'articles',
   admin: {
     useAsTitle: 'headline',
-    defaultColumns: ['headline', 'homepageLead', 'status', 'publishedAt', 'updatedAt'],
-  },
-  hooks: {
-    afterChange: [
-      async ({ doc, req, context }) => {
-        if (context?.updatingHomepageLead || !doc.homepageLead || doc.status !== 'published') return doc
-        // Generated Payload types may omit this collection until `payload generate:types` runs.
-        // Keep the runtime collection hook valid while those types are refreshed.
-        const articlesPayload = req.payload as any
-        const previous = await articlesPayload.find({
-          collection: 'articles',
-          where: {
-            and: [
-              { homepageLead: { equals: true } },
-              { id: { not_equals: doc.id } },
-            ],
-          },
-          depth: 0,
-          limit: 100,
-          req,
-        })
-        for (const article of previous.docs) {
-          await articlesPayload.update({
-            collection: 'articles',
-            id: article.id,
-            data: { homepageLead: false },
-            context: { updatingHomepageLead: true },
-            req,
-          })
-        }
-        return doc
-      },
-    ],
+    defaultColumns: ['headline', 'status', 'publishedAt', 'updatedAt'],
   },
   fields: [
     { name: 'headline', type: 'text', required: true },
@@ -60,18 +28,6 @@ export const Articles: CollectionConfig = {
         { label: 'Draft', value: 'draft' },
         { label: 'Published', value: 'published' },
       ],
-    },
-    {
-      name: 'homepageLead',
-      label: 'Set as Homepage Lead',
-      type: 'checkbox',
-      defaultValue: false,
-      admin: {
-        position: 'sidebar',
-        description: 'Only one published article can be the lead. Selecting this replaces the previous lead.',
-      },
-      validate: (value: unknown, { siblingData }: { siblingData: any }) =>
-        !value || siblingData?.status === 'published' || 'Publish the article before selecting it as the homepage lead.',
     },
     { name: 'publishedAt', type: 'date', admin: { date: { pickerAppearance: 'dayAndTime' } } },
     {
