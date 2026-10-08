@@ -27,10 +27,18 @@ export default function ArchivePreview() {
   <nav className="nav" aria-label="Main navigation"><Link href="/">Latest</Link><Link href="/categories/geopolitics">Geopolitics</Link><Link href="/categories/conflict">Conflict</Link><Link href="/categories/security">Security</Link></nav>
   <main className="coverage">
    <div className="section-heading"><span>RECOVERED ARCHIVE / DESIGN PREVIEW</span><span>10 HISTORICAL CONTENT LEADS</span></div>
-   <section className="about" style={{marginTop:24,padding:'24px 5%'}}>
-    <span className="eyebrow">INTERNAL EDITORIAL PREVIEW</span>
-    <h1 style={{fontSize:'clamp(32px,4vw,56px)',margin:'12px 0'}}>The stories behind the faultlines.</h1>
-    <p>These entries are recovered from earlier project graphics, drafts and chat records. They are <strong>not published articles</strong>. Dates refer to the source material, not verified Facebook publication dates. This unindexed page is for testing the newsroom layout only.</p>
+   <section className="archive-lead" aria-label="Lead archive story">
+    <div className="archive-lead-copy">
+     <span className="eyebrow">LEAD STORY / CONFLICT / ARCHIVE PREVIEW</span>
+     <h1>Three Years After October 7 — Gaza Still Has No Endgame</h1>
+     <p className="archive-lead-deck">A recovered Faultline Brief anniversary graphic explores the war’s human cost, regional consequences and the unresolved questions about Gaza’s future.</p>
+     <p className="archive-lead-note">Source material: 7 October 2026 · Editorial preview only · Facebook publication date unverified</p>
+     <p className="archive-lead-note">The historical article body has not yet been recovered; this is not a published news report.</p>
+    </div>
+    <figure className="archive-lead-figure">
+     <img src="/archive-preview/gaza-anniversary.svg" alt="Conceptual editorial illustration for the Gaza anniversary story, not a documentary photograph" width="1200" height="675" />
+     <figcaption>Editorial illustration · Not a photograph of an actual event</figcaption>
+    </figure>
    </section>
    <div className="story-grid">{previews.map((story,i)=><article className="story-card" key={i}>
     <div style={{width:"100%",aspectRatio:"16 / 9",overflow:"hidden",background:"#081725",border:"1px solid #294358",marginBottom:20}}><img src={`/archive-preview/${illustrations[i]}.svg`} alt={`Editorial illustration for ${story.headline}; not a documentary photograph`} loading="lazy" style={{display:"block",width:"100%",height:"100%",maxWidth:"100%",aspectRatio:"16 / 9",objectFit:"contain",objectPosition:"center",margin:0}} /></div>
