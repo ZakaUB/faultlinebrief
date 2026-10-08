@@ -6,6 +6,14 @@ import { notFound } from 'next/navigation'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
 import type { Metadata } from 'next'
+const siteUrl = 'https://faultlinebrief.com'
+function imageUrl(media: unknown): string | undefined {
+ if (!media || typeof media !== 'object' || !('url' in media) || typeof media.url !== 'string') return undefined
+ try {
+  const url = new URL(media.url, siteUrl)
+  return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : undefined
+ } catch { return undefined }
+}
 export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
  const {slug}=await params
  const payload=await getPayload({config})
@@ -14,8 +22,9 @@ export async function generateMetadata({params}:{params:Promise<{slug:string}>})
  if(!article) return {title:'Article not found | Faultline Brief',robots:{index:false}}
  const title=article.seo?.title||article.headline
  const description=article.seo?.description||article.deck
- const url=`https://faultlinebrief.com/articles/${encodeURIComponent(slug)}`
- return {title,description,alternates:{canonical:url},openGraph:{title,description,url,type:'article',siteName:'Faultline Brief',publishedTime:article.publishedAt||undefined,modifiedTime:article.updatedAt||undefined},twitter:{card:'summary_large_image',title,description}}
+ const url=`${siteUrl}/articles/${encodeURIComponent(slug)}`
+ const image=imageUrl(article.featuredImage)
+ return {title,description,alternates:{canonical:url},openGraph:{title,description,url,type:'article',siteName:'Faultline Brief',publishedTime:article.publishedAt||undefined,modifiedTime:article.updatedAt||undefined,images:image?[{url:image,alt:article.headline}]:undefined},twitter:{card:image?'summary_large_image':'summary',title,description,images:image?[image]:undefined}}
 }
 
 export const dynamic = 'force-dynamic'
@@ -78,5 +87,20 @@ export default async function ArticlePage({params}:{params:Promise<{slug:string}
  const article=result.docs[0] as any
  if(!article) notFound()
  const media=article.featuredImage && typeof article.featuredImage==='object'?article.featuredImage:null
- return <div className="site"><div className="utility"><span>FAULTLINE BRIEF / INTELLIGENCE</span><span>GEOPOLITICS · CONFLICT · SECURITY</span></div><header className="masthead"><div className="masthead-identity"><Brand /><p>Understand what happened. Know why it matters.</p></div><HeaderGlobe /></header><nav className="nav" aria-label="Main navigation"><Link href="/">Latest</Link><Link href="/categories/geopolitics">Geopolitics</Link><Link href="/categories/conflict">Conflict</Link><Link href="/categories/security">Security</Link><Link href="/about">About</Link></nav><main className="article-page"><span className="eyebrow">FAULTLINE BRIEF / ANALYSIS</span><h1>{article.headline}</h1><p className="deck">{article.deck}</p>{article.publishedAt && <p className="eyebrow">{new Date(article.publishedAt).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</p>}{media?.url && <img className="hero-image" src={media.url} alt={media.alt||article.headline}/>}<div className="article-body">{renderNodes(article.body?.root?.children||[])}</div>{article.sources?.length>0 && <section><h2>Sources</h2><ul>{article.sources.map((s:any,i:number)=><li key={i}>{s.url?<a href={s.url} rel="noopener noreferrer nofollow" target="_blank">{s.name}</a>:s.name}</li>)}</ul></section>}<p><Link className="read-link" href="/">← BACK TO LATEST</Link></p></main><footer><strong>FAULTLINE BRIEF<span>.</span></strong><div className="legal-links"><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/privacy">Privacy</Link><Link href="/editorial-standards">Standards</Link></div></footer></div>
+ const image=imageUrl(media)
+ const articleUrl=`${siteUrl}/articles/${encodeURIComponent(slug)}`
+ const structuredData={
+  '@context':'https://schema.org',
+  '@type':'NewsArticle',
+  headline:article.headline,
+  description:article.seo?.description||article.deck,
+  mainEntityOfPage:{'@type':'WebPage','@id':articleUrl},
+  url:articleUrl,
+  ...(image?{image:[image]}:{}),
+  ...(article.publishedAt?{datePublished:article.publishedAt}:{}),
+  ...(article.updatedAt?{dateModified:article.updatedAt}:{}),
+  publisher:{'@type':'Organization',name:'Faultline Brief',url:siteUrl},
+ }
+ const structuredDataJson=JSON.stringify(structuredData).replace(/</g,'\\u003c')
+ return <div className="site"><script type="application/ld+json" dangerouslySetInnerHTML={{__html:structuredDataJson}} /><div className="utility"><span>FAULTLINE BRIEF / INTELLIGENCE</span><span>GEOPOLITICS · CONFLICT · SECURITY</span></div><header className="masthead"><div className="masthead-identity"><Brand /><p>Understand what happened. Know why it matters.</p></div><HeaderGlobe /></header><nav className="nav" aria-label="Main navigation"><Link href="/">Latest</Link><Link href="/categories/geopolitics">Geopolitics</Link><Link href="/categories/conflict">Conflict</Link><Link href="/categories/security">Security</Link><Link href="/about">About</Link></nav><main className="article-page"><span className="eyebrow">FAULTLINE BRIEF / ANALYSIS</span><h1>{article.headline}</h1><p className="deck">{article.deck}</p>{article.publishedAt && <p className="eyebrow">{new Date(article.publishedAt).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</p>}{media?.url && <img className="hero-image" src={media.url} alt={media.alt||article.headline}/>}<div className="article-body">{renderNodes(article.body?.root?.children||[])}</div>{article.sources?.length>0 && <section><h2>Sources</h2><ul>{article.sources.map((s:any,i:number)=><li key={i}>{s.url?<a href={s.url} rel="noopener noreferrer nofollow" target="_blank">{s.name}</a>:s.name}</li>)}</ul></section>}<p><Link className="read-link" href="/">← BACK TO LATEST</Link></p></main><footer><strong>FAULTLINE BRIEF<span>.</span></strong><div className="legal-links"><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/privacy">Privacy</Link><Link href="/editorial-standards">Standards</Link></div></footer></div>
 }
