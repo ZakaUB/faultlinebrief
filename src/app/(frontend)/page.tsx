@@ -40,7 +40,7 @@ export default async function HomePage() {
         <p>Understand what happened. Know why it matters.</p>
       </header>
       <nav className="nav" aria-label="Main navigation">
-        <Link href="/">Latest</Link><a href="#coverage">Geopolitics</a><a href="#coverage">Conflict</a><a href="#coverage">Security</a><Link href="/about">About</Link>
+        <Link href="/">Latest</Link><Link href="/categories/geopolitics">Geopolitics</Link><Link href="/categories/conflict">Conflict</Link><Link href="/categories/security">Security</Link><Link href="/about">About</Link>
       </nav>
       <main>
         <section className="section-heading"><span>THE FRONTLINE</span><span>INDEPENDENT ANALYSIS & REPORTING</span></section>
