@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Brand from '@/app/(frontend)/Brand'
-import { previews, illustrations } from '../../page'
+import { previews, storyPhotos } from '../../page'
 
 export const metadata = { title: 'Recovered Archive by Category | Faultline Brief', robots: { index: false, follow: false } }
 
@@ -10,7 +10,7 @@ export default async function ArchivePreviewCategory({params}:{params:Promise<{s
  const names:Record<string,string>={geopolitics:'Geopolitics',conflict:'Conflict',security:'Security'}
  const name=names[slug]
  if(!name) notFound()
- const stories=previews.map((story,i)=>({...story,image:illustrations[i]})).filter(story=>story.category===name)
+ const stories=previews.map((story,i)=>({...story,photo:storyPhotos[i]})).filter(story=>story.category===name)
  return <div className="site">
   <div className="utility"><span>FAULTLINE BRIEF / EDITORIAL WORKSPACE</span><span>ARCHIVE RECOVERY · NOT FOR PUBLICATION</span></div>
   <header className="masthead"><Brand/><p>Understand what happened. Know why it matters.</p></header>
@@ -24,8 +24,8 @@ export default async function ArchivePreviewCategory({params}:{params:Promise<{s
    </section>
    <div className="story-grid">{stories.map((story,i)=><article className="story-card" key={story.headline}>
     <div style={{width:'100%',aspectRatio:'16 / 9',overflow:'hidden',background:'#081725',border:'1px solid #294358',marginBottom:20}}>
-     <img src={`/archive-preview/${story.image}.svg`} alt={`Editorial illustration for ${story.headline}, not documentary photography`} loading="lazy" style={{display:'block',width:'100%',height:'100%',objectFit:'contain',margin:0}}/>
-    </div>
+     <img src={story.photo.src} alt={story.photo.caption} loading="lazy" style={{display:'block',width:'100%',height:'100%',objectFit:'contain',margin:0}}/>
+    </div><p className="photo-credit">{story.photo.caption} · <a href={story.photo.source} target="_blank" rel="noopener noreferrer">Source / license</a></p>
     <span className="eyebrow">{story.category.toUpperCase()} / ARCHIVE PREVIEW</span>
     <h2>{story.headline}</h2>
     <p>{story.deck}</p>
