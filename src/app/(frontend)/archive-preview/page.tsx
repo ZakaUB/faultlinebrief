@@ -33,7 +33,7 @@ export default function ArchivePreview() {
     <p>These entries are recovered from earlier project graphics, drafts and chat records. They are <strong>not published articles</strong>. Dates refer to the source material, not verified Facebook publication dates. This unindexed page is for testing the newsroom layout only.</p>
    </section>
    <div className="story-grid">{previews.map((story,i)=><article className="story-card" key={i}>
-    <img src={`/archive-preview/${illustrations[i]}.svg`} alt={`Editorial illustration for ${story.headline}; not a documentary photograph`} loading="lazy" width="1200" height="675" />
+    <div style={{width:"100%",aspectRatio:"16 / 9",overflow:"hidden",background:"#081725",border:"1px solid #294358",marginBottom:20}}><img src={`/archive-preview/${illustrations[i]}.svg`} alt={`Editorial illustration for ${story.headline}; not a documentary photograph`} loading="lazy" style={{display:"block",width:"100%",height:"100%",maxWidth:"100%",aspectRatio:"16 / 9",objectFit:"contain",objectPosition:"center",margin:0}} /></div>
     <span className="eyebrow">{story.category.toUpperCase()} / ARCHIVE PREVIEW</span>
     <h2>{story.headline}</h2>
     <p>{story.deck}</p>
