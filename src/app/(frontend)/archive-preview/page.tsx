@@ -89,8 +89,8 @@ export default function ArchivePreview() {
      <Link className="eyebrow" href="/briefings/syria-saudi-houthi-escalation">READ FULL ANALYSIS →</Link>
     </div>
     <figure className="archive-lead-figure">
-     <Image src="https://commons.wikimedia.org/wiki/Special:FilePath/Ahmed%20al-Sharaa%20in%20September%202025.jpg?width=600" alt="Syrian President Ahmad al-Sharaa photographed in New York on 22 September 2025" width={960} height={540} priority quality={65} sizes="(max-width: 800px) 100vw, 48vw" />
-     <figcaption>Syrian President Ahmad al-Sharaa, New York, 22 September 2025. U.S. Department of State / Freddie Everett (public domain). Archival portrait; not a photograph of the reported Saudi discussions. · <a href="https://commons.wikimedia.org/wiki/File:Ahmed_al-Sharaa_in_September_2025.jpg" target="_blank" rel="noopener noreferrer">Image source and license</a></figcaption>
+     <Image src="https://commons.wikimedia.org/wiki/Special:FilePath/President%20Donald%20Trump%20with%20Saudi%20Crown%20Prince%20Mohammed%20Bin%20Salman%20and%20President%20of%20Syria%20Ahmed%20al-Sharaa%20%282025%29.jpg?width=1280" alt="Syrian President Ahmad al-Sharaa with Saudi Crown Prince Mohammed bin Salman and U.S. President Donald Trump in Riyadh, 13 May 2025. White House archival photograph (public domain); not the reported October discussions." width={960} height={540} priority quality={65} sizes="(max-width: 800px) 100vw, 48vw" />
+     <figcaption>Syrian President Ahmad al-Sharaa with Saudi Crown Prince Mohammed bin Salman and U.S. President Donald Trump in Riyadh, 13 May 2025. White House archival photograph (public domain); not the reported October discussions. · <a href="https://commons.wikimedia.org/wiki/File:President_Donald_Trump_with_Saudi_Crown_Prince_Mohammed_Bin_Salman_and_President_of_Syria_Ahmed_al-Sharaa_(2025).jpg" target="_blank" rel="noopener noreferrer">Photo source / license</a></figcaption>
     </figure>
    </section>
    <div className="section-heading" style={{marginTop:32}}><span>MORE COVERAGE / RECOVERED ARCHIVE</span><span>HISTORICAL PREVIEWS · NOT PUBLISHED REPORTS</span></div>
