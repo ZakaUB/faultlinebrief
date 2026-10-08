@@ -37,10 +37,10 @@ export default async function HomePage() {
       <div className="utility"><span>INDEPENDENT GEOPOLITICAL INTELLIGENCE</span><span>GEOPOLITICS · CONFLICT · SECURITY</span></div>
       <header className="masthead">
         <Link href="/" className="brand">FAULTLINE<span>BRIEF</span><b className="brand-dot">.</b></Link>
-        <p>Where global tensions meet the facts.</p>
+        <p>Understand what happened. Know why it matters.</p>
       </header>
       <nav className="nav" aria-label="Main navigation">
-        <Link href="/">Latest</Link><a href="#coverage">Geopolitics</a><a href="#coverage">Conflict</a><a href="#coverage">Security</a><a href="#about">About</a>
+        <Link href="/">Latest</Link><a href="#coverage">Geopolitics</a><a href="#coverage">Conflict</a><a href="#coverage">Security</a><Link href="/about">About</Link>
       </nav>
       <main>
         <section className="section-heading"><span>THE FRONTLINE</span><span>INDEPENDENT ANALYSIS & REPORTING</span></section>
@@ -69,7 +69,7 @@ export default async function HomePage() {
         </section>
         <section id="about" className="about"><span className="eyebrow">OUR PURPOSE</span><h2>Beyond the headlines.<br/>Into the forces shaping them.</h2><p>Faultline Brief follows the geopolitical tensions, security challenges and conflicts shaping our world—with a commitment to clarity, context and evidence.</p></section>
       </main>
-      <footer><strong>FAULTLINE BRIEF<span>.</span></strong><span>GEOPOLITICS / CONFLICT / SECURITY</span><span>© {new Date().getFullYear()} Faultline Brief</span></footer>
+      <footer><strong>FAULTLINE BRIEF<span>.</span></strong><span>GEOPOLITICS / CONFLICT / SECURITY</span><div className="legal-links"><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/privacy">Privacy</Link><Link href="/editorial-standards">Editorial Standards</Link></div><span>© {new Date().getFullYear()} Faultline Brief</span></footer>
     </div>
   )
 }
