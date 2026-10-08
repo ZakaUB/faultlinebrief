@@ -8,10 +8,19 @@ import config from '@/payload.config'
 import type { Metadata } from 'next'
 const siteUrl = 'https://faultlinebrief.com'
 function imageUrl(media: unknown): string | undefined {
- if (!media || typeof media !== 'object' || !('url' in media) || typeof media.url !== 'string') return undefined
+ if (!media || typeof media !== 'object') return undefined
+ const item = media as { url?: unknown; filename?: unknown }
+ const raw = typeof item.url === 'string' && item.url.trim()
+  ? item.url.trim()
+  : typeof item.filename === 'string' && item.filename.trim()
+   ? `/api/media/file/${encodeURIComponent(item.filename.trim())}`
+   : undefined
+ if (!raw) return undefined
  try {
-  const url = new URL(media.url, siteUrl)
-  return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : undefined
+  const url = new URL(raw, siteUrl)
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') return undefined
+  // Relative media paths should always resolve to the public website.
+  return url.href
  } catch { return undefined }
 }
 export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
