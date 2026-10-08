@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import Brand from '@/app/(frontend)/Brand'
 import { previews, storyPhotos } from '../../page'
@@ -24,7 +25,7 @@ export default async function ArchivePreviewCategory({params}:{params:Promise<{s
    </section>
    <div className="story-grid">{stories.map((story,i)=><article className="story-card" key={story.headline}>
     <div style={{width:'100%',aspectRatio:'16 / 9',overflow:'hidden',background:'#081725',border:'1px solid #294358',marginBottom:20}}>
-     <img src={story.photo.src} alt={story.photo.caption} loading="lazy" style={{display:'block',width:'100%',height:'100%',objectFit:'contain',margin:0}}/>
+     <Image src={story.photo.src} alt={story.photo.caption} width={640} height={360} quality={65} loading="lazy" sizes="(max-width: 700px) 100vw, 33vw" style={{display:'block',width:'100%',height:'100%',objectFit:'cover',margin:0}}/>
     </div><p className="photo-credit">{story.photo.caption} · <a href={story.photo.source} target="_blank" rel="noopener noreferrer">Source / license</a></p>
     <span className="eyebrow">{story.category.toUpperCase()} / ARCHIVE PREVIEW</span>
     <h2>{story.headline}</h2>
