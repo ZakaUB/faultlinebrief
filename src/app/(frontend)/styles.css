@@ -90,3 +90,28 @@ body{background:var(--bg)}
   .newsroom-primary .story-card img,
   .category-page .story-card img {border-radius:11px}
 }
+
+
+/* Masthead positioning only: retain the existing brand, colors, type and navigation. */
+.masthead:has(.masthead-identity){
+  flex-direction:row;
+  justify-content:space-between;
+  align-items:center;
+  text-align:left;
+  gap:20px;
+  padding-left:clamp(8px,2.5vw,34px);
+  padding-right:clamp(8px,2.5vw,34px);
+}
+.masthead-identity{min-width:0;display:flex;flex-direction:column;align-items:flex-start;text-align:left}
+.masthead-identity .brand-with-logo{justify-content:flex-start}
+.masthead-identity p{margin-top:14px}
+.header-globe{width:clamp(118px,17vw,218px);flex:none;display:flex;align-items:center;justify-content:center;opacity:.88}
+.header-globe svg{width:100%;height:auto;display:block}
+@media(max-width:700px){
+ .masthead:has(.masthead-identity){gap:8px;padding-left:0;padding-right:0}
+ .header-globe{width:clamp(65px,17vw,116px)}
+ .masthead-identity .brand-with-logo{gap:8px}
+ .masthead-identity .brand-wordmark{font-size:clamp(20px,5.4vw,38px)}
+ .masthead-identity .brand-logo{width:clamp(40px,9vw,58px);height:clamp(40px,9vw,58px)}
+ .masthead-identity p{font-size:9px;letter-spacing:1px;line-height:1.5}
+}
