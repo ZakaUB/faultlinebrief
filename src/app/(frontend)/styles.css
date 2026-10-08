@@ -191,3 +191,26 @@ body{background:var(--bg)}
     letter-spacing: .2px;
   }
 }
+
+
+/* Compact above-the-fold newsroom layout; keep approved logo and globe styling. */
+.masthead:has(.masthead-identity){
+  padding-top:12px;
+  padding-bottom:12px;
+  min-height:0;
+}
+.masthead .masthead-identity > p{margin-top:7px}
+.masthead .header-globe{width:clamp(130px,17vw,205px)}
+.nav{padding-top:12px;padding-bottom:12px}
+.section-heading{padding-top:12px;padding-bottom:10px}
+.lead-story{padding-top:18px;padding-bottom:38px;gap:clamp(22px,3vw,40px)}
+.lead-copy h1{font-size:clamp(36px,4vw,56px);line-height:1.06;margin:14px 0}
+.lead-copy p{font-size:clamp(14px,1.25vw,17px);line-height:1.5}
+.lead-copy .read-link{margin-top:8px;padding-top:9px}
+@media(max-width:700px){
+ .masthead:has(.masthead-identity){padding-top:10px;padding-bottom:10px}
+ .masthead .header-globe{width:clamp(78px,20vw,120px)}
+ .lead-story{padding-top:16px;padding-bottom:28px;gap:16px}
+ .lead-copy h1{font-size:clamp(31px,7.8vw,43px);line-height:1.08;margin:12px 0}
+ .lead-copy p{font-size:15px}
+}
