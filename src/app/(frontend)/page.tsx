@@ -29,17 +29,7 @@ export default async function HomePage() {
     limit: 20,
   })
   const stories = result.docs as unknown as Story[]
-  // Query the editorial lead independently so an older pinned story is never
-  // lost when it falls outside the 20 most recently published articles.
-  const featured = await payload.find({
-    collection: 'articles' as any,
-    where: { and: [{ status: { equals: 'published' } }, { homepageLead: { equals: true } }] },
-    sort: '-updatedAt',
-    depth: 2,
-    limit: 1,
-  })
-  const selectedLead = (featured.docs as unknown as Story[])[0]
-  const lead = selectedLead ?? stories[0]
+  const lead = stories[0]
   const more = stories.filter(story => story.id !== lead?.id)
 
   const imageFor = (story: Story) =>
