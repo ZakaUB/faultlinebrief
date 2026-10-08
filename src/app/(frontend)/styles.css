@@ -134,24 +134,3 @@ body{background:var(--bg)}
 @media(prefers-reduced-motion:reduce){
  .fb-world-spin,.fb-orbit-one,.fb-orbit-two,.fb-globe-halo,.fb-hotspot{animation:none!important}
 }
-
-
-/* Approved masthead refinement: more prominent original logo, tagline aligned to wordmark. */
-.masthead-identity{--fb-logo-size:clamp(78px,8.5vw,116px);--fb-brand-gap:clamp(14px,1.5vw,20px)}
-.masthead-identity .brand-with-logo{gap:var(--fb-brand-gap)}
-.masthead-identity .brand-logo{width:var(--fb-logo-size);height:var(--fb-logo-size);flex-shrink:0}
-.masthead-identity>p{margin-left:calc(var(--fb-logo-size) + var(--fb-brand-gap));margin-top:13px}
-@media(max-width:900px){
- .masthead-identity{--fb-logo-size:clamp(64px,8vw,88px);--fb-brand-gap:12px}
- .masthead-identity .brand-wordmark{font-size:clamp(26px,4.5vw,49px)}
-}
-@media(max-width:700px){
- .masthead-identity{--fb-logo-size:clamp(44px,9.5vw,66px);--fb-brand-gap:8px}
- .masthead-identity .brand-wordmark{font-size:clamp(19px,5.1vw,34px)}
- .masthead-identity>p{margin-left:calc(var(--fb-logo-size) + var(--fb-brand-gap));font-size:clamp(7px,1.2vw,9px);letter-spacing:.7px}
-}
-@media(max-width:420px){
- .masthead-identity{--fb-logo-size:42px;--fb-brand-gap:6px}
- .masthead-identity .brand-wordmark{font-size:clamp(17px,5vw,21px)}
- .masthead-identity>p{font-size:7px;letter-spacing:.3px}
-}
