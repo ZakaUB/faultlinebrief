@@ -1,3 +1,4 @@
+import HeaderGlobe from '@/app/(frontend)/HeaderGlobe'
 import Link from 'next/link'
 import Image from 'next/image'
 import Brand from '@/app/(frontend)/Brand'
@@ -75,7 +76,7 @@ export const storyPhotos = [
 export default function ArchivePreview() {
  return <div className="site">
   <div className="utility"><span>FAULTLINE BRIEF / EDITORIAL WORKSPACE</span><span>ARCHIVE RECOVERY · NOT FOR PUBLICATION</span></div>
-  <header className="masthead"><Brand/><p>Understand what happened. Know why it matters.</p></header>
+  <header className="masthead"><div className="masthead-identity"><Brand/><p>Understand what happened. Know why it matters.</p></div><HeaderGlobe/></header>
   <div className="ad-slot ad-leaderboard" aria-label="Reserved advertising space"><span>ADVERTISEMENT</span><small>HEADER LEADERBOARD · RESPONSIVE</small></div>
   <nav className="nav" aria-label="Main navigation"><Link href="/">Latest</Link><Link href="/archive-preview/category/geopolitics">Geopolitics</Link><Link href="/archive-preview/category/conflict">Conflict</Link><Link href="/archive-preview/category/security">Security</Link></nav>
   <main className="coverage">
