@@ -5,7 +5,7 @@ export const metadata = { title: 'Recovered Archive Preview | Faultline Brief', 
 
 // Editorial previews derived from previously created Faultline Brief graphics.
 // These are NOT published articles, and dates are asset dates, not verified Facebook post dates.
-const previews = [
+export const previews = [
  { date: '8 September 2026', category: 'Conflict', headline: 'UN Condemns Houthi Attacks on Saudi Arabia, Warns of Escalation Risk', deck: 'A previously created Faultline Brief graphic covered reported cross-border attacks, civilian impacts and concerns about wider escalation.', context: 'The graphic focused on the humanitarian situation in Yemen, regional stability and efforts to reduce escalation.' },
  { date: '8 September 2026', category: 'Conflict', headline: 'Ukraine Reports Major Overnight Drone and Missile Attacks', deck: 'A previously created briefing graphic described Ukrainian reports of strikes across multiple regions and damage to civilian infrastructure.', context: 'The briefing highlighted civilian safety, damage assessments and international support as developments to monitor.' },
  { date: '8 September 2026', category: 'Geopolitics', headline: 'UN Warns of Intensifying Climate Impacts as 2026 Sets New Heat Records', deck: 'A previously created graphic discussed extreme weather, climate risks and possible consequences for food and water security.', context: 'The briefing connected environmental disruption with economic vulnerability and global stability.' },
@@ -18,18 +18,18 @@ const previews = [
  { date: '7 October 2026', category: 'Conflict', headline: 'Three Years After October 7 — Gaza Still Has No Endgame', deck: 'A previously created commemorative graphic examined the war’s human cost, regional repercussions and unresolved questions about Gaza’s future.', context: 'The preview reflects the graphic’s editorial framing; numerical claims require verification before publication.' },
 ]
 
-const illustrations = ["yemen-saudi","ukraine-strikes","climate-risk","dhubab-port","drone-warfare","oil-bypass","riyadh-airport","baghdad-facility","mandeb-war","gaza-anniversary"]
+export const illustrations = ["yemen-saudi","ukraine-strikes","climate-risk","dhubab-port","drone-warfare","oil-bypass","riyadh-airport","baghdad-facility","mandeb-war","gaza-anniversary"]
 
 export default function ArchivePreview() {
  return <div className="site">
   <div className="utility"><span>FAULTLINE BRIEF / EDITORIAL WORKSPACE</span><span>ARCHIVE RECOVERY · NOT FOR PUBLICATION</span></div>
   <header className="masthead"><Brand/><p>Understand what happened. Know why it matters.</p></header>
-  <nav className="nav" aria-label="Main navigation"><Link href="/">Latest</Link><Link href="/categories/geopolitics">Geopolitics</Link><Link href="/categories/conflict">Conflict</Link><Link href="/categories/security">Security</Link></nav>
+  <nav className="nav" aria-label="Main navigation"><Link href="/">Latest</Link><Link href="/archive-preview/category/geopolitics">Geopolitics</Link><Link href="/archive-preview/category/conflict">Conflict</Link><Link href="/archive-preview/category/security">Security</Link></nav>
   <main className="coverage">
    <div className="section-heading"><span>RECOVERED ARCHIVE / DESIGN PREVIEW</span><span>10 HISTORICAL CONTENT LEADS</span></div>
    <section className="archive-lead" aria-label="Lead archive story">
     <div className="archive-lead-copy">
-     <span className="eyebrow">LEAD STORY / CONFLICT / ARCHIVE PREVIEW</span>
+     <Link className="eyebrow" href="/archive-preview/category/conflict">LEAD STORY / CONFLICT / ARCHIVE PREVIEW →</Link>
      <h1>Three Years After October 7 — Gaza Still Has No Endgame</h1>
      <p className="archive-lead-deck">A recovered Faultline Brief anniversary graphic explores the war’s human cost, regional consequences and the unresolved questions about Gaza’s future.</p>
      <p className="archive-lead-note">Source material: 7 October 2026 · Editorial preview only · Facebook publication date unverified</p>
@@ -42,7 +42,7 @@ export default function ArchivePreview() {
    </section>
    <div className="story-grid">{previews.map((story,i)=><article className="story-card" key={i}>
     <div style={{width:"100%",aspectRatio:"16 / 9",overflow:"hidden",background:"#081725",border:"1px solid #294358",marginBottom:20}}><img src={`/archive-preview/${illustrations[i]}.svg`} alt={`Editorial illustration for ${story.headline}; not a documentary photograph`} loading="lazy" style={{display:"block",width:"100%",height:"100%",maxWidth:"100%",aspectRatio:"16 / 9",objectFit:"contain",objectPosition:"center",margin:0}} /></div>
-    <span className="eyebrow">{story.category.toUpperCase()} / ARCHIVE PREVIEW</span>
+    <Link className="eyebrow" href={`/archive-preview/category/${story.category.toLowerCase()}`}>{story.category.toUpperCase()} / ARCHIVE PREVIEW →</Link>
     <h2>{story.headline}</h2>
     <p>{story.deck}</p>
     <p style={{fontSize:12}}>{story.context}</p>
