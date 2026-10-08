@@ -12,6 +12,7 @@ type Story = {
   headline: string
   slug: string
   deck: string
+  homepageLead?: boolean | null
   publishedAt?: string | null
   featuredImage?: { url?: string | null; alt?: string | null } | number | null
   categories?: Array<{ name?: string; slug?: string } | number> | null
@@ -27,8 +28,9 @@ export default async function HomePage() {
     limit: 20,
   })
   const stories = result.docs as unknown as Story[]
-  const lead = stories[0]
-  const more = stories.slice(1)
+  // Editorial override wins; otherwise use the latest published story.
+  const lead = stories.find(story => story.homepageLead) ?? stories[0]
+  const more = stories.filter(story => story.id !== lead?.id)
 
   const imageFor = (story: Story) =>
     typeof story.featuredImage === 'object' && story.featuredImage
