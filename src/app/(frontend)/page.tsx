@@ -20,23 +20,23 @@ type Story = {
 }
 
 export default async function HomePage() {
-  const payload = await getPayload({ config })
-  const result = await payload.find({
-    collection: 'articles' as any,
-    where: { status: { equals: 'published' } },
-    sort: '-publishedAt',
-    depth: 2,
-    limit: 20,
-  })
-  const stories = result.docs as unknown as Story[]
-  const featured = await payload.find({
-    collection: 'articles' as any,
-    where: { and: [{ status: { equals: 'published' } }, { homepageLead: { equals: true } }] },
-    sort: '-updatedAt',
-    depth: 2,
-    limit: 1,
-  })
-  const lead = (featured.docs as unknown as Story[])[0] ?? stories[0]
+  // The editorial fallback must remain available if Payload/Neon is temporarily
+  // unavailable or the CMS schema has not been migrated yet.
+  let stories: Story[] = []
+  try {
+    const payload = await getPayload({ config })
+    const result = await payload.find({
+      collection: 'articles' as any,
+      where: { status: { equals: 'published' } },
+      sort: '-publishedAt',
+      depth: 2,
+      limit: 20,
+    })
+    stories = result.docs as unknown as Story[]
+  } catch (error) {
+    console.error('[Faultline Brief] Homepage CMS query failed; serving editorial fallback:', error)
+  }
+  const lead = stories[0]
   const more = stories.filter(story => story.id !== lead?.id)
 
   const imageFor = (story: Story) =>
