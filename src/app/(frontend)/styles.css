@@ -134,3 +134,60 @@ body{background:var(--bg)}
 @media(prefers-reduced-motion:reduce){
  .fb-world-spin,.fb-orbit-one,.fb-orbit-two,.fb-globe-halo,.fb-hotspot{animation:none!important}
 }
+
+
+/* Approved final masthead alignment; scoped to the homepage identity only. */
+.masthead .masthead-identity {
+  --identity-logo-size: clamp(88px, 8.5vw, 118px);
+  --identity-logo-gap: clamp(12px, 1.5vw, 20px);
+}
+.masthead .masthead-identity .brand-with-logo {
+  gap: var(--identity-logo-gap);
+}
+.masthead .masthead-identity .brand-logo {
+  display: block;
+  width: var(--identity-logo-size);
+  height: var(--identity-logo-size);
+  max-width: none;
+  flex: 0 0 var(--identity-logo-size);
+  object-fit: contain;
+}
+.masthead .masthead-identity > p {
+  margin: 12px 0 0 calc(var(--identity-logo-size) + var(--identity-logo-gap));
+}
+@media (max-width: 900px) {
+  .masthead .masthead-identity {
+    --identity-logo-size: clamp(64px, 8vw, 88px);
+    --identity-logo-gap: 10px;
+  }
+  .masthead .masthead-identity .brand-wordmark {
+    font-size: clamp(25px, 4.5vw, 48px);
+  }
+}
+@media (max-width: 700px) {
+  .masthead .masthead-identity {
+    --identity-logo-size: clamp(45px, 10vw, 64px);
+    --identity-logo-gap: 8px;
+  }
+  .masthead .masthead-identity .brand-wordmark {
+    font-size: clamp(19px, 5vw, 34px);
+  }
+  .masthead .masthead-identity > p {
+    font-size: 8px;
+    letter-spacing: .6px;
+    line-height: 1.5;
+  }
+}
+@media (max-width: 420px) {
+  .masthead .masthead-identity {
+    --identity-logo-size: 44px;
+    --identity-logo-gap: 6px;
+  }
+  .masthead .masthead-identity .brand-wordmark {
+    font-size: clamp(17px, 4.8vw, 21px);
+  }
+  .masthead .masthead-identity > p {
+    font-size: 7px;
+    letter-spacing: .2px;
+  }
+}
