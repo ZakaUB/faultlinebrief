@@ -11,7 +11,10 @@ export const Articles: CollectionConfig = {
     afterChange: [
       async ({ doc, req, context }) => {
         if (context?.updatingHomepageLead || !doc.homepageLead || doc.status !== 'published') return doc
-        const previous = await req.payload.find({
+        // Generated Payload types may omit this collection until `payload generate:types` runs.
+        // Keep the runtime collection hook valid while those types are refreshed.
+        const articlesPayload = req.payload as any
+        const previous = await articlesPayload.find({
           collection: 'articles',
           where: {
             and: [
@@ -24,7 +27,7 @@ export const Articles: CollectionConfig = {
           req,
         })
         for (const article of previous.docs) {
-          await req.payload.update({
+          await articlesPayload.update({
             collection: 'articles',
             id: article.id,
             data: { homepageLead: false },
