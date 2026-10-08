@@ -89,8 +89,8 @@ export default function ArchivePreview() {
      <Link className="eyebrow" href="/briefings/syria-saudi-houthi-escalation">READ FULL ANALYSIS →</Link>
     </div>
     <figure className="archive-lead-figure">
-     <Image src={storyPhotos[6].src} alt={storyPhotos[6].caption} width={960} height={540} priority quality={65} sizes="(max-width: 800px) 100vw, 48vw" />
-     <figcaption>{storyPhotos[6].caption} · <a href={storyPhotos[6].source} target="_blank" rel="noopener noreferrer">Image source and license</a></figcaption>
+     <Image src="https://commons.wikimedia.org/wiki/Special:FilePath/Ahmed%20al-Sharaa%20in%20September%202025.jpg?width=600" alt="Syrian President Ahmad al-Sharaa photographed in New York on 22 September 2025" width={960} height={540} priority quality={65} sizes="(max-width: 800px) 100vw, 48vw" />
+     <figcaption>Syrian President Ahmad al-Sharaa, New York, 22 September 2025. U.S. Department of State / Freddie Everett (public domain). Archival portrait; not a photograph of the reported Saudi discussions. · <a href="https://commons.wikimedia.org/wiki/File:Ahmed_al-Sharaa_in_September_2025.jpg" target="_blank" rel="noopener noreferrer">Image source and license</a></figcaption>
     </figure>
    </section>
    <div className="section-heading" style={{marginTop:32}}><span>MORE COVERAGE / RECOVERED ARCHIVE</span><span>HISTORICAL PREVIEWS · NOT PUBLISHED REPORTS</span></div>
