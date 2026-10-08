@@ -115,3 +115,22 @@ body{background:var(--bg)}
  .masthead-identity .brand-logo{width:clamp(40px,9vw,58px);height:clamp(40px,9vw,58px)}
  .masthead-identity p{font-size:9px;letter-spacing:1px;line-height:1.5}
 }
+
+
+/* Animated intelligence globe — the existing masthead design is unchanged. */
+.header-globe{width:clamp(165px,24vw,290px);opacity:1;isolation:isolate;filter:drop-shadow(0 0 12px rgba(61,197,237,.16))}
+.header-globe svg{overflow:visible}
+.fb-world-spin{animation:fb-earth-drift 55s linear infinite;will-change:transform}
+.fb-orbit-one{animation:fb-orbit-turn 48s linear infinite;transform-origin:160px 120px}
+.fb-orbit-two{animation:fb-orbit-turn 65s linear infinite reverse;transform-origin:160px 120px}
+.fb-globe-halo{animation:fb-atmosphere 7s ease-in-out infinite}
+.fb-hotspot{animation:fb-beacon 3.8s ease-in-out infinite;transform-origin:188px 99px}
+.fb-hotspot-delay{animation-delay:-1.9s;transform-origin:128px 150px}
+@keyframes fb-earth-drift{from{transform:translateX(0)}to{transform:translateX(-184px)}}
+@keyframes fb-orbit-turn{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes fb-atmosphere{0%,100%{opacity:.75}50%{opacity:1}}
+@keyframes fb-beacon{0%,100%{opacity:.55;transform:scale(.85)}50%{opacity:1;transform:scale(1.3)}}
+@media(max-width:700px){.header-globe{width:clamp(90px,24vw,142px)}}
+@media(prefers-reduced-motion:reduce){
+ .fb-world-spin,.fb-orbit-one,.fb-orbit-two,.fb-globe-halo,.fb-hotspot{animation:none!important}
+}
