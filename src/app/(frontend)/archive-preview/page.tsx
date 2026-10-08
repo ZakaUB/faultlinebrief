@@ -18,6 +18,8 @@ const previews = [
  { date: '7 October 2026', category: 'Conflict', headline: 'Three Years After October 7 — Gaza Still Has No Endgame', deck: 'A previously created commemorative graphic examined the war’s human cost, regional repercussions and unresolved questions about Gaza’s future.', context: 'The preview reflects the graphic’s editorial framing; numerical claims require verification before publication.' },
 ]
 
+const illustrations = ["yemen-saudi","ukraine-strikes","climate-risk","dhubab-port","drone-warfare","oil-bypass","riyadh-airport","baghdad-facility","mandeb-war","gaza-anniversary"]
+
 export default function ArchivePreview() {
  return <div className="site">
   <div className="utility"><span>FAULTLINE BRIEF / EDITORIAL WORKSPACE</span><span>ARCHIVE RECOVERY · NOT FOR PUBLICATION</span></div>
@@ -31,6 +33,7 @@ export default function ArchivePreview() {
     <p>These entries are recovered from earlier project graphics, drafts and chat records. They are <strong>not published articles</strong>. Dates refer to the source material, not verified Facebook publication dates. This unindexed page is for testing the newsroom layout only.</p>
    </section>
    <div className="story-grid">{previews.map((story,i)=><article className="story-card" key={i}>
+    <img src={`/archive-preview/${illustrations[i]}.svg`} alt={`Editorial illustration for ${story.headline}; not a documentary photograph`} loading="lazy" width="1200" height="675" />
     <span className="eyebrow">{story.category.toUpperCase()} / ARCHIVE PREVIEW</span>
     <h2>{story.headline}</h2>
     <p>{story.deck}</p>
