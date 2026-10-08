@@ -30,9 +30,9 @@ export const storyPhotos = [
     "caption": "Damaged apartment building in Kyiv, 6 July 2026; contextual image, not the reported September strike"
   },
   {
-    "src": "https://commons.wikimedia.org/wiki/Special:FilePath/Bab%20al-Mandab%20Strait.jpg?width=960",
-    "source": "https://commons.wikimedia.org/wiki/File:Bab_al-Mandab_Strait.jpg",
-    "caption": "Satellite view of the Bab al-Mandab Strait, 2018; geographic context for climate and security impacts"
+    "src": "https://commons.wikimedia.org/wiki/Special:FilePath/Heat%20affected%20crop%20during%20a%20green%20drought.jpg?width=960",
+    "source": "https://commons.wikimedia.org/wiki/File:Heat_affected_crop_during_a_green_drought.jpg",
+    "caption": "Heat-damaged crops during drought in New South Wales, 2009; illustrative climate-impact photograph"
   },
   {
     "src": "https://commons.wikimedia.org/wiki/Special:FilePath/ISS-47%20Port%20of%20Aden%2C%20Yemen.jpg?width=960",
@@ -40,19 +40,19 @@ export const storyPhotos = [
     "caption": "International Space Station view of Aden port; contextual photograph, not Dhubab"
   },
   {
-    "src": "https://commons.wikimedia.org/wiki/Special:FilePath/Destructions%20in%20Kyiv%20after%20Russian%20attack%2C%202026-06-15%20(01).jpg?width=960",
-    "source": "https://commons.wikimedia.org/wiki/File:Destructions_in_Kyiv_after_Russian_attack%2C_2026-06-15_(01).jpg",
-    "caption": "Kyiv building damaged in a June 2026 drone and missile attack; contextual image"
+    "src": "https://commons.wikimedia.org/wiki/Special:FilePath/Attack%20drone%209th%20uas%20brigade.jpg?width=960",
+    "source": "https://commons.wikimedia.org/wiki/File:Attack_drone_9th_uas_brigade.jpg",
+    "caption": "Ukrainian military personnel prepare a drone for launch, August 2026; contextual image"
   },
   {
-    "src": "https://commons.wikimedia.org/wiki/Special:FilePath/Container%20Ship%20'Ever%20Given'%20stuck%20in%20the%20Suez%20Canal%2C%20Egypt%20-%20March%2024th%2C%202021%20(51070311183).jpg?width=960",
-    "source": "https://commons.wikimedia.org/wiki/File:Container_Ship_'Ever_Given'_stuck_in_the_Suez_Canal%2C_Egypt_-_March_24th%2C_2021_(51070311183).jpg",
-    "caption": "Container vessel in the Suez Canal, March 2021; historical illustration of maritime trade vulnerability"
+    "src": "https://commons.wikimedia.org/wiki/Special:FilePath/Ras%20Tanura%20Refinery%20by%20Paul%20Palmer%202487098008.jpg?width=960",
+    "source": "https://commons.wikimedia.org/wiki/File:Ras_Tanura_Refinery_by_Paul_Palmer_2487098008.jpg",
+    "caption": "Saudi Ras Tanura oil refinery photographed in 1979; archival energy-infrastructure context"
   },
   {
-    "src": "https://commons.wikimedia.org/wiki/Special:FilePath/Bab%20Al-Mandeb%20Strait%2C%20between%20Djibouti%20and%20Yemen.jpg?width=960",
-    "source": "https://commons.wikimedia.org/wiki/File:Bab_Al-Mandeb_Strait%2C_between_Djibouti_and_Yemen.jpg",
-    "caption": "U.S. Navy security operations in Bab al-Mandeb, 2018; not Riyadh airport or the reported event"
+    "src": "https://commons.wikimedia.org/wiki/Special:FilePath/Manmohan%20Singh%20being%20received%20by%20the%20Crown%20Prince%20of%20Saudi%20Arabia%20His%20Royal%20Highness%20Sultan%20bin%20Abdul%20Aziz%20Al%20Saud%20at%20King%20Khalid%20International%20Airport-%20Royal%20Terminal%2C%20Riyadh%20in%20Saudi%20Arabia%20on%20February%2027%2C%202010%20(1).jpg?width=960",
+    "source": "https://commons.wikimedia.org/wiki/File:Manmohan_Singh_being_received_by_the_Crown_Prince_of_Saudi_Arabia_His_Royal_Highness_Sultan_bin_Abdul_Aziz_Al_Saud_at_King_Khalid_International_Airport-_Royal_Terminal%2C_Riyadh_in_Saudi_Arabia_on_February_27%2C_2010_(1).jpg",
+    "caption": "King Khalid International Airport royal terminal in Riyadh, February 2010; archival location photograph, not the reported incident"
   },
   {
     "src": "https://commons.wikimedia.org/wiki/Special:FilePath/Baghdad%20International%20Airport.jpg?width=960",
