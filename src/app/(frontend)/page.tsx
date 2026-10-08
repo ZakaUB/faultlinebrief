@@ -1,3 +1,4 @@
+import Brand from '@/app/(frontend)/Brand'
 import Link from 'next/link'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
@@ -36,7 +37,7 @@ export default async function HomePage() {
     <div className="site">
       <div className="utility"><span>INDEPENDENT GEOPOLITICAL INTELLIGENCE</span><span>GEOPOLITICS · CONFLICT · SECURITY</span></div>
       <header className="masthead">
-        <Link href="/" className="brand">FAULTLINE<span>BRIEF</span><b className="brand-dot">.</b></Link>
+        <Brand />
         <p>Understand what happened. Know why it matters.</p>
       </header>
       <nav className="nav" aria-label="Main navigation">
