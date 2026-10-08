@@ -24,6 +24,7 @@ export default function ArchivePreview() {
  return <div className="site">
   <div className="utility"><span>FAULTLINE BRIEF / EDITORIAL WORKSPACE</span><span>ARCHIVE RECOVERY · NOT FOR PUBLICATION</span></div>
   <header className="masthead"><Brand/><p>Understand what happened. Know why it matters.</p></header>
+  <div className="ad-slot ad-leaderboard" aria-label="Reserved advertising space"><span>ADVERTISEMENT</span><small>HEADER LEADERBOARD · RESPONSIVE</small></div>
   <nav className="nav" aria-label="Main navigation"><Link href="/">Latest</Link><Link href="/archive-preview/category/geopolitics">Geopolitics</Link><Link href="/archive-preview/category/conflict">Conflict</Link><Link href="/archive-preview/category/security">Security</Link></nav>
   <main className="coverage">
    <div className="section-heading"><span>RECOVERED ARCHIVE / DESIGN PREVIEW</span><span>10 HISTORICAL CONTENT LEADS</span></div>
@@ -40,14 +41,14 @@ export default function ArchivePreview() {
      <figcaption>Editorial illustration · Not a photograph of an actual event</figcaption>
     </figure>
    </section>
-   <div className="story-grid">{previews.map((story,i)=><article className="story-card" key={i}>
+   <div className="newsroom-layout"><div className="newsroom-primary"><div className="section-heading"><span>LATEST ARCHIVE BRIEFINGS</span><span>RECOVERED STORIES</span></div><div className="story-grid">{previews.map((story,i)=><article className="story-card" key={i}>
     <div style={{width:"100%",aspectRatio:"16 / 9",overflow:"hidden",background:"#081725",border:"1px solid #294358",marginBottom:20}}><img src={`/archive-preview/${illustrations[i]}.svg`} alt={`Editorial illustration for ${story.headline}; not a documentary photograph`} loading="lazy" style={{display:"block",width:"100%",height:"100%",maxWidth:"100%",aspectRatio:"16 / 9",objectFit:"contain",objectPosition:"center",margin:0}} /></div>
     <Link className="eyebrow" href={`/archive-preview/category/${story.category.toLowerCase()}`}>{story.category.toUpperCase()} / ARCHIVE PREVIEW →</Link>
     <h2>{story.headline}</h2>
     <p>{story.deck}</p>
     <p style={{fontSize:12}}>{story.context}</p>
     <span className="eyebrow">SOURCE MATERIAL: {story.date.toUpperCase()}</span>
-   </article>)}</div>
+   </article>)}</div></div><aside className="newsroom-sidebar" aria-label="Story discovery and advertising"><section className="sidebar-panel"><h2>EDITOR\u2019S PICKS</h2><p className="sidebar-intro">Recovered story leads · readership rankings not yet available</p>{[9,5,4,3,7].map((index,rank)=><div className="sidebar-story" key={index}><span>{String(rank+1).padStart(2,"0")}</span><div><Link href={`/archive-preview/category/${previews[index].category.toLowerCase()}`}>{previews[index].headline}</Link><small>{previews[index].category}</small></div></div>)}</section><div className="ad-slot ad-sidebar"><span>ADVERTISEMENT</span><small>SIDEBAR · 300 × 250</small></div><section className="sidebar-panel"><h2>EXPLORE COVERAGE</h2><Link href="/archive-preview/category/geopolitics">Geopolitics →</Link><Link href="/archive-preview/category/conflict">Conflict →</Link><Link href="/archive-preview/category/security">Security →</Link></section><section className="sidebar-panel"><h2>LATEST BRIEFINGS</h2>{previews.slice(-3).reverse().map(story=><p key={story.headline}><Link href={`/archive-preview/category/${story.category.toLowerCase()}`}>{story.headline}</Link></p>)}</section><div className="ad-slot ad-sidebar"><span>ADVERTISEMENT</span><small>ADDITIONAL RESPONSIVE PLACEMENT</small></div></aside></div>
   </main>
   <footer><strong>FAULTLINE BRIEF<span>.</span></strong><span>EDITORIAL PREVIEW — UNPUBLISHED</span><Link href="/">Back to homepage</Link></footer>
  </div>
