@@ -1,3 +1,4 @@
+import React from 'react'
 import Brand from '@/app/(frontend)/Brand'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -17,17 +18,55 @@ export async function generateMetadata({params}:{params:Promise<{slug:string}>})
 }
 
 export const dynamic = 'force-dynamic'
-type Node = { type?: string; text?: string; children?: Node[]; tag?: string; format?: number }
-function renderNodes(nodes: Node[] = []): React.ReactNode {
- return nodes.map((node,i) => {
-   if(node.type==='text') return <span key={i}>{node.text}</span>
-   const content=renderNodes(node.children || [])
-   if(node.type==='paragraph') return <p key={i}>{content}</p>
-   if(node.type==='heading') return <h2 key={i}>{content}</h2>
-   if(node.type==='list') return <ul key={i}>{content}</ul>
-   if(node.type==='listitem') return <li key={i}>{content}</li>
-   if(node.type==='quote') return <blockquote key={i}>{content}</blockquote>
-   return <div key={i}>{content}</div>
+// Render the Payload Lexical document with its supported heading, list, link and text marks.
+type LexicalNode = {
+ type?: string
+ text?: string
+ children?: LexicalNode[]
+ tag?: string
+ format?: number | string
+ listType?: string
+ url?: string
+ fields?: { url?: string; newTab?: boolean; linkType?: string; doc?: unknown }
+}
+function renderNodes(nodes: LexicalNode[] = []): React.ReactNode {
+ return nodes.map((node, i) => {
+   if (node.type === 'linebreak') return <br key={i} />
+   if (node.type === 'text') {
+     let content: React.ReactNode = node.text || ''
+     const format = typeof node.format === 'number' ? node.format : 0
+     if (format & 1) content = <strong>{content}</strong>
+     if (format & 2) content = <em>{content}</em>
+     if (format & 4) content = <s>{content}</s>
+     if (format & 8) content = <u>{content}</u>
+     if (format & 16) content = <code>{content}</code>
+     if (format & 32) content = <sub>{content}</sub>
+     if (format & 64) content = <sup>{content}</sup>
+     return <React.Fragment key={i}>{content}</React.Fragment>
+   }
+   const content = renderNodes(node.children || [])
+   if (node.type === 'paragraph') return <p key={i}>{content}</p>
+   if (node.type === 'heading') {
+     switch (node.tag) {
+       case 'h1': return <h2 key={i}>{content}</h2> // Article title is the only page h1.
+       case 'h3': return <h3 key={i}>{content}</h3>
+       case 'h4': return <h4 key={i}>{content}</h4>
+       case 'h5': return <h5 key={i}>{content}</h5>
+       case 'h6': return <h6 key={i}>{content}</h6>
+       default: return <h2 key={i}>{content}</h2>
+     }
+   }
+   if (node.type === 'list') return node.listType === 'number' ? <ol key={i}>{content}</ol> : <ul key={i}>{content}</ul>
+   if (node.type === 'listitem') return <li key={i}>{content}</li>
+   if (node.type === 'quote') return <blockquote key={i}>{content}</blockquote>
+   if (node.type === 'link' || node.type === 'autolink') {
+     const url = node.fields?.url || node.url
+     // Avoid emitting unsafe protocols from editor-provided links.
+     if (!url || !/^(https?:\\/\\/|mailto:|\\/)/i.test(url) || url.startsWith('//')) return <span key={i}>{content}</span>
+     const external = /^https?:\\/\\//i.test(url)
+     return <a key={i} href={url} target={external && node.fields?.newTab ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined}>{content}</a>
+   }
+   return <React.Fragment key={i}>{content}</React.Fragment>
  })
 }
 export default async function ArticlePage({params}:{params:Promise<{slug:string}>}) {
