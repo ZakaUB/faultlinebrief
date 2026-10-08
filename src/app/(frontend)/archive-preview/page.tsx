@@ -51,9 +51,9 @@ export const storyPhotos = [
     "caption": "Saudi Ras Tanura oil refinery photographed in 1979; archival energy-infrastructure context"
   },
   {
-    "src": "https://commons.wikimedia.org/wiki/Special:FilePath/Manmohan%20Singh%20being%20received%20by%20the%20Crown%20Prince%20of%20Saudi%20Arabia%20His%20Royal%20Highness%20Sultan%20bin%20Abdul%20Aziz%20Al%20Saud%20at%20King%20Khalid%20International%20Airport-%20Royal%20Terminal%2C%20Riyadh%20in%20Saudi%20Arabia%20on%20February%2027%2C%202010%20(1).jpg?width=960",
-    "source": "https://commons.wikimedia.org/wiki/File:Manmohan_Singh_being_received_by_the_Crown_Prince_of_Saudi_Arabia_His_Royal_Highness_Sultan_bin_Abdul_Aziz_Al_Saud_at_King_Khalid_International_Airport-_Royal_Terminal%2C_Riyadh_in_Saudi_Arabia_on_February_27%2C_2010_(1).jpg",
-    "caption": "King Khalid International Airport royal terminal in Riyadh, February 2010; archival location photograph, not the reported incident"
+    "src": "https://commons.wikimedia.org/wiki/Special:FilePath/King%20Khalid%20International%20Airport.jpg?width=960",
+    "source": "https://commons.wikimedia.org/wiki/File:King_Khalid_International_Airport.jpg",
+    "caption": "King Khalid International Airport in Riyadh; contextual airport image, not the reported attack"
   },
   {
     "src": "https://commons.wikimedia.org/wiki/Special:FilePath/Baghdad%20International%20Airport.jpg?width=960",
