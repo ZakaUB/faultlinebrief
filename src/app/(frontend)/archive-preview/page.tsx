@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import Brand from '@/app/(frontend)/Brand'
 
 export const metadata = { title: 'Recovered Archive Preview | Faultline Brief', robots: { index: false, follow: false } }
@@ -88,12 +89,12 @@ export default function ArchivePreview() {
      <p className="archive-lead-note">The historical article body has not yet been recovered; this is not a published news report.</p>
     </div>
     <figure className="archive-lead-figure">
-     <img src={storyPhotos[9].src} alt={storyPhotos[9].caption} width="1200" height="675" />
+     <Image src={storyPhotos[9].src} alt={storyPhotos[9].caption} width={960} height={540} priority quality={65} sizes="(max-width: 800px) 100vw, 48vw" />
      <figcaption>{storyPhotos[9].caption} · <a href={storyPhotos[9].source} target="_blank" rel="noopener noreferrer">Image source and license</a></figcaption>
     </figure>
    </section>
    <div className="newsroom-layout"><div className="newsroom-primary"><div className="section-heading"><span>LATEST ARCHIVE BRIEFINGS</span><span>RECOVERED STORIES</span></div><div className="story-grid">{previews.map((story,i)=><article className="story-card" key={i}>
-    <div style={{width:"100%",aspectRatio:"16 / 9",overflow:"hidden",background:"#081725",border:"1px solid #294358",marginBottom:20}}><img src={storyPhotos[i].src} alt={storyPhotos[i].caption} loading="lazy" style={{display:"block",width:"100%",height:"100%",maxWidth:"100%",aspectRatio:"16 / 9",objectFit:"contain",objectPosition:"center",margin:0}} /></div><p className="photo-credit">{storyPhotos[i].caption} · <a href={storyPhotos[i].source} target="_blank" rel="noopener noreferrer">Source / license</a></p>
+    <div style={{width:"100%",aspectRatio:"16 / 9",overflow:"hidden",background:"#081725",border:"1px solid #294358",marginBottom:20}}><Image src={storyPhotos[i].src} alt={storyPhotos[i].caption} width={640} height={360} quality={65} loading="lazy" sizes="(max-width: 760px) 100vw, (max-width: 1000px) 48vw, 32vw" style={{display:"block",width:"100%",height:"100%",maxWidth:"100%",aspectRatio:"16 / 9",objectFit:"cover",objectPosition:"center",margin:0}} /></div><p className="photo-credit">{storyPhotos[i].caption} · <a href={storyPhotos[i].source} target="_blank" rel="noopener noreferrer">Source / license</a></p>
     <Link className="eyebrow" href={`/archive-preview/category/${story.category.toLowerCase()}`}>{story.category.toUpperCase()} / ARCHIVE PREVIEW →</Link>
     <h2>{story.headline}</h2>
     <p>{story.deck}</p>
