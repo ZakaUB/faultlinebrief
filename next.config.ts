@@ -3,6 +3,9 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   images: {
+    formats: ['image/webp'],
+    minimumCacheTTL: 86400,
+    remotePatterns: [{ protocol: 'https', hostname: 'commons.wikimedia.org', pathname: '/wiki/Special:FilePath/**' }],
     localPatterns: [
       {
         pathname: '/api/media/file/**',
