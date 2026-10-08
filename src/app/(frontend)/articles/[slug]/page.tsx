@@ -3,6 +3,19 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
+import type { Metadata } from 'next'
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
+ const {slug}=await params
+ const payload=await getPayload({config})
+ const result=await payload.find({collection:'articles' as any,where:{and:[{slug:{equals:slug}},{status:{equals:'published'}}]},limit:1,depth:1})
+ const article=result.docs[0] as any
+ if(!article) return {title:'Article not found | Faultline Brief',robots:{index:false}}
+ const title=article.seo?.title||article.headline
+ const description=article.seo?.description||article.deck
+ const url=`https://faultlinebrief.com/articles/${encodeURIComponent(slug)}`
+ return {title,description,alternates:{canonical:url},openGraph:{title,description,url,type:'article',siteName:'Faultline Brief',publishedTime:article.publishedAt||undefined,modifiedTime:article.updatedAt||undefined},twitter:{card:'summary_large_image',title,description}}
+}
+
 export const dynamic = 'force-dynamic'
 type Node = { type?: string; text?: string; children?: Node[]; tag?: string; format?: number }
 function renderNodes(nodes: Node[] = []): React.ReactNode {
