@@ -1,3 +1,4 @@
+import HeaderGlobe from '@/app/(frontend)/HeaderGlobe'
 import Brand from '@/app/(frontend)/Brand'
 import Link from 'next/link'
 import { getPayload } from 'payload'
@@ -50,8 +51,8 @@ export default async function HomePage() {
     <div className="site">
       <div className="utility"><span>INDEPENDENT GEOPOLITICAL INTELLIGENCE</span><span>GEOPOLITICS · CONFLICT · SECURITY</span></div>
       <header className="masthead">
-        <Brand />
-        <p>Understand what happened. Know why it matters.</p>
+        <div className="masthead-identity"><Brand /><p>Understand what happened. Know why it matters.</p></div>
+        <HeaderGlobe />
       </header>
       <nav className="nav" aria-label="Main navigation">
         <Link href="/">Latest</Link><Link href="/categories/geopolitics">Geopolitics</Link><Link href="/categories/conflict">Conflict</Link><Link href="/categories/security">Security</Link><Link href="/about">About</Link>
