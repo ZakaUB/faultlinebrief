@@ -71,3 +71,22 @@ body{background:var(--bg)}
 .article-body{color:#e5f0f9}
 .archive-lead-figure img{background:#173a59}
 @media(prefers-reduced-motion:no-preference){.story-card{transition:transform .2s ease,box-shadow .2s ease}.story-card:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(4,21,39,.22)}}
+
+/* Newsroom photo standard: landscape 16:9 on every card and hero. */
+.archive-lead-figure img,
+.newsroom-primary .story-card img,
+.category-page .story-card img {
+  display:block;
+  width:100%;
+  aspect-ratio:16 / 9;
+  height:auto;
+  object-fit:cover;
+  object-position:center;
+  border-radius:14px;
+}
+.archive-lead-figure img { object-position:center 28%; }
+@media(max-width:700px){
+  .archive-lead-figure img,
+  .newsroom-primary .story-card img,
+  .category-page .story-card img {border-radius:11px}
+}
