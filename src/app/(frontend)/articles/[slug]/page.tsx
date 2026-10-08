@@ -62,8 +62,9 @@ function renderNodes(nodes: LexicalNode[] = []): React.ReactNode {
    if (node.type === 'link' || node.type === 'autolink') {
      const url = node.fields?.url || node.url
      // Avoid emitting unsafe protocols from editor-provided links.
-     if (!url || !/^(https?:\\/\\/|mailto:|\\/)/i.test(url) || url.startsWith('//')) return <span key={i}>{content}</span>
-     const external = /^https?:\\/\\//i.test(url)
+     const external = url?.startsWith('https://') || url?.startsWith('http://')
+     const allowed = external || url?.startsWith('mailto:') || (url?.startsWith('/') && !url.startsWith('//'))
+     if (!url || !allowed) return <span key={i}>{content}</span>
      return <a key={i} href={url} target={external && node.fields?.newTab ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined}>{content}</a>
    }
    return <React.Fragment key={i}>{content}</React.Fragment>
