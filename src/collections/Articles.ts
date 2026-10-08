@@ -5,7 +5,36 @@ export const Articles: CollectionConfig = {
   slug: 'articles',
   admin: {
     useAsTitle: 'headline',
-    defaultColumns: ['headline', 'status', 'publishedAt', 'updatedAt'],
+    defaultColumns: ['headline', 'homepageLead', 'status', 'publishedAt', 'updatedAt'],
+  },
+  hooks: {
+    afterChange: [
+      async ({ doc, req, context }) => {
+        if (context?.updatingHomepageLead || !doc.homepageLead || doc.status !== 'published') return doc
+        const previous = await req.payload.find({
+          collection: 'articles',
+          where: {
+            and: [
+              { homepageLead: { equals: true } },
+              { id: { not_equals: doc.id } },
+            ],
+          },
+          depth: 0,
+          limit: 100,
+          req,
+        })
+        for (const article of previous.docs) {
+          await req.payload.update({
+            collection: 'articles',
+            id: article.id,
+            data: { homepageLead: false },
+            context: { updatingHomepageLead: true },
+            req,
+          })
+        }
+        return doc
+      },
+    ],
   },
   fields: [
     { name: 'headline', type: 'text', required: true },
@@ -28,6 +57,18 @@ export const Articles: CollectionConfig = {
         { label: 'Draft', value: 'draft' },
         { label: 'Published', value: 'published' },
       ],
+    },
+    {
+      name: 'homepageLead',
+      label: 'Set as Homepage Lead',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        position: 'sidebar',
+        description: 'Only one published article can be the lead. Selecting this replaces the previous lead.',
+      },
+      validate: (value: unknown, { siblingData }: { siblingData: any }) =>
+        !value || siblingData?.status === 'published' || 'Publish the article before selecting it as the homepage lead.',
     },
     { name: 'publishedAt', type: 'date', admin: { date: { pickerAppearance: 'dayAndTime' } } },
     {
