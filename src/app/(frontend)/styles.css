@@ -19,3 +19,14 @@ body{font-family:var(--font-body),Arial,sans-serif}
 .brand-wordmark .brand-dot{color:var(--red)}
 @media(max-width:480px){.brand-with-logo{gap:9px}.brand-wordmark{font-size:clamp(23px,7vw,34px);letter-spacing:0}.masthead p{letter-spacing:1.5px;font-size:10px}}
 :focus-visible{outline:3px solid var(--cyan);outline-offset:4px}
+
+/* Recovered archive lead: editorial text on left, lead image on right */
+.archive-lead{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:clamp(20px,3vw,48px);align-items:center;margin:24px 0 40px;padding:clamp(24px,4vw,58px);background:linear-gradient(125deg,#112b43,#091725);border:1px solid var(--line);border-left:4px solid var(--red)}
+.archive-lead-copy{min-width:0}
+.archive-lead h1{font-family:var(--font-headline),Impact,sans-serif;font-size:clamp(38px,4.1vw,66px);line-height:1.03;letter-spacing:.2px;margin:18px 0}
+.archive-lead-deck{font-size:clamp(16px,1.45vw,21px);line-height:1.6;color:var(--white);margin:0 0 20px}
+.archive-lead-note{font-size:12px;line-height:1.6;color:var(--muted)}
+.archive-lead-figure{margin:0;min-width:0}
+.archive-lead-figure img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:#081725;border:1px solid var(--line)}
+.archive-lead-figure figcaption{color:var(--muted);font-size:11px;line-height:1.5;padding-top:10px}
+@media(max-width:800px){.archive-lead{grid-template-columns:1fr}.archive-lead h1{font-size:clamp(36px,8vw,58px)}}
