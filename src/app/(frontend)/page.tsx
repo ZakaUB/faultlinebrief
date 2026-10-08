@@ -56,17 +56,18 @@ export default async function HomePage() {
             {imageFor(lead) ? <img className="lead-image" src={imageFor(lead)!} alt={typeof lead.featuredImage === 'object' ? lead.featuredImage?.alt || lead.headline : lead.headline} /> : <div className="image-placeholder">FAULTLINE / BRIEF</div>}
           </section>
         ) : (
-          <section className="empty-state"><span className="eyebrow">COMING INTO FOCUS</span><h1>The world is shifting.<br/>We are tracking the faultlines.</h1><p>Independent reporting and analysis on geopolitics, conflict and global security. Our first published briefings will appear here.</p></section>
+          <section className="lead-story"><div className="lead-copy"><span className="eyebrow">LEAD STORY / CONFLICT</span><h1><Link href="/briefings/syria-saudi-houthi-escalation">Syria Weighs Military Support for Saudi Arabia as Houthi Attacks Widen Yemen War</Link></h1><p>Reported talks over possible Syrian support for Saudi Arabia raise questions about the wider risks of Yemen's conflict.</p><Link className="read-link" href="/briefings/syria-saudi-houthi-escalation">READ ANALYSIS →</Link></div><div className="image-placeholder">SYRIA / SAUDI ARABIA</div></section>
         )}
         <section id="coverage" className="coverage">
           <div className="section-heading"><span>LATEST BRIEFINGS</span><span>THE DEVELOPING PICTURE</span></div>
+          {!lead && <div className="story-grid"><article className="story-card" style={{padding:24}}><span className="eyebrow">GEOPOLITICS / ANALYSIS</span><h2><Link href="/briefings/trump-iran-strikes-midterms">Trump Weighs New Iran Strikes Before U.S. Midterms</Link></h2><p>Pentagon planning, electoral pressures and the risk of escalation around the Strait of Hormuz.</p><Link className="read-link" href="/briefings/trump-iran-strikes-midterms">READ ANALYSIS →</Link></article></div>}
           {more.length ? <div className="story-grid">{more.map(story => <article className="story-card" key={story.id}>
             {imageFor(story) && <Link href={`/articles/${story.slug}`}><img src={imageFor(story)!} alt={story.headline}/></Link>}
             <span className="eyebrow">FAULTLINE BRIEF</span>
             <h2><Link href={`/articles/${story.slug}`}>{story.headline}</Link></h2>
             <p>{story.deck}</p>
             <Link className="read-link" href={`/articles/${story.slug}`}>READ MORE →</Link>
-          </article>)}</div> : <p className="no-stories">New reporting will appear here as articles are published.</p>}
+          </article>)}</div> : null}
         </section>
         <section id="about" className="about"><span className="eyebrow">OUR PURPOSE</span><h2>Beyond the headlines.<br/>Into the forces shaping them.</h2><p>Faultline Brief follows the geopolitical tensions, security challenges and conflicts shaping our world—with a commitment to clarity, context and evidence.</p></section>
       </main>
