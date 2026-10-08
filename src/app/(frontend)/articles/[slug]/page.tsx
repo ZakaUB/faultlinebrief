@@ -99,6 +99,7 @@ export default async function ArticlePage({params}:{params:Promise<{slug:string}
   ...(image?{image:[image]}:{}),
   ...(article.publishedAt?{datePublished:article.publishedAt}:{}),
   ...(article.updatedAt?{dateModified:article.updatedAt}:{}),
+  author:{'@type':'Organization',name:'Faultline Brief',url:siteUrl},
   publisher:{'@type':'Organization',name:'Faultline Brief',url:siteUrl},
  }
  const structuredDataJson=JSON.stringify(structuredData).replace(/</g,'\\u003c')
