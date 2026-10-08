@@ -30,3 +30,21 @@ body{font-family:var(--font-body),Arial,sans-serif}
 .archive-lead-figure img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:#081725;border:1px solid var(--line)}
 .archive-lead-figure figcaption{color:var(--muted);font-size:11px;line-height:1.5;padding-top:10px}
 @media(max-width:800px){.archive-lead{grid-template-columns:1fr}.archive-lead h1{font-size:clamp(36px,8vw,58px)}}
+
+/* Premium newsroom preview: responsive advertising and editorial discovery */
+.ad-slot{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:8px;background:repeating-linear-gradient(135deg,#0c1d2d,#0c1d2d 12px,#102337 12px,#102337 24px);border:1px dashed #426078;color:#9fb4c6;letter-spacing:1.6px;font:700 11px var(--font-masthead),Arial,sans-serif}
+.ad-slot small{font:500 10px var(--font-body),Arial,sans-serif;letter-spacing:1px;color:#829bad}
+.ad-leaderboard{max-width:970px;width:100%;min-height:100px;margin:18px auto 24px}
+.newsroom-layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:34px;align-items:start;margin:12px 0 45px}
+.newsroom-primary{min-width:0}.newsroom-primary .story-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.newsroom-sidebar{display:flex;flex-direction:column;gap:24px;min-width:0}
+.sidebar-panel{background:#0c1c2d;border:1px solid var(--line);border-top:3px solid var(--red);padding:22px;display:flex;flex-direction:column;gap:13px}
+.sidebar-panel h2{font:700 24px var(--font-headline),Impact,sans-serif;letter-spacing:.5px;margin:0 0 6px}
+.sidebar-intro{color:var(--muted);font-size:12px;line-height:1.6;margin:0 0 8px}
+.sidebar-story{display:flex;gap:14px;border-top:1px solid var(--line);padding:15px 0 2px}
+.sidebar-story>span{color:var(--red);font:700 27px var(--font-headline),Impact,sans-serif}
+.sidebar-story>div{display:flex;flex-direction:column;gap:8px;line-height:1.35;font-weight:700}
+.sidebar-story small{color:var(--cyan);font-size:10px;letter-spacing:1px;text-transform:uppercase}
+.ad-sidebar{min-height:260px}
+@media(max-width:1000px){.newsroom-layout{grid-template-columns:minmax(0,1fr) 260px;gap:18px}.newsroom-primary .story-grid{gap:14px}.sidebar-panel{padding:15px}}
+@media(max-width:760px){.newsroom-layout{grid-template-columns:1fr}.newsroom-primary .story-grid{grid-template-columns:1fr}.newsroom-sidebar{display:grid;grid-template-columns:1fr;gap:18px}.ad-leaderboard{min-height:75px}.ad-sidebar{min-height:180px}}
