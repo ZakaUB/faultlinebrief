@@ -9,3 +9,13 @@ body{font-family:var(--font-body),Arial,sans-serif}
 .story-card h2{font-size:clamp(29px,2.5vw,39px);line-height:1.04}
 .article-page h1{font-size:clamp(45px,6vw,82px);line-height:1.02}
 .nav,.section-heading,.eyebrow,.read-link{font-family:var(--font-masthead),Arial,sans-serif;font-weight:700;letter-spacing:1.5px}
+
+
+/* Responsive uploaded logo and readable masthead */
+.brand-with-logo{display:inline-flex;align-items:center;justify-content:center;gap:18px;max-width:100%}
+.brand-logo{width:clamp(54px,7vw,88px);height:clamp(54px,7vw,88px);object-fit:contain;flex-shrink:0;border-radius:50%}
+.brand-wordmark{white-space:nowrap}
+.brand-wordmark>span{color:var(--red)}
+.brand-wordmark .brand-dot{color:var(--red)}
+@media(max-width:480px){.brand-with-logo{gap:9px}.brand-wordmark{font-size:clamp(23px,7vw,34px);letter-spacing:0}.masthead p{letter-spacing:1.5px;font-size:10px}}
+:focus-visible{outline:3px solid var(--cyan);outline-offset:4px}
