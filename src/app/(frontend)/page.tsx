@@ -2,6 +2,8 @@ import Brand from '@/app/(frontend)/Brand'
 import Link from 'next/link'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
+import Image from 'next/image'
+import { previews, storyPhotos } from './archive-preview/page'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,18 +58,44 @@ export default async function HomePage() {
             {imageFor(lead) ? <img className="lead-image" src={imageFor(lead)!} alt={typeof lead.featuredImage === 'object' ? lead.featuredImage?.alt || lead.headline : lead.headline} /> : <div className="image-placeholder">FAULTLINE / BRIEF</div>}
           </section>
         ) : (
-          <section className="lead-story"><div className="lead-copy"><span className="eyebrow">LEAD STORY / CONFLICT</span><h1><Link href="/briefings/syria-saudi-houthi-escalation">Syria Weighs Military Support for Saudi Arabia as Houthi Attacks Widen Yemen War</Link></h1><p>Reported talks over possible Syrian support for Saudi Arabia raise questions about the wider risks of Yemen's conflict.</p><Link className="read-link" href="/briefings/syria-saudi-houthi-escalation">READ ANALYSIS →</Link></div><div className="image-placeholder">SYRIA / SAUDI ARABIA</div></section>
+          <section className="lead-story"><div className="lead-copy"><span className="eyebrow">LEAD STORY / CONFLICT</span><h1><Link href="/briefings/syria-saudi-houthi-escalation">Syria Weighs Military Support for Saudi Arabia as Houthi Attacks Widen Yemen War</Link></h1><p>Reported talks over possible Syrian support for Saudi Arabia raise questions about the wider risks of Yemen's conflict.</p><Link className="read-link" href="/briefings/syria-saudi-houthi-escalation">READ ANALYSIS →</Link></div><div className="lead-image" style={{position:"relative",overflow:"hidden",aspectRatio:"16 / 9",height:"auto"}}><Image src="https://commons.wikimedia.org/wiki/Special:FilePath/Ahmed%20al-Sharaa%20in%20September%202025.jpg?width=960" alt="Syrian President Ahmad al-Sharaa, archival photograph from September 2025" fill priority sizes="(max-width: 800px) 100vw, 48vw" style={{objectFit:"cover",objectPosition:"center 25%"}} /></div></section>
         )}
         <section id="coverage" className="coverage">
-          <div className="section-heading"><span>LATEST BRIEFINGS</span><span>THE DEVELOPING PICTURE</span></div>
-          {!lead && <div className="story-grid"><article className="story-card" style={{padding:24}}><span className="eyebrow">GEOPOLITICS / ANALYSIS</span><h2><Link href="/briefings/trump-iran-strikes-midterms">Trump Weighs New Iran Strikes Before U.S. Midterms</Link></h2><p>Pentagon planning, electoral pressures and the risk of escalation around the Strait of Hormuz.</p><Link className="read-link" href="/briefings/trump-iran-strikes-midterms">READ ANALYSIS →</Link></article></div>}
-          {more.length ? <div className="story-grid">{more.map(story => <article className="story-card" key={story.id}>
-            {imageFor(story) && <Link href={`/articles/${story.slug}`}><img src={imageFor(story)!} alt={story.headline}/></Link>}
-            <span className="eyebrow">FAULTLINE BRIEF</span>
-            <h2><Link href={`/articles/${story.slug}`}>{story.headline}</Link></h2>
-            <p>{story.deck}</p>
-            <Link className="read-link" href={`/articles/${story.slug}`}>READ MORE →</Link>
-          </article>)}</div> : null}
+          <div className="section-heading"><span>LATEST ANALYSIS &amp; ARCHIVE</span><span>GEOPOLITICS · CONFLICT · SECURITY</span></div>
+          <div className="newsroom-layout">
+            <div className="newsroom-primary">
+              <div className="story-grid">
+                {!lead && <article className="story-card" style={{padding:24}}>
+                  <span className="eyebrow">GEOPOLITICS / NEW ANALYSIS</span>
+                  <h2><Link href="/briefings/trump-iran-strikes-midterms">Trump Weighs New Iran Strikes Before U.S. Midterms</Link></h2>
+                  <p>The Pentagon is preparing options for renewed action. What the election, energy markets and diplomacy mean for the next phase.</p>
+                  <Link className="read-link" href="/briefings/trump-iran-strikes-midterms">READ ANALYSIS →</Link>
+                </article>}
+                {more.map(story => <article className="story-card" key={story.id}>
+                  {imageFor(story) && <Link href={`/articles/${story.slug}`}><img src={imageFor(story)!} alt={story.headline}/></Link>}
+                  <span className="eyebrow">PUBLISHED / FAULTLINE BRIEF</span>
+                  <h2><Link href={`/articles/${story.slug}`}>{story.headline}</Link></h2>
+                  <p>{story.deck}</p><Link className="read-link" href={`/articles/${story.slug}`}>READ MORE →</Link>
+                </article>)}
+                {previews.map((story,i)=><article className="story-card" key={story.headline}>
+                  <Link href={`/archive-preview/category/${story.category.toLowerCase()}`}><Image src={storyPhotos[i].src} alt={storyPhotos[i].caption} width={640} height={360} quality={65} sizes="(max-width: 760px) 100vw, (max-width: 1000px) 48vw, 32vw" style={{width:"100%",height:"auto",aspectRatio:"16 / 9",objectFit:"cover"}} /></Link>
+                  <span className="eyebrow">{story.category.toUpperCase()} / ARCHIVE PREVIEW</span>
+                  <h2><Link href={`/archive-preview/category/${story.category.toLowerCase()}`}>{story.headline}</Link></h2>
+                  <p>{story.deck}</p>
+                  <span className="eyebrow">HISTORICAL MATERIAL · NOT A PUBLISHED ARTICLE</span>
+                </article>)}
+              </div>
+            </div>
+            <aside className="newsroom-sidebar" aria-label="Newsroom sidebar">
+              <section className="sidebar-panel"><h2>EDITOR'S PICKS</h2>
+                <p><Link href="/briefings/trump-iran-strikes-midterms">Trump Weighs New Iran Strikes Before U.S. Midterms →</Link></p>
+                <p><Link href="/briefings/syria-saudi-houthi-escalation">Syria and Saudi Arabia: Regional Escalation →</Link></p>
+                <p><Link href="/archive-preview/category/conflict">Yemen and the Bab el-Mandeb →</Link></p>
+              </section>
+              <div className="ad-slot ad-sidebar"><span>ADVERTISEMENT</span><small>SIDEBAR · 300 × 250</small></div>
+              <section className="sidebar-panel"><h2>EXPLORE COVERAGE</h2><Link href="/archive-preview/category/geopolitics">Geopolitics →</Link><Link href="/archive-preview/category/conflict">Conflict →</Link><Link href="/archive-preview/category/security">Security →</Link></section>
+            </aside>
+          </div>
         </section>
         <section id="about" className="about"><span className="eyebrow">OUR PURPOSE</span><h2>Beyond the headlines.<br/>Into the forces shaping them.</h2><p>Faultline Brief follows the geopolitical tensions, security challenges and conflicts shaping our world—with a commitment to clarity, context and evidence.</p></section>
       </main>
