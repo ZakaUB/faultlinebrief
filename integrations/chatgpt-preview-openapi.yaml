@@ -84,6 +84,7 @@ paths:
         '200':
           description: Articles returned
 components:
+  schemas: {}
   securitySchemes:
     payloadApiKey:
       type: apiKey
