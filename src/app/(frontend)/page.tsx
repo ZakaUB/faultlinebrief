@@ -36,6 +36,7 @@ export default async function HomePage() {
   } catch (error) {
     console.error('[Faultline Brief] Homepage CMS query failed; serving editorial fallback:', error)
   }
+  stories.sort((a, b) => Date.parse(b.publishedAt || '') - Date.parse(a.publishedAt || ''))
   const lead = stories[0]
   const more = stories.filter(story => story.id !== lead?.id)
 
@@ -87,6 +88,9 @@ export default async function HomePage() {
                   <h2><Link href={`/articles/${story.slug}`}>{story.headline}</Link></h2>
                   <p>{story.deck}</p><Link className="read-link" href={`/articles/${story.slug}`}>READ MORE →</Link>
                 </article>)}
+              </div>
+              <div className="section-heading" style={{ marginTop: 36 }}><span>HISTORICAL ARCHIVE PREVIEWS</span><span>NOT PUBLISHED ARTICLES</span></div>
+              <div className="story-grid">
                 {previews.map((story,i)=><article className="story-card" key={story.headline}>
                   <Link href={`/archive-preview/category/${story.category.toLowerCase()}`}><Image src={storyPhotos[i].src} alt={storyPhotos[i].caption} width={640} height={360} quality={65} sizes="(max-width: 760px) 100vw, (max-width: 1000px) 48vw, 32vw" style={{width:"100%",height:"auto",aspectRatio:"16 / 9",objectFit:"cover"}} /></Link>
                   <span className="eyebrow">{story.category.toUpperCase()} / ARCHIVE PREVIEW</span>
