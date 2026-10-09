@@ -25,7 +25,7 @@ export const Articles: CollectionConfig = {
   },
   hooks: {
     beforeChange: [
-      ({ data, req }) => {
+      ({ data, req, originalDoc }) => {
         if (isDraftPublisher(req.user)) {
           if (data.status && data.status !== 'draft') {
             throw new Error('Draft publishers cannot publish articles.')
@@ -34,6 +34,9 @@ export const Articles: CollectionConfig = {
             throw new Error('Draft publishers cannot set publication dates.')
           }
           return { ...data, status: 'draft', publishedAt: null }
+        }
+        if (data.status === 'published' && originalDoc?.status !== 'published' && !data.publishedAt) {
+          return { ...data, publishedAt: new Date().toISOString() }
         }
         return data
       },
