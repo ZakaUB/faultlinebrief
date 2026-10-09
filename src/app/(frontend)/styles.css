@@ -235,3 +235,11 @@ body{background:var(--bg)}
 @media(max-width:700px){
   .article-ad-layout .article-page{margin-top:35px}
 }
+
+
+/* Ensure advertising inventory is visibly reserved in wide desktop article layouts. */
+@media(min-width:1201px){
+  .article-ad-layout{grid-template-columns:160px minmax(0,800px) 160px;column-gap:24px}
+  .article-ad-layout > .article-rail{display:block!important;visibility:visible!important;position:relative;top:auto;margin-top:55px;min-height:600px}
+  .article-ad-layout .article-side-ad{display:flex!important;visibility:visible!important;min-height:600px;background:#214765;border:2px dashed #83a9c2;border-radius:10px;color:#edf4fb}
+}
