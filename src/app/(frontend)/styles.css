@@ -214,3 +214,24 @@ body{background:var(--bg)}
  .lead-copy h1{font-size:clamp(31px,7.8vw,43px);line-height:1.08;margin:12px 0}
  .lead-copy p{font-size:15px}
 }
+
+
+/* Article-only desktop advertising rails. Keep reading column centered. */
+.article-ad-layout{
+  display:grid;
+  grid-template-columns:minmax(0,160px) minmax(0,850px) minmax(0,160px);
+  gap:clamp(14px,2vw,30px);
+  justify-content:center;
+  align-items:start;
+}
+.article-ad-layout .article-page{width:100%;min-width:0;margin:55px 0 100px}
+.article-rail{position:sticky;top:24px;margin-top:55px;min-width:0}
+.article-side-ad{width:100%;min-height:600px;padding:12px 5px}
+@media(max-width:1200px){
+  .article-ad-layout{display:block}
+  .article-rail{display:none}
+  .article-ad-layout .article-page{max-width:850px;margin:55px auto 100px}
+}
+@media(max-width:700px){
+  .article-ad-layout .article-page{margin-top:35px}
+}
