@@ -1,0 +1,94 @@
+openapi: 3.1.0
+info:
+  title: Faultline Brief Preview Draft Publisher
+  version: 1.0.0
+  description: Create and inspect article drafts in the isolated Faultline Brief Preview CMS. Publishing is not exposed.
+servers:
+  - url: https://faultlinebrief-gr9u3nwv8-zakria25-6105.vercel.app
+paths:
+  /api/articles:
+    post:
+      operationId: createFaultlineArticleDraft
+      summary: Create a draft article in Faultline Brief Preview
+      description: >
+        Create a new draft article. Always use status draft. Requires a media ID
+        already present in the Preview media collection. The API key must belong
+        to a dedicated draft_publisher user, not an administrator.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [headline, slug, deck, body, featuredImage, status]
+              properties:
+                headline:
+                  type: string
+                slug:
+                  type: string
+                  description: Lowercase URL slug, no spaces or trailing Copy text.
+                deck:
+                  type: string
+                body:
+                  type: object
+                  description: Valid Payload Lexical rich-text JSON document.
+                  additionalProperties: true
+                featuredImage:
+                  type: integer
+                  description: ID of an existing Preview media record.
+                status:
+                  type: string
+                  enum: [draft]
+                sources:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      url:
+                        type: string
+                seo:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+                    description:
+                      type: string
+      responses:
+        '201':
+          description: Draft created
+        '400':
+          description: Validation error
+        '401':
+          description: Authentication required
+        '403':
+          description: Insufficient permissions
+    get:
+      operationId: listFaultlineArticleDrafts
+      summary: List articles from Preview CMS
+      parameters:
+        - in: query
+          name: where[status][equals]
+          schema:
+            type: string
+            enum: [draft]
+          required: true
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Articles returned
+components:
+  securitySchemes:
+    payloadApiKey:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: "Use the Payload format: users YOUR_DRAFT_PUBLISHER_API_KEY"
+security:
+  - payloadApiKey: []
