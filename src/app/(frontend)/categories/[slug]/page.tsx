@@ -86,18 +86,6 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       <div className="section-heading"><span>{section.name.toUpperCase()}</span><span>FAULTLINE BRIEF / COVERAGE</span></div>
       <div className="empty-state"><h1>{section.name}</h1><p>{section.description}</p></div>
       <div className="story-grid">
-        {existingBriefings.map(story => <article className="story-card" key={story.slug}>
-          <span className="eyebrow">{section.name.toUpperCase()} / ANALYSIS</span>
-          <h2><Link href={`/briefings/${story.slug}`}>{story.headline}</Link></h2>
-          <p>{story.deck}</p>
-          <Link className="read-link" href={`/briefings/${story.slug}`}>READ FULL ANALYSIS →</Link>
-        </article>)}
-        {articles.filter(story => !existingBriefings.some(briefing => briefing.slug === story.slug)).map(story => <article className="story-card" key={story.id}>
-          <span className="eyebrow">{section.name.toUpperCase()} / PUBLISHED</span>
-          <h2><Link href={`/articles/${story.slug}`}>{story.headline}</Link></h2>
-          <p>{story.deck}</p>
-          <Link className="read-link" href={`/articles/${story.slug}`}>READ MORE →</Link>
-        </article>)}
       </div>
       {historicalPreviews.length > 0 && <>
         <div className="section-heading" style={{ marginTop: 32 }}>
