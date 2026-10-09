@@ -4,14 +4,14 @@ info:
   version: 1.0.0
   description: Create and inspect article drafts in the isolated Faultline Brief Preview CMS. Publishing is not exposed.
 servers:
-  - url: https://faultlinebrief-gr9u3nwv8-zakria25-6105.vercel.app
+  - url: https://faultlinebrief-api-gateway.vercel.app
 paths:
   /api/articles:
     post:
       operationId: createFaultlineArticleDraft
       summary: Create a draft article in Faultline Brief Preview
       description: >
-        Create a new draft article. Always use status draft. Requires a media ID
+        Create a new draft article. Gateway enforces status draft. Requires a media ID
         already present in the Preview media collection. The API key must belong
         to a dedicated draft_publisher user, not an administrator.
       requestBody:
@@ -21,7 +21,7 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required: [headline, slug, deck, body, featuredImage, status]
+              required: [headline, slug, deck, body, featuredImage]
               properties:
                 headline:
                   type: string
@@ -37,9 +37,6 @@ paths:
                 featuredImage:
                   type: integer
                   description: ID of an existing Preview media record.
-                status:
-                  type: string
-                  enum: [draft]
                 sources:
                   type: array
                   items:
@@ -67,29 +64,17 @@ paths:
           description: Insufficient permissions
     get:
       operationId: listFaultlineArticleDrafts
-      summary: List articles from Preview CMS
-      parameters:
-        - in: query
-          name: where[status][equals]
-          schema:
-            type: string
-            enum: [draft]
-          required: true
-        - in: query
-          name: limit
-          schema:
-            type: integer
-            default: 10
+      summary: List draft articles from Preview CMS through gateway
       responses:
         '200':
           description: Articles returned
 components:
   schemas: {}
   securitySchemes:
-    payloadApiKey:
+    gatewayApiKey:
       type: apiKey
       in: header
       name: Authorization
-      description: "Use the Payload format: users YOUR_DRAFT_PUBLISHER_API_KEY"
+      description: "Use the gateway key as: Bearer YOUR_GATEWAY_API_KEY"
 security:
   - payloadApiKey: []
