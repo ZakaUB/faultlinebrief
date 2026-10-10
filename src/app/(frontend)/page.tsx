@@ -1,6 +1,7 @@
 import HeaderGlobe from '@/app/(frontend)/HeaderGlobe'
 import Brand from '@/app/(frontend)/Brand'
 import Link from 'next/link'
+import Image from 'next/image'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
 
@@ -40,7 +41,7 @@ export default async function HomePage() {
 
   const imageFor = (story: Story) =>
     typeof story.featuredImage === 'object' && story.featuredImage
-      ? story.featuredImage.url
+      ? (() => { const url = story.featuredImage.url; return url?.startsWith('https://faultlinebrief.com/api/media/file/') ? url.replace('https://faultlinebrief.com', '') : url })()
       : null
 
   return (
@@ -63,7 +64,7 @@ export default async function HomePage() {
               <p>{lead.deck}</p>
               <Link className="read-link" href={`/articles/${lead.slug}`}>READ THE STORY →</Link>
             </div>
-            {imageFor(lead) ? <img className="lead-image" src={imageFor(lead)!} alt={typeof lead.featuredImage === 'object' ? lead.featuredImage?.alt || lead.headline : lead.headline} /> : <div className="image-placeholder">FAULTLINE / BRIEF</div>}
+            {imageFor(lead) ? <Image className="lead-image" src={imageFor(lead)!} alt={typeof lead.featuredImage === 'object' ? lead.featuredImage?.alt || lead.headline : lead.headline} width={900} height={530} sizes="(max-width: 700px) 92vw, (max-width: 1100px) 46vw, 600px" priority /> : <div className="image-placeholder">FAULTLINE / BRIEF</div>}
           </section>
         ) : (
           <section className="lead-story"><div className="lead-copy"><span className="eyebrow">LATEST REPORTING</span><h1>Independent geopolitical reporting and analysis</h1><p>Published stories will appear here as they become available.</p></div></section>
@@ -75,7 +76,7 @@ export default async function HomePage() {
           {more.length > 0 ? (
             <div className="homepage-story-grid">
               {more.map(story => <article className="story-card" key={story.id}>
-                {imageFor(story) && <Link href={`/articles/${story.slug}`}><img src={imageFor(story)!} alt={typeof story.featuredImage === 'object' ? story.featuredImage?.alt || story.headline : story.headline}/></Link>}
+                {imageFor(story) && <Link href={`/articles/${story.slug}`}><Image src={imageFor(story)!} alt={typeof story.featuredImage === 'object' ? story.featuredImage?.alt || story.headline : story.headline} width={480} height={300} sizes="(max-width: 700px) 92vw, (max-width: 900px) 46vw, (max-width: 1100px) 22vw, 24vw" /></Link>}
                 <h2><Link href={`/articles/${story.slug}`}>{story.headline}</Link></h2>
               </article>)}
             </div>
