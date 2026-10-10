@@ -260,3 +260,15 @@ body{background:var(--bg)}
 .homepage-context-links a{color:var(--cyan);font-weight:700;font-size:12px;letter-spacing:1px}
 @media(max-width:1000px){.homepage-story-grid,.homepage-topic-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}}
 @media(max-width:700px){.homepage-story-grid,.homepage-topic-grid{grid-template-columns:1fr}.homepage-context{padding:22px}}
+
+
+/* Restore homepage right rail without reducing the editorial grid to two columns. */
+.homepage-newsroom-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:24px;align-items:start;margin-top:24px}
+.homepage-newsroom-primary{min-width:0}
+.homepage-newsroom-primary .homepage-story-grid{margin-top:0;gap:16px}
+.homepage-newsroom-primary .story-card{padding:14px}
+.homepage-newsroom-primary .story-card h2{font-size:clamp(21px,1.7vw,29px)}
+.homepage-newsroom-layout .newsroom-sidebar{min-width:0}
+@media(max-width:1100px){.homepage-newsroom-layout{grid-template-columns:minmax(0,1fr) 245px;gap:16px}.homepage-newsroom-primary .homepage-story-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}}
+@media(max-width:900px){.homepage-newsroom-layout{grid-template-columns:1fr}.homepage-newsroom-primary .homepage-story-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.homepage-newsroom-layout .newsroom-sidebar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.homepage-newsroom-primary .homepage-story-grid,.homepage-newsroom-layout .newsroom-sidebar{grid-template-columns:1fr}}
