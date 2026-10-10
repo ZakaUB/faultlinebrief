@@ -279,3 +279,16 @@ body{background:var(--bg)}
 .homepage-newsroom-primary .story-card img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;margin-bottom:12px}
 .homepage-newsroom-primary .story-card h2{font-size:clamp(19px,1.55vw,26px);line-height:1.14;margin:0}
 .homepage-newsroom-primary .story-card h2 a{text-decoration:none}
+
+
+/* Compact the desktop lead visual; preserve a full-width image on phones. */
+@media(min-width:701px){
+  .lead-story .lead-image,
+  .lead-story .image-placeholder{
+    aspect-ratio:1.7;
+    height:auto;
+    max-height:355px;
+    object-fit:cover;
+    object-position:center;
+  }
+}
