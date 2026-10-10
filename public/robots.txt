@@ -1,7 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /admin/
-Disallow: /api/
-Disallow: /archive-preview/
-
-Sitemap: https://faultlinebrief.com/sitemap.xml
