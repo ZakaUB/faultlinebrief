@@ -44,7 +44,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       limit: PAGE_SIZE,
       depth: 0,
       sort: '-publishedAt',
-      overrideAccess: false,
     })
 
     for (const article of result.docs) {
