@@ -38,7 +38,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   while (hasNextPage) {
     const result = await payload.find({
-      collection: 'articles',
+      collection: 'articles' as any,
       where: { status: { equals: 'published' } },
       page,
       limit: PAGE_SIZE,
@@ -46,7 +46,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       sort: '-publishedAt',
     })
 
-    for (const article of result.docs) {
+    for (const article of result.docs as Array<{ slug?: string | null; updatedAt?: string | null }>) {
       if (!article.slug) continue
       const updated = article.updatedAt ? new Date(article.updatedAt) : undefined
       entries.push({
