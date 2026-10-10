@@ -33,7 +33,12 @@ export async function generateMetadata({params}:{params:Promise<{slug:string}>})
  const description=article.seo?.description||article.deck
  const url=`${siteUrl}/articles/${encodeURIComponent(slug)}`
  const image=imageUrl(article.featuredImage)
- return {title,description,alternates:{canonical:url},openGraph:{title,description,url,type:'article',siteName:'Faultline Brief',publishedTime:article.publishedAt||undefined,modifiedTime:article.updatedAt||undefined,images:image?[{url:image,alt:article.headline}]:undefined},twitter:{card:image?'summary_large_image':'summary',title,description,images:image?[image]:undefined}}
+ const media=article.featuredImage && typeof article.featuredImage==='object'?article.featuredImage:null
+ const imageAlt=typeof media?.alt==='string' && media.alt.trim()?media.alt.trim():article.headline
+ const imageWidth=Number(media?.width)
+ const imageHeight=Number(media?.height)
+ const socialImage=image?{url:image,alt:imageAlt,...(imageWidth>0&&imageHeight>0?{width:imageWidth,height:imageHeight}:{})}:undefined
+ return {title,description,alternates:{canonical:url},openGraph:{title,description,url,type:'article',siteName:'Faultline Brief',publishedTime:article.publishedAt||undefined,modifiedTime:article.updatedAt||undefined,images:socialImage?[socialImage]:undefined},twitter:{card:image?'summary_large_image':'summary',title,description,images:image?[image]:undefined}}
 }
 
 export const dynamic = 'force-dynamic'
@@ -98,6 +103,7 @@ export default async function ArticlePage({params}:{params:Promise<{slug:string}
  const media=article.featuredImage && typeof article.featuredImage==='object'?article.featuredImage:null
  const image=imageUrl(media)
  const articleUrl=`${siteUrl}/articles/${encodeURIComponent(slug)}`
+ const modifiedAt = article.updatedAt && (!article.publishedAt || Date.parse(article.updatedAt) >= Date.parse(article.publishedAt)) ? article.updatedAt : article.publishedAt
  const structuredData={
   '@context':'https://schema.org',
   '@type':'NewsArticle',
@@ -107,10 +113,10 @@ export default async function ArticlePage({params}:{params:Promise<{slug:string}
   url:articleUrl,
   ...(image?{image:[image]}:{}),
   ...(article.publishedAt?{datePublished:article.publishedAt}:{}),
-  ...(article.updatedAt?{dateModified:article.updatedAt}:{}),
+  ...(modifiedAt?{dateModified:modifiedAt}:{}),
   author:{'@type':'Organization',name:'Faultline Brief',url:siteUrl},
   publisher:{'@type':'Organization',name:'Faultline Brief',url:siteUrl},
  }
  const structuredDataJson=JSON.stringify(structuredData).replace(/</g,'\\u003c')
- return <div className="site"><script type="application/ld+json" dangerouslySetInnerHTML={{__html:structuredDataJson}} /><div className="utility"><span>FAULTLINE BRIEF / INTELLIGENCE</span><span>GEOPOLITICS · CONFLICT · SECURITY</span></div><header className="masthead"><div className="masthead-identity"><Brand /><p>Understand what happened. Know why it matters.</p></div><HeaderGlobe /></header><nav className="nav" aria-label="Main navigation"><Link href="/">Latest</Link><Link href="/categories/geopolitics">Geopolitics</Link><Link href="/categories/conflict">Conflict</Link><Link href="/categories/security">Security</Link><Link href="/about">About</Link></nav><main className="article-page"><span className="eyebrow">FAULTLINE BRIEF / ANALYSIS</span><h1>{article.headline}</h1><p className="deck">{article.deck}</p>{article.publishedAt && <p className="eyebrow">{new Date(article.publishedAt).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</p>}{media?.url && <img className="hero-image" src={media.url} alt={media.alt||article.headline}/>}<div className="article-body">{renderNodes(article.body?.root?.children||[])}</div>{article.sources?.length>0 && <section><h2>Sources</h2><ul>{article.sources.map((s:any,i:number)=><li key={i}>{s.url?<a href={s.url} rel="noopener noreferrer nofollow" target="_blank">{s.name}</a>:s.name}</li>)}</ul></section>}<p><Link className="read-link" href="/">← BACK TO LATEST</Link></p></main><footer><strong>FAULTLINE BRIEF<span>.</span></strong><div className="legal-links"><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/privacy">Privacy</Link><Link href="/editorial-standards">Standards</Link></div></footer></div>
+ return <div className="site"><script type="application/ld+json" dangerouslySetInnerHTML={{__html:structuredDataJson}} /><div className="utility"><span>FAULTLINE BRIEF / INTELLIGENCE</span><span>GEOPOLITICS · CONFLICT · SECURITY</span></div><header className="masthead"><div className="masthead-identity"><Brand /><p>Understand what happened. Know why it matters.</p></div><HeaderGlobe /></header><nav className="nav" aria-label="Main navigation"><Link href="/">Latest</Link><Link href="/categories/geopolitics">Geopolitics</Link><Link href="/categories/conflict">Conflict</Link><Link href="/categories/security">Security</Link><Link href="/about">About</Link></nav><div className="article-ad-layout"><aside className="article-rail article-rail-left" aria-label="Left advertising placement"><div className="ad-slot article-side-ad"><span>ADVERTISEMENT</span><small>VERTICAL BANNER</small><small>160 × 600</small></div></aside><main className="article-page"><span className="eyebrow">FAULTLINE BRIEF / ANALYSIS</span><h1>{article.headline}</h1><p className="deck">{article.deck}</p>{article.publishedAt && <p className="eyebrow"><time dateTime={article.publishedAt}>Published {new Date(article.publishedAt).toLocaleString('en-US',{year:'numeric',month:'long',day:'numeric',hour:'numeric',minute:'2-digit',timeZone:'Asia/Karachi',timeZoneName:'short'})}</time></p>}{media?.url && <img className="hero-image" src={media.url} alt={media.alt||article.headline}/>}<div className="article-body">{renderNodes(article.body?.root?.children||[])}</div>{article.sources?.length>0 && <section><h2>Sources</h2><ul>{article.sources.map((s:any,i:number)=><li key={i}>{s.url?<a href={s.url} rel="noopener noreferrer nofollow" target="_blank">{s.name}</a>:s.name}</li>)}</ul></section>}<p><Link className="read-link" href="/">← BACK TO LATEST</Link></p></main><aside className="article-rail article-rail-right" aria-label="Right advertising placement"><div className="ad-slot article-side-ad"><span>ADVERTISEMENT</span><small>VERTICAL BANNER</small><small>160 × 600</small></div></aside></div><footer><strong>FAULTLINE BRIEF<span>.</span></strong><div className="legal-links"><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/privacy">Privacy</Link><Link href="/editorial-standards">Standards</Link></div></footer></div>
 }
