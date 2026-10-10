@@ -32,7 +32,13 @@ paths:
                   type: string
                 body:
                   type: object
-                  description: Valid Payload Lexical rich-text JSON document.
+                  description: Complete Payload Lexical rich-text JSON document. Include the root object with its children and version.
+                  required: [root]
+                  properties:
+                    root:
+                      type: object
+                      description: Lexical root node containing children, type, direction, format, indent, and version.
+                      additionalProperties: true
                   additionalProperties: true
                 featuredImage:
                   type: integer
@@ -77,4 +83,4 @@ components:
       name: Authorization
       description: "Use the gateway key as: Bearer YOUR_GATEWAY_API_KEY"
 security:
-  - payloadApiKey: []
+  - gatewayApiKey: []
