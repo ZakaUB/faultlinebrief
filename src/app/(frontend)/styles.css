@@ -292,3 +292,8 @@ body{background:var(--bg)}
     object-position:center;
   }
 }
+
+
+/* Article headline: restrained editorial scale across desktop and mobile. */
+.article-page h1{font-size:clamp(34px,3.5vw,52px);line-height:1.12;letter-spacing:.1px;margin:18px 0 22px}
+@media(max-width:700px){.article-page h1{font-size:clamp(32px,7vw,42px);line-height:1.12}}
