@@ -76,10 +76,7 @@ export default async function HomePage() {
             <div className="homepage-story-grid">
               {more.map(story => <article className="story-card" key={story.id}>
                 {imageFor(story) && <Link href={`/articles/${story.slug}`}><img src={imageFor(story)!} alt={typeof story.featuredImage === 'object' ? story.featuredImage?.alt || story.headline : story.headline}/></Link>}
-                <span className="eyebrow">FAULTLINE BRIEF / REPORTING</span>
                 <h2><Link href={`/articles/${story.slug}`}>{story.headline}</Link></h2>
-                <p>{story.deck}</p>
-                <Link className="read-link" href={`/articles/${story.slug}`}>READ MORE →</Link>
               </article>)}
             </div>
           ) : (
