@@ -1,5 +1,6 @@
 import React from 'react'
 import { Barlow_Condensed, Rajdhani, Inter } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
 import './styles.css'
 
 const masthead = Rajdhani({ subsets: ['latin'], weight: ['600','700'], display: 'swap', variable: '--font-masthead' })
@@ -12,5 +13,5 @@ export const metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="en"><body className={`${masthead.variable} ${headline.variable} ${body.variable}`}>{children}</body></html>
+  return <html lang="en"><body className={`${masthead.variable} ${headline.variable} ${body.variable}`}>{children}<Analytics /></body></html>
 }
