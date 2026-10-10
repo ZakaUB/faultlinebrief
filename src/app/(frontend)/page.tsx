@@ -70,6 +70,8 @@ export default async function HomePage() {
         )}
         <section id="coverage" className="coverage">
           <div className="section-heading"><span>LATEST REPORTING &amp; ANALYSIS</span><span>GEOPOLITICS · CONFLICT · SECURITY</span></div>
+          <div className="homepage-newsroom-layout">
+            <div className="homepage-newsroom-primary">
           {more.length > 0 ? (
             <div className="homepage-story-grid">
               {more.map(story => <article className="story-card" key={story.id}>
@@ -83,6 +85,19 @@ export default async function HomePage() {
           ) : (
             <p className="no-stories">New reporting will appear here as it is published.</p>
           )}
+            </div>
+          <aside className="newsroom-sidebar" aria-label="Newsroom sidebar">
+            <section className="sidebar-panel"><h2>EXPLORE COVERAGE</h2>
+              <Link href="/categories/geopolitics">Geopolitics →</Link>
+              <Link href="/categories/conflict">Conflict →</Link>
+              <Link href="/categories/security">Security →</Link>
+            </section>
+            <div className="ad-slot ad-sidebar" aria-label="Advertisement placement"><span>ADVERTISEMENT</span><small>SIDEBAR · 300 × 250</small></div>
+            <section className="sidebar-panel"><h2>EDITOR'S PICKS</h2>
+              {stories.slice(0, 3).map(story => <p key={story.id}><Link href={`/articles/${story.slug}`}>{story.headline} →</Link></p>)}
+            </section>
+          </aside>
+          </div>
         </section>
         <section className="homepage-discover" aria-labelledby="explore-coverage-title">
           <div className="section-heading"><span id="explore-coverage-title">EXPLORE THE FAULTLINES</span><span>THREE CORE COVERAGE AREAS</span></div>
