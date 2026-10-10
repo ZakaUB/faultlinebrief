@@ -33,7 +33,12 @@ export async function generateMetadata({params}:{params:Promise<{slug:string}>})
  const description=article.seo?.description||article.deck
  const url=`${siteUrl}/articles/${encodeURIComponent(slug)}`
  const image=imageUrl(article.featuredImage)
- return {title,description,alternates:{canonical:url},openGraph:{title,description,url,type:'article',siteName:'Faultline Brief',publishedTime:article.publishedAt||undefined,modifiedTime:article.updatedAt||undefined,images:image?[{url:image,alt:article.headline}]:undefined},twitter:{card:image?'summary_large_image':'summary',title,description,images:image?[image]:undefined}}
+ const media=article.featuredImage && typeof article.featuredImage==='object'?article.featuredImage:null
+ const imageAlt=typeof media?.alt==='string' && media.alt.trim()?media.alt.trim():article.headline
+ const imageWidth=Number(media?.width)
+ const imageHeight=Number(media?.height)
+ const socialImage=image?{url:image,alt:imageAlt,...(imageWidth>0&&imageHeight>0?{width:imageWidth,height:imageHeight}:{})}:undefined
+ return {title,description,alternates:{canonical:url},openGraph:{title,description,url,type:'article',siteName:'Faultline Brief',publishedTime:article.publishedAt||undefined,modifiedTime:article.updatedAt||undefined,images:socialImage?[socialImage]:undefined},twitter:{card:image?'summary_large_image':'summary',title,description,images:image?[image]:undefined}}
 }
 
 export const dynamic = 'force-dynamic'
