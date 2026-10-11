@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
 
-export default async function RelatedCoverage({ currentSlug, currentCategory }: { currentSlug: string; currentCategory?: string | number }) {
+export default async function RelatedCoverage({ currentSlug, currentCategory }: { currentSlug: string; currentCategories?: Array<string | number> }) {
   const payload = await getPayload({ config })
   const result = await payload.find({
     collection: 'articles' as any,
@@ -13,9 +13,10 @@ export default async function RelatedCoverage({ currentSlug, currentCategory }: 
   })
   const articles = (result.docs as any[]).filter(item => item.slug && item.headline)
   articles.sort((a, b) => {
-    const ac = typeof a.category === 'object' ? a.category?.id : a.category
-    const bc = typeof b.category === 'object' ? b.category?.id : b.category
-    return Number(bc != null && bc === currentCategory) - Number(ac != null && ac === currentCategory)
+    const categoryIds = (item: any) => (Array.isArray(item.categories) ? item.categories : []).map((c: any) => typeof c === 'object' ? c?.id : c)
+    const ac = categoryIds(a).some((id: any) => currentCategories?.includes(id))
+    const bc = categoryIds(b).some((id: any) => currentCategories?.includes(id))
+    return Number(bc) - Number(ac)
   })
   const related = articles.slice(0, 3)
   if (!related.length) return null
