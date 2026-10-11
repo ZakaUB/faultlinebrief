@@ -75,9 +75,12 @@ export default async function HomePage() {
             <div className="homepage-newsroom-primary">
           {more.length > 0 ? (
             <div className="homepage-story-grid">
-              {more.map(story => <article className="story-card" key={story.id}>
-                {imageFor(story) && <Link href={`/articles/${story.slug}`}><Image src={imageFor(story)!} alt={typeof story.featuredImage === 'object' ? story.featuredImage?.alt || story.headline : story.headline} width={480} height={300} sizes="(max-width: 700px) 92vw, (max-width: 900px) 46vw, (max-width: 1100px) 22vw, 24vw" /></Link>}
-                <h2><Link href={`/articles/${story.slug}`}>{story.headline}</Link></h2>
+              {more.map(story => <article className="story-card story-card-overlay" key={story.id}>
+                <Link className="story-card-overlay-link" href={`/articles/${story.slug}`}>
+                  {imageFor(story) ? <Image src={imageFor(story)!} alt={typeof story.featuredImage === 'object' ? story.featuredImage?.alt || story.headline : story.headline} width={480} height={600} sizes="(max-width: 700px) 92vw, (max-width: 900px) 46vw, (max-width: 1100px) 22vw, 24vw" /> : <span className="story-card-image-fallback" aria-hidden="true" />}
+                  <span className="story-card-overlay-shade" aria-hidden="true" />
+                  <h2>{story.headline}</h2>
+                </Link>
               </article>)}
             </div>
           ) : (
