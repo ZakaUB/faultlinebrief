@@ -3,6 +3,7 @@ import HeaderGlobe from '@/app/(frontend)/HeaderGlobe'
 import Link from 'next/link'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
 import { previews, storyPhotos } from '@/app/(frontend)/archive-preview/page'
@@ -13,6 +14,22 @@ const sections: Record<string, { name: string; description: string }> = {
   geopolitics: { name: 'Geopolitics', description: 'The decisions, rivalries and diplomatic pressures shaping global affairs.' },
   conflict: { name: 'Conflict', description: 'Wars, escalation risks and the human and regional consequences of armed conflict.' },
   security: { name: 'Security', description: 'Defense, emerging threats and the changing architecture of international security.' },
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params
+  const section = sections[slug]
+  if (!section) return { title: 'Category not found | Faultline Brief', robots: { index: false } }
+  const title = `${section.name} News & Analysis | Faultline Brief`
+  const description = `Latest ${section.name.toLowerCase()} reporting and analysis from Faultline Brief. ${section.description}`
+  const url = `https://faultlinebrief.com/categories/${slug}`
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, url, type: 'website', siteName: 'Faultline Brief' },
+    twitter: { card: 'summary', title, description },
+  }
 }
 
 const publishedBriefings = [
