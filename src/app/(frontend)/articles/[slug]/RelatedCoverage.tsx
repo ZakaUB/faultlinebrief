@@ -8,13 +8,13 @@ export default async function RelatedCoverage({ currentSlug, currentCategories }
     collection: 'articles' as any,
     where: { and: [{ status: { equals: 'published' } }, { slug: { not_equals: currentSlug } }] },
     sort: '-publishedAt',
-    limit: 12,
+    limit: 30,
     depth: 0,
   })
   const articles = (result.docs as any[]).filter(item => item.slug && item.headline)
   articles.sort((a, b) => {
     const categoryIds = (item: any) => (Array.isArray(item.categories) ? item.categories : []).map((c: any) => typeof c === 'object' ? c?.id : c)
-    const ac = categoryIds(a).some((id: any) => currentCategories?.includes(id))
+    const ac = categoryIds(a).some((id: any) => currentCategories?.some(category => String(category) === String(id)))
     const bc = categoryIds(b).some((id: any) => currentCategories?.includes(id))
     return Number(bc) - Number(ac)
   })
