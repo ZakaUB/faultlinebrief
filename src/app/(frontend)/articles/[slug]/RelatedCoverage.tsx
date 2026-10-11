@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
 
-export default async function RelatedCoverage({ currentSlug, currentCategory }: { currentSlug: string; currentCategories?: Array<string | number> }) {
+export default async function RelatedCoverage({ currentSlug, currentCategories }: { currentSlug: string; currentCategories?: Array<string | number> }) {
   const payload = await getPayload({ config })
   const result = await payload.find({
     collection: 'articles' as any,
