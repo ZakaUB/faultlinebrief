@@ -9,7 +9,7 @@ import type { Story } from '@/app/(frontend)/newsroom'
 export const dynamic = 'force-dynamic'
 
 const coverageSections = [
-  { slug: 'conflict', name: 'Conflict', eyebrow: '01 / FLASHPOINTS', description: 'Wars, ceasefires and regional escalation.' },
+  { slug: 'conflict', name: 'Conflicts', eyebrow: '01 / FLASHPOINTS', description: 'Wars, ceasefires and regional escalation.' },
   { slug: 'geopolitics', name: 'Geopolitics', eyebrow: '02 / GLOBAL POWER', description: 'Diplomacy, international competition and shifting alliances.' },
   { slug: 'security', name: 'Security', eyebrow: '03 / STRATEGIC RISKS', description: 'Deterrence, defense and emerging threats.' },
 ] as const
