@@ -1,6 +1,7 @@
 import React from 'react'
 import Script from 'next/script'
 import { Barlow_Condensed, Rajdhani, Inter } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
 import './styles.css'
 import GoogleAnalyticsConsent from './GoogleAnalyticsConsent'
 
@@ -14,5 +15,5 @@ export const metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="en"><body className={`${masthead.variable} ${headline.variable} ${body.variable}`}>{children}<GoogleAnalyticsConsent /><Script src="https://static.cloudflareinsights.com/beacon.min.js" strategy="afterInteractive" type="module" data-cf-beacon='{"token":"daaccaf854aa4fdfad93987ae530ee6b"}' /></body></html>
+  return <html lang="en"><body className={`${masthead.variable} ${headline.variable} ${body.variable}`}>{children}<GoogleAnalyticsConsent /><Analytics /><Script src="https://static.cloudflareinsights.com/beacon.min.js" strategy="afterInteractive" type="module" data-cf-beacon='{"token":"daaccaf854aa4fdfad93987ae530ee6b"}' /></body></html>
 }
