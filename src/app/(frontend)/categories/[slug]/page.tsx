@@ -1,3 +1,4 @@
+import SiteNav from '@/app/(frontend)/SiteNav'
 import Brand from '@/app/(frontend)/Brand'
 import HeaderGlobe from '@/app/(frontend)/HeaderGlobe'
 import Link from 'next/link'
@@ -72,7 +73,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
           ],
         },
         sort: '-publishedAt',
-        limit: 30,
+        limit: 100,
         depth: 1,
       })
       articles = result.docs as unknown as CmsArticle[]
@@ -92,13 +93,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       <div className="masthead-identity"><Brand /><p>Understand what happened. Know why it matters.</p></div>
       <HeaderGlobe />
     </header>
-    <nav className="nav" aria-label="Main navigation">
-      <Link href="/">Latest</Link>
-      <Link href="/categories/geopolitics">Geopolitics</Link>
-      <Link href="/categories/conflict">Conflict</Link>
-      <Link href="/categories/security">Security</Link>
-      <Link href="/about">About</Link>
-    </nav>
+    <SiteNav />
     <main className="coverage category-page">
       <div className="section-heading"><span>{section.name.toUpperCase()}</span><span>FAULTLINE BRIEF / COVERAGE</span></div>
       <div className="empty-state"><h1>{section.name}</h1><p>{section.description}</p></div>

@@ -11,6 +11,8 @@ const MAX_SITEMAP_URLS = 50_000
 const fixedPaths = [
   '',
   '/about',
+  '/latest-news',
+  '/analysis',
   '/contact',
   '/privacy',
   '/editorial-standards',
