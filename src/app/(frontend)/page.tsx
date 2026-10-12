@@ -69,12 +69,6 @@ export default async function HomePage() {
               <div className="homepage-all-analysis"><Link className="read-link" href="/analysis">BROWSE ALL REPORTING &amp; ANALYSIS →</Link></div>
             </div>
           <aside className="newsroom-sidebar" aria-label="Newsroom sidebar">
-            <section className="sidebar-panel"><h2>EXPLORE COVERAGE</h2>
-              <Link href="/categories/geopolitics">Geopolitics →</Link>
-              <Link href="/categories/conflict">Conflict →</Link>
-              <Link href="/categories/security">Security →</Link>
-            </section>
-            <div className="ad-slot ad-sidebar" aria-label="Advertisement placement"><span>ADVERTISEMENT</span><small>SIDEBAR · 300 × 250</small></div>
             <section className="sidebar-panel sidebar-latest-updates" aria-labelledby="homepage-latest-updates">
               <h2 id="homepage-latest-updates">LATEST UPDATES</h2>
               {updates.length ? (
@@ -87,6 +81,12 @@ export default async function HomePage() {
               ) : <p className="sidebar-intro">Verified short news updates will appear here once published.</p>}
               <Link className="sidebar-more-link" href="/latest-news">ALL LATEST NEWS →</Link>
             </section>
+            <section className="sidebar-panel"><h2>EXPLORE COVERAGE</h2>
+              <Link href="/categories/geopolitics">Geopolitics →</Link>
+              <Link href="/categories/conflict">Conflict →</Link>
+              <Link href="/categories/security">Security →</Link>
+            </section>
+            <div className="ad-slot ad-sidebar" aria-label="Advertisement placement"><span>ADVERTISEMENT</span><small>SIDEBAR · 300 × 250</small></div>
           </aside>
           </div>
         </section>
