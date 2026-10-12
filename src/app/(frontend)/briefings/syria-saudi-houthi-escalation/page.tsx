@@ -1,3 +1,4 @@
+import SiteNav from '@/app/(frontend)/SiteNav'
 import Link from 'next/link'
 import Brand from '@/app/(frontend)/Brand'
 
@@ -11,7 +12,7 @@ export default function SyriaSaudiBriefing() {
  return <div className="site">
   <div className="utility"><span>FAULTLINE BRIEF / INDEPENDENT ANALYSIS</span><span>8 OCTOBER 2026</span></div>
   <header className="masthead"><Brand/><p>Understand what happened. Know why it matters.</p></header>
-  <nav className="nav"><Link href="/">Latest</Link><Link href="/archive-preview">Archive Preview</Link></nav>
+  <SiteNav />
   <main className="coverage" style={{maxWidth:980,margin:'0 auto'}}>
    <div className="section-heading"><span>CONFLICT / MIDDLE EAST</span><span>8 OCTOBER 2026</span></div>
    <article className="archive-lead" style={{display:'block',padding:'clamp(24px,5vw,56px)'}}>
