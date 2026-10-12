@@ -3,7 +3,7 @@ import Brand from '@/app/(frontend)/Brand'
 import SiteNav from '@/app/(frontend)/SiteNav'
 import Link from 'next/link'
 import Image from 'next/image'
-import { belongsTo, getPublishedStories, imageFor, isLatestNews, storyDate } from '@/app/(frontend)/newsroom'
+import { belongsTo, getEditorialStories, getLatestNewsStories, imageFor, storyDate } from '@/app/(frontend)/newsroom'
 import type { Story } from '@/app/(frontend)/newsroom'
 
 export const dynamic = 'force-dynamic'
@@ -15,16 +15,16 @@ const coverageSections = [
 ] as const
 
 export default async function HomePage() {
-  let stories: Story[] = []
+  let analysis: Story[] = []
+  let updates: Story[] = []
   try {
-    stories = await getPublishedStories(100)
+    [analysis, updates] = await Promise.all([getEditorialStories(100), getLatestNewsStories(5)])
   } catch (error) {
     console.error('[Faultline Brief] Homepage CMS query failed:', error)
   }
-  const updates = stories.filter(isLatestNews)
-  const analysis = stories.filter(story => !isLatestNews(story))
-  const lead = analysis[0]
-  const more = analysis.slice(1, 6)
+  // Preserve today's lead until the editor explicitly marks a Lead Story.
+  const lead = analysis.find(story => story.editorialPlacement === 'lead') ?? analysis[0]
+  const more = analysis.filter(story => story.id !== lead?.id).slice(0, 6)
 
   return (
     <div className="site">
@@ -50,7 +50,7 @@ export default async function HomePage() {
           <section className="lead-story"><div className="lead-copy"><span className="eyebrow">LATEST REPORTING</span><h1>Independent geopolitical reporting and analysis</h1><p>Published stories will appear here as they become available.</p></div></section>
         )}
         <section id="coverage" className="coverage">
-          <div className="section-heading"><span>FEATURED REPORTING &amp; ANALYSIS</span><span>SIX STORIES · ONE GLOBAL PERSPECTIVE</span></div>
+          <div className="section-heading"><span>FEATURED REPORTING &amp; ANALYSIS</span><span>SIX FEATURED STORIES · ONE LEAD</span></div>
           <div className="homepage-newsroom-layout">
             <div className="homepage-newsroom-primary">
           {more.length > 0 ? (

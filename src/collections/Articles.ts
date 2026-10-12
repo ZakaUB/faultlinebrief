@@ -5,7 +5,7 @@ export const Articles: CollectionConfig = {
   slug: 'articles',
   admin: {
     useAsTitle: 'headline',
-    defaultColumns: ['headline', 'status', 'publishedAt', 'updatedAt'],
+    defaultColumns: ['headline', 'editorialPlacement', 'status', 'publishedAt', 'updatedAt'],
   },
   fields: [
     { name: 'headline', type: 'text', required: true },
@@ -27,6 +27,22 @@ export const Articles: CollectionConfig = {
       options: [
         { label: 'Draft', value: 'draft' },
         { label: 'Published', value: 'published' },
+      ],
+    },
+    {
+      name: 'editorialPlacement',
+      label: 'Editorial Placement',
+      type: 'select',
+      required: true,
+      defaultValue: 'featured',
+      admin: {
+        position: 'sidebar',
+        description: 'Lead Story appears prominently; six Featured Stories fill the photo grid; News Stories appear in Latest News and Latest Updates.',
+      },
+      options: [
+        { label: 'Lead Story', value: 'lead' },
+        { label: 'Featured Story', value: 'featured' },
+        { label: 'News Story', value: 'news' },
       ],
     },
     { name: 'publishedAt', type: 'date', admin: { date: { pickerAppearance: 'dayAndTime' } } },

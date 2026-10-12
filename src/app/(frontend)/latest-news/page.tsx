@@ -37,27 +37,21 @@ export default async function LatestNewsPage({ searchParams }: { searchParams: P
   let failed = false
   try {
     const payload = await getPayload({ config })
-    const lookup = await payload.find({
-      collection: 'categories' as any,
-      where: { slug: { equals: 'latest-news' } },
-      limit: 1,
+    const result = await payload.find({
+      collection: 'articles' as any,
+      where: { and: [
+        { status: { equals: 'published' } },
+        { editorialPlacement: { equals: 'news' } },
+      ] },
+      sort: '-publishedAt',
+      page,
+      limit: PAGE_SIZE,
       depth: 0,
     })
-    const category = lookup.docs[0]
-    if (category) {
-      const result = await payload.find({
-        collection: 'articles' as any,
-        where: { and: [{ status: { equals: 'published' } }, { categories: { in: [category.id] } }] },
-        sort: '-publishedAt',
-        page,
-        limit: PAGE_SIZE,
-        depth: 0,
-      })
       updates = result.docs as unknown as Story[]
       hasNextPage = result.hasNextPage
       hasPrevPage = result.hasPrevPage
       totalDocs = result.totalDocs
-    }
   } catch (error) {
     failed = true
     console.error('[Faultline Brief] Latest news query failed:', error)

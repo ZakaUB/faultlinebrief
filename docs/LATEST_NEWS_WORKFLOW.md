@@ -1,25 +1,22 @@
-# Faultline Brief — Latest News workflow
+# Faultline Brief — Editorial Placement in Payload
 
-The homepage features six in-depth stories in total: one lead and five portrait overlay cards. All longer articles remain accessible through /analysis and category pages.
+## Homepage
+Home shows **one Lead Story plus six Featured Story portrait cards**. Other published articles remain in /analysis and their topical categories.
 
-To publish short updates without a database migration, use the existing **Articles** collection.
+## Editorial Placement: three options
+In Payload Admin, open **Collections → Articles → Create/Edit → Editorial Placement** (sidebar).
 
-## One-time setup in Payload Admin
+- **Lead Story** — the large homepage story, chosen by the editor. If more than one published lead is selected, the newest designated lead wins; earlier leads can appear among the six cards.
+- **Featured Story** — eligible for the six-card grid. All 11 existing articles default to Featured Story upon schema migration.
+- **News Story** — appears on /latest-news and in the five most recent Latest Updates links on Home. It does not displace Lead/Featured stories.
 
-In **Collections → Categories**, create **Name: Latest News**, **Slug: latest-news**. This is an editorial classification, not a new fourth main section.
+If no article has Lead Story selected, the newest Featured Story automatically occupies the lead slot. This maintains homepage content until an editor selects a lead.
 
-## Publishing an update
+**Editorial Placement and Categories are independent.** Select Geopolitics, Conflict or Security to populate thematic category lists. A separate Latest News category is no longer required.
 
-1. Open **Collections → Articles → Create New**.
-2. Enter Headline, slug and a concise Summary/Deck.
-3. Add a verified short Body (usually 80–200 words, clearly distinguishing facts from disputed claims).
-4. Upload a licensed Featured Image with descriptive alt text. The existing Articles collection requires an image.
-5. Assign only the **Latest News** category to short updates. For in-depth work choose Geopolitics, Conflict and/or Security instead.
-6. Enter Sources as names and direct URLs; complete the SEO fields.
-7. Set Status to Published and the correct Published At date/time.
+Status must be Published for stories to appear; set Published At date/time. The existing Articles form still requires Headline, Slug, Deck, Body and Featured Image. Publishing and editing remain manual.
 
-The newest 5 brief headlines appear in the homepage **Latest Updates** sidebar. All briefs appear in /latest-news, with pagination.
+## Database schema step, pending owner approval
+`ALTER TABLE public.articles ADD COLUMN IF NOT EXISTS editorial_placement varchar(32) NOT NULL DEFAULT 'featured';`
 
-The new /analysis page displays longer articles beyond the six homepage features. Each of the three homepage category blocks lists up to five published articles categorized there.
-
-There is no automatic content generation or publication. Existing article content is unchanged, and the website's analytics and sitemap functionality are preserved.
+This additive migration was successfully tested on a temporary Neon branch, without changing article content, status, dates, slugs, images or categories. **Do not promote the code to Production until the production database column is added.**

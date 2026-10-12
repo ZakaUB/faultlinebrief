@@ -104,7 +104,7 @@ export default async function ArticlePage({params}:{params:Promise<{slug:string}
  if(!article) notFound()
  const media=article.featuredImage && typeof article.featuredImage==='object'?article.featuredImage:null
  const image=imageUrl(media)
- const isNewsUpdate = Array.isArray(article.categories) && article.categories.some((category: any) => typeof category === 'object' && category?.slug === 'latest-news')
+ const isNewsUpdate = article.editorialPlacement === 'news' || (!article.editorialPlacement && Array.isArray(article.categories) && article.categories.some((category: any) => typeof category === 'object' && category?.slug === 'latest-news'))
  const articleUrl=`${siteUrl}/articles/${encodeURIComponent(slug)}`
  const modifiedAt = article.updatedAt && (!article.publishedAt || Date.parse(article.updatedAt) >= Date.parse(article.publishedAt)) ? article.updatedAt : article.publishedAt
  const structuredData={
