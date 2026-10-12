@@ -1,48 +1,30 @@
 import HeaderGlobe from '@/app/(frontend)/HeaderGlobe'
 import Brand from '@/app/(frontend)/Brand'
+import SiteNav from '@/app/(frontend)/SiteNav'
 import Link from 'next/link'
 import Image from 'next/image'
-import { getPayload } from 'payload'
-import config from '@/payload.config'
+import { belongsTo, getPublishedStories, imageFor, isLatestNews, storyDate } from '@/app/(frontend)/newsroom'
+import type { Story } from '@/app/(frontend)/newsroom'
 
 export const dynamic = 'force-dynamic'
 
-type Story = {
-  id: number
-  headline: string
-  slug: string
-  deck: string
-  homepageLead?: boolean | null
-  publishedAt?: string | null
-  featuredImage?: { url?: string | null; alt?: string | null } | number | null
-  categories?: Array<{ name?: string; slug?: string } | number> | null
-}
+const coverageSections = [
+  { slug: 'conflict', name: 'Conflict', eyebrow: '01 / FLASHPOINTS', description: 'Wars, ceasefires and regional escalation.' },
+  { slug: 'geopolitics', name: 'Geopolitics', eyebrow: '02 / GLOBAL POWER', description: 'Diplomacy, international competition and shifting alliances.' },
+  { slug: 'security', name: 'Security', eyebrow: '03 / STRATEGIC RISKS', description: 'Deterrence, defense and emerging threats.' },
+] as const
 
 export default async function HomePage() {
-  // The editorial fallback must remain available if Payload/Neon is temporarily
-  // unavailable or the CMS schema has not been migrated yet.
   let stories: Story[] = []
   try {
-    const payload = await getPayload({ config })
-    const result = await payload.find({
-      collection: 'articles' as any,
-      where: { status: { equals: 'published' } },
-      sort: '-publishedAt',
-      depth: 2,
-      limit: 9,
-    })
-    stories = result.docs as unknown as Story[]
+    stories = await getPublishedStories(100)
   } catch (error) {
-    console.error('[Faultline Brief] Homepage CMS query failed; serving editorial fallback:', error)
+    console.error('[Faultline Brief] Homepage CMS query failed:', error)
   }
-  stories.sort((a, b) => Date.parse(b.publishedAt || '') - Date.parse(a.publishedAt || ''))
-  const lead = stories[0]
-  const more = stories.filter(story => story.id !== lead?.id).slice(0, 8)
-
-  const imageFor = (story: Story) =>
-    typeof story.featuredImage === 'object' && story.featuredImage
-      ? (() => { const url = story.featuredImage.url; return url?.startsWith('https://faultlinebrief.com/api/media/file/') ? url.replace('https://faultlinebrief.com', '') : url })()
-      : null
+  const updates = stories.filter(isLatestNews)
+  const analysis = stories.filter(story => !isLatestNews(story))
+  const lead = analysis[0]
+  const more = analysis.slice(1, 6)
 
   return (
     <div className="site">
@@ -51,9 +33,7 @@ export default async function HomePage() {
         <div className="masthead-identity"><Brand /><p>Understand what happened. Know why it matters.</p></div>
         <HeaderGlobe />
       </header>
-      <nav className="nav" aria-label="Main navigation">
-        <Link href="/">Latest</Link><Link href="/categories/geopolitics">Geopolitics</Link><Link href="/categories/conflict">Conflict</Link><Link href="/categories/security">Security</Link><Link href="/about">About</Link>
-      </nav>
+      <SiteNav />
       <main>
         <section className="section-heading"><span>THE FRONTLINE</span><span>INDEPENDENT ANALYSIS & REPORTING</span></section>
         {lead ? (
@@ -70,7 +50,7 @@ export default async function HomePage() {
           <section className="lead-story"><div className="lead-copy"><span className="eyebrow">LATEST REPORTING</span><h1>Independent geopolitical reporting and analysis</h1><p>Published stories will appear here as they become available.</p></div></section>
         )}
         <section id="coverage" className="coverage">
-          <div className="section-heading"><span>LATEST REPORTING &amp; ANALYSIS</span><span>GEOPOLITICS · CONFLICT · SECURITY</span></div>
+          <div className="section-heading"><span>FEATURED REPORTING &amp; ANALYSIS</span><span>SIX STORIES · ONE GLOBAL PERSPECTIVE</span></div>
           <div className="homepage-newsroom-layout">
             <div className="homepage-newsroom-primary">
           {more.length > 0 ? (
@@ -86,6 +66,7 @@ export default async function HomePage() {
           ) : (
             <p className="no-stories">New reporting will appear here as it is published.</p>
           )}
+              <div className="homepage-all-analysis"><Link className="read-link" href="/analysis">BROWSE ALL REPORTING &amp; ANALYSIS →</Link></div>
             </div>
           <aside className="newsroom-sidebar" aria-label="Newsroom sidebar">
             <section className="sidebar-panel"><h2>EXPLORE COVERAGE</h2>
@@ -94,25 +75,43 @@ export default async function HomePage() {
               <Link href="/categories/security">Security →</Link>
             </section>
             <div className="ad-slot ad-sidebar" aria-label="Advertisement placement"><span>ADVERTISEMENT</span><small>SIDEBAR · 300 × 250</small></div>
-            <section className="sidebar-panel"><h2>EDITOR'S PICKS</h2>
-              {stories.slice(0, 3).map(story => <p key={story.id}><Link href={`/articles/${story.slug}`}>{story.headline} →</Link></p>)}
+            <section className="sidebar-panel sidebar-latest-updates" aria-labelledby="homepage-latest-updates">
+              <h2 id="homepage-latest-updates">LATEST UPDATES</h2>
+              {updates.length ? (
+                <ol className="sidebar-update-list">
+                  {updates.slice(0, 5).map(story => <li key={story.id}>
+                    {story.publishedAt && <time dateTime={story.publishedAt}>{storyDate(story.publishedAt)}</time>}
+                    <Link href={'/articles/' + encodeURIComponent(story.slug)}>{story.headline}</Link>
+                  </li>)}
+                </ol>
+              ) : <p className="sidebar-intro">Verified short news updates will appear here once published.</p>}
+              <Link className="sidebar-more-link" href="/latest-news">ALL LATEST NEWS →</Link>
             </section>
           </aside>
           </div>
         </section>
         <section className="homepage-discover" aria-labelledby="explore-coverage-title">
-          <div className="section-heading"><span id="explore-coverage-title">EXPLORE THE FAULTLINES</span><span>THREE CORE COVERAGE AREAS</span></div>
+          <div className="section-heading"><span id="explore-coverage-title">EXPLORE THE FAULTLINES</span><span>FIVE LATEST ARTICLES PER CATEGORY</span></div>
           <div className="homepage-topic-grid">
-            <article className="homepage-topic"><span className="eyebrow">01 / GLOBAL POWER</span><h2><Link href="/categories/geopolitics">Geopolitics →</Link></h2><p>Diplomacy, international rivalries and the decisions reshaping the world order.</p></article>
-            <article className="homepage-topic"><span className="eyebrow">02 / FLASHPOINTS</span><h2><Link href="/categories/conflict">Conflict →</Link></h2><p>Wars, ceasefires and the regional consequences of escalating violence.</p></article>
-            <article className="homepage-topic"><span className="eyebrow">03 / STRATEGIC RISKS</span><h2><Link href="/categories/security">Security →</Link></h2><p>Defense, deterrence, maritime chokepoints and emerging security threats.</p></article>
+            {coverageSections.map(section => {
+              const recent = analysis.filter(story => belongsTo(story, section.slug)).slice(0, 5)
+              return <article className="homepage-topic" key={section.slug}>
+                <span className="eyebrow">{section.eyebrow}</span>
+                <h2><Link href={'/categories/' + section.slug}>{section.name} →</Link></h2>
+                <p>{section.description}</p>
+                {recent.length ? <ul className="homepage-category-list">
+                  {recent.map(story => <li key={story.id}><Link href={'/articles/' + encodeURIComponent(story.slug)}>{story.headline}</Link></li>)}
+                </ul> : <p className="homepage-category-empty">Articles will appear here when assigned to this category.</p>}
+                <Link className="homepage-category-more" href={'/categories/' + section.slug}>VIEW ALL {section.name.toUpperCase()} →</Link>
+              </article>
+            })}
           </div>
         </section>
         <section className="homepage-context" aria-labelledby="context-title">
           <span className="eyebrow">BEYOND THE HEADLINES</span>
           <h2 id="context-title">What happened. Why it matters. What comes next.</h2>
           <p>Faultline Brief connects breaking developments to the forces behind them, with clear reporting, context and evidence-led analysis.</p>
-          <div className="homepage-context-links"><Link href="/about">ABOUT FAULTLINE BRIEF →</Link><Link href="/editorial-standards">OUR EDITORIAL STANDARDS →</Link></div>
+          <div className="homepage-context-links"><Link href="/latest-news">LATEST NEWS →</Link><Link href="/analysis">ALL ANALYSIS →</Link><Link href="/editorial-standards">OUR EDITORIAL STANDARDS →</Link></div>
         </section>
         <section id="about" className="about"><span className="eyebrow">OUR PURPOSE</span><h2>Beyond the headlines.<br/>Into the forces shaping them.</h2><p>Faultline Brief follows the geopolitical tensions, security challenges and conflicts shaping our world—with a commitment to clarity, context and evidence.</p></section>
       </main>
