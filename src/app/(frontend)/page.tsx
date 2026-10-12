@@ -24,7 +24,7 @@ export default async function HomePage() {
   }
   // Preserve today's lead until the editor explicitly marks a Lead Story.
   const lead = analysis.find(story => story.editorialPlacement === 'lead') ?? analysis[0]
-  const more = analysis.filter(story => story.id !== lead?.id).slice(0, 6)
+  const more = analysis.filter(story => story.editorialPlacement === 'featured' && story.id !== lead?.id).slice(0, 6)
 
   return (
     <div className="site">
