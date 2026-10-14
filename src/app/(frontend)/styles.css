@@ -349,3 +349,8 @@ body{background:var(--bg)}
 .news-pagination span{color:var(--muted)}
 @media(max-width:900px){.news-page-layout{grid-template-columns:1fr}.news-page-aside{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.news-page-aside{grid-template-columns:1fr}.homepage-all-analysis{text-align:left}.news-page-intro{padding:24px 0}}
+
+/* AdSense readiness: article content remains centered without unused ad rails. */
+.article-content-layout{width:100%;max-width:100%}
+.article-content-layout .article-page{width:calc(100% - 32px);max-width:850px;margin:55px auto 100px}
+@media(max-width:700px){.article-content-layout .article-page{margin-top:35px}}
