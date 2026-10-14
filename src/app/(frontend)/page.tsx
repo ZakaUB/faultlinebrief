@@ -86,7 +86,6 @@ export default async function HomePage() {
               <Link href="/categories/conflict">Conflict →</Link>
               <Link href="/categories/security">Security →</Link>
             </section>
-            <div className="ad-slot ad-sidebar" aria-label="Advertisement placement"><span>ADVERTISEMENT</span><small>SIDEBAR · 300 × 250</small></div>
           </aside>
           </div>
         </section>
