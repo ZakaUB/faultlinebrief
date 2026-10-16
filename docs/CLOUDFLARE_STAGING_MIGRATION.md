@@ -9,7 +9,7 @@ Created 2026-10-16. **Staging only; production cutover NOT authorized.**
 | Git branch | `google-news-sitemap` | `cloudflare-staging-migration` |
 | Web frontend | Vercel `faultlinebrief.com` | Worker `faultlinebrief-cf-staging` (NOT deployed) |
 | CMS + PostgreSQL | Neon `br-dry-fog-b4q67dzl` | Neon `br-noisy-forest-b4k3mjmr` (isolated read-write compute `ep-red-dream-b42nh8xe`, active; SQL connectivity verified 2026-10-16) |
-| Media | Existing Cloudflare R2 bucket | Prefer separate test R2 bucket and test-only credentials |
+| Media | Existing Cloudflare R2 bucket | Dedicated R2 staging bucket `faultlinebrief-staging-media` (user confirmed created); staging-only credentials still needed |
 | DNS | Current production records | **DO NOT CHANGE** |
 
 The existing `wrangler.jsonc` refers to a prior D1-based Worker and is **not** a safe production migration configuration. Do not delete its assets, D1 resource or R2 bucket while testing. The separate `wrangler.staging.jsonc` has a unique Worker name and no custom domain routes.
@@ -23,7 +23,9 @@ The existing `wrangler.jsonc` refers to a prior D1-based Worker and is **not** a
 - [x] Trial OpenNext 1.20.12 and Wrangler 4.151.1 installed in isolated GitHub Actions runner; Worker bundle compiled successfully.\n- [ ] Pin confirmed adapter dependencies and update pnpm lockfile in this branch for reproducible deployment.
 - [ ] Confirm Next.js 16.3.3 + Payload CMS 3.90.2 adapter compatibility during cloud build.
 - [x] Provision staging Neon compute (`ep-red-dream-b42nh8xe`), confirm active, test SQL.\n- [ ] Create staging-only `DATABASE_URL`, `PAYLOAD_SECRET` and R2 environment secrets in Cloudflare; do not commit secrets.
-- [ ] Decide how R2 media will be copied or read safely (DO NOT point staging writes at production bucket).
+- [x] User created a separate R2 staging bucket `faultlinebrief-staging-media`; binding recorded in staging-only Wrangler config.
+- [ ] Create a staging-only R2 API token scoped to this bucket. Set staging `R2_BUCKET=faultlinebrief-staging-media`, `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`; never reuse the production R2 write token.
+- [ ] Decide how existing media will be copied or read safely; production object storage must not be a staging write target.
 - [ ] Deploy only the `faultlinebrief-cf-staging` Worker after protecting its URL with Cloudflare Access or equivalent. Prevent duplicate indexing.
 - [ ] Run smoke tests and live CMS write/read/update, media uploads, admin sign-in, editorial publish/preview, canonical/schema, sitemap, robots, and scheduled cache freshness tests.
 - [ ] Measure US and European TTFB, LCP, error rate, cold-start behavior, Neon connections, image loading, and financial cost under consistent test conditions.
