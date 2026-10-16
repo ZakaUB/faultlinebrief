@@ -1,0 +1,1 @@
+Run authenticated read-only Cloudflare staging diagnostics. No deployment, production DNS, Vercel, or database changes.
