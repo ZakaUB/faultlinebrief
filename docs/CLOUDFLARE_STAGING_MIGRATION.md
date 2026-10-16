@@ -55,3 +55,28 @@ Smoke tests verify HTTP responses only. They are **not** a substitute for intera
 ## Go/no-go conditions
 
 Do not migrate unless the isolated Workers deployment shows functional parity, zero critical regressions, equal or better real-user performance, and acceptable Worker/Neon/R2 operating costs over a representative test window. Keep Vercel production as the rollback path until Cloudflare has demonstrated reliability.
+
+## R2 token created and manual staging deploy workflow prepared — 2026-10-16
+
+The user confirmed a staging R2 API token exists; **never paste token values into chat or Git**.
+
+A manual-only GitHub workflow is at `.github/workflows/cloudflare-staging-deploy.yml`.
+It targets only `faultlinebrief-cf-staging`, with no custom-domain routes, and requires an explicit `DEPLOY-STAGING` confirmation. It has **not been run**.
+
+### Secrets that must be configured before running
+
+Prefer a protected GitHub Actions environment `cloudflare-staging`. Secrets may be stored as repository Actions secrets, but strictly scoped environment secrets are better.
+
+- `CLOUDFLARE_STAGING_API_TOKEN` — **new Cloudflare Workers Edit token** scoped to the account; NOT the R2 storage token.
+- `CLOUDFLARE_STAGING_ACCOUNT_ID` — Cloudflare account ID (not a password, still keep out of code).
+- `CLOUDFLARE_STAGING_DATABASE_URL` — Neon **staging branch** `br-noisy-forest-b4k3mjmr`, never production branch.
+- `CLOUDFLARE_STAGING_PAYLOAD_SECRET` — newly generated staging-only secret, not production secret.
+- `CLOUDFLARE_STAGING_R2_ACCESS_KEY_ID` — restricted staging R2 access key ID.
+- `CLOUDFLARE_STAGING_R2_SECRET_ACCESS_KEY` — restricted staging R2 secret.
+- `CLOUDFLARE_STAGING_R2_ENDPOINT` — `https://<account-id>.r2.cloudflarestorage.com`.
+
+The workflow pins OpenNext/Wrangler in its ephemeral build environment and sets the Worker-specific secrets via Wrangler after staging upload; do not submit the workflow until the entire setup is reviewed. Before allowing testers, enforce Cloudflare Access or other staging authentication and `noindex` responses to prevent indexing duplicate content.
+
+**Important GitHub limitation:** `workflow_dispatch` is generally discoverable/run through GitHub Actions only when the workflow file is present on the repository default branch (`main`). The workflow is intentionally only on the staging branch now, so the Actions UI might not offer a Run button yet. Do not copy the workflow into main or enable automated deploys without an explicit, reviewed decision; preserve production branch isolation.
+
+Before executing a real staging deploy, confirm that the Cloudflare Worker script upload fits account limits, Cloudflare Access is prepared, and the Neon staging branch URL is correct. R2 binding has been declared but the CMS currently uses S3-compatible R2 credentials, not the Worker binding.
