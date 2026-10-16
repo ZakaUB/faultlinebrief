@@ -22,3 +22,5 @@ Automated authenticated staging health probe, sanitized CI output only.
 Fail staging verification when health endpoint returns HTTP 403 or unhealthy result.
 
 Capture safe HTTP response metadata to classify recurring staging-only 403.
+
+Read-only SQL article query and staging-only Payload access check.
