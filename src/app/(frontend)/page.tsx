@@ -111,6 +111,7 @@ export default async function HomePage() {
           <h2 id="context-title">What happened. Why it matters. What comes next.</h2>
           <p>Faultline Brief connects breaking developments to the forces behind them, with clear reporting, context and evidence-led analysis.</p>
           <div className="homepage-context-links"><Link href="/latest-news">LATEST NEWS →</Link><Link href="/analysis">ALL ANALYSIS →</Link><Link href="/editorial-standards">OUR EDITORIAL STANDARDS →</Link></div>
+          <p className="preferred-source-invite">Enjoy Faultline Brief? <a href="https://www.google.com/preferences/source?q=faultlinebrief.com" target="_blank" rel="noopener noreferrer">Add Faultline Brief as a Preferred Source on Google →</a></p>
         </section>
         <section id="about" className="about"><span className="eyebrow">OUR PURPOSE</span><h2>Beyond the headlines.<br/>Into the forces shaping them.</h2><p>Faultline Brief follows the geopolitical tensions, security challenges and conflicts shaping our world—with a commitment to clarity, context and evidence.</p></section>
       </main>
