@@ -30,7 +30,7 @@ jobs:
           const text = await response.text();
           let result;
           try {result=JSON.parse(text);} catch {result={ok:false,step:'non-json-response',kind:'worker-error',status:response.status};}
-          const safe = {httpStatus:response.status,ok:result.ok===true,step:result.step||'unknown',kind:result.kind||'none',signature:result.signature||'none',errorName:result.errorName||'none',noindex:(response.headers.get('x-robots-tag')||'').includes('noindex')};
+          const safe = {httpStatus:response.status,ok:result.ok===true,step:result.step||'unknown',kind:result.kind||'none',signature:result.signature||'none',nested:result.nested||null,errorName:result.errorName||'none',noindex:(response.headers.get('x-robots-tag')||'').includes('noindex')};
           console.log(JSON.stringify(safe));
           if (response.status !== 200 || result.ok !== true) process.exitCode=1;
           NODE
