@@ -2,6 +2,15 @@ name: Cloudflare Worker compatibility build (no deployment)
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - cloudflare-staging-migration
+    paths:
+      - '.github/workflows/cloudflare-staging-worker-build.yml'
+      - 'open-next.config.ts'
+      - 'wrangler.staging.jsonc'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
 
 permissions:
   contents: read
