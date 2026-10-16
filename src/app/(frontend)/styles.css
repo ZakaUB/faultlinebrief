@@ -354,3 +354,8 @@ body{background:var(--bg)}
 .article-content-layout{width:100%;max-width:100%}
 .article-content-layout .article-page{width:calc(100% - 32px);max-width:850px;margin:55px auto 100px}
 @media(max-width:700px){.article-content-layout .article-page{margin-top:35px}}
+
+/* Google Preferred Sources reader prompt */
+.preferred-source-invite{margin:20px 0 18px;font-size:14px;line-height:1.6;color:var(--muted)}
+.preferred-source-invite a{color:var(--cyan);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.preferred-source-invite a:hover,.preferred-source-invite a:focus-visible{text-decoration-thickness:2px}
