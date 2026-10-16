@@ -20,3 +20,5 @@ Staging-only retry with pg and @types/pg installed for direct Neon diagnostic.
 Automated authenticated staging health probe, sanitized CI output only.
 
 Fail staging verification when health endpoint returns HTTP 403 or unhealthy result.
+
+Capture safe HTTP response metadata to classify recurring staging-only 403.
