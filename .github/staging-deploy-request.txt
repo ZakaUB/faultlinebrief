@@ -10,3 +10,5 @@ Staging-only diagnostic error classification update.
 Nested staging-only DB diagnostics enabled.
 
 Cloudflare Payload postgres maxUses=1 isolated staging test.
+
+Cloudflare staging diagnostic: bundle pg-cloudflare instead of externalizing.
