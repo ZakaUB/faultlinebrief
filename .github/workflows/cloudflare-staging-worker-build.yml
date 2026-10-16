@@ -1,0 +1,53 @@
+name: Cloudflare Worker compatibility build (no deployment)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  worker-bundle:
+    name: Adapt Next.js and inspect Worker artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cloudflare-staging-migration
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install repository dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install pinned staging-only Worker tools in CI
+        run: pnpm add --save-dev @opennextjs/cloudflare@1.20.12 wrangler@4.151.1
+      - name: Verify staging isolation
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const config=JSON.parse(fs.readFileSync('wrangler.staging.jsonc','utf8'));
+          if(config.name!=='faultlinebrief-cf-staging'||config.routes?.length!==0||config.workers_dev!==true) throw Error('Unsafe staging target');
+          if(config.d1_databases||config.r2_buckets||config.hyperdrive) throw Error('Unreviewed bindings');
+          console.log('Staging isolation checked');
+          NODE
+      - name: Build Cloudflare Worker (NO deploy)
+        run: pnpm exec opennextjs-cloudflare build --config=wrangler.staging.jsonc
+        env:
+          NODE_OPTIONS: --max-old-space-size=8000
+          CI: 'true'
+      - name: Inspect bundle and static assets
+        run: |
+          test -s .open-next/worker.js
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const stat=fs.statSync('.open-next/worker.js');
+          console.log('Worker bundle bytes:',stat.size);
+          console.log('Static asset directory exists:',fs.existsSync('.open-next/assets'));
+          NODE
+      - name: Guard against accidental upload
+        run: echo "No Cloudflare authentication, publish, or DNS change is performed by this workflow."
