@@ -63,6 +63,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Install staging-only adapter tools
         run: pnpm add -D @opennextjs/cloudflare@1.20.12 wrangler@4.151.1
+      - name: Install staging-only direct PostgreSQL diagnostic dependency
+        run: pnpm add pg@^8 && pnpm add -D @types/pg@^8
       - name: Validate isolated deployment destination
         shell: bash
         run: |
