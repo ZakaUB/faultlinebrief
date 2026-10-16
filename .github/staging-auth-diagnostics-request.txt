@@ -1,1 +1,3 @@
 Run authenticated read-only Cloudflare staging diagnostics. No deployment, production DNS, Vercel, or database changes.
+
+Classify staging edge 403 response using safe numeric Cloudflare error codes.
