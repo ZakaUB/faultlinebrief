@@ -17,7 +17,7 @@ permissions:
 jobs:
   deploy-staging:
     name: Deploy isolated staging Worker
-    if: ${{ github.ref == 'refs/heads/cloudflare-staging-migration' && ((github.event_name == 'workflow_dispatch' && inputs.confirm_staging == 'DEPLOY-STAGING') || (github.event_name == 'push' && github.event.head_commit.message == 'DEPLOY-STAGING: isolated Cloudflare Worker only')) }}
+    if: ${{ github.ref == 'refs/heads/cloudflare-staging-migration' && ((github.event_name == 'workflow_dispatch' && inputs.confirm_staging == 'DEPLOY-STAGING') || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'DEPLOY-STAGING'))) }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: cloudflare-staging
