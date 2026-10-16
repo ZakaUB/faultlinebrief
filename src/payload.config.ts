@@ -45,6 +45,9 @@ export default buildConfig({
   db: postgresAdapter({
     pool: {
       connectionString: process.env.DATABASE_URL || '',
+      // Workers cannot reuse PostgreSQL connections across separate requests.
+      // Cloudflare/Payload recommend maxUses: 1 before introducing Hyperdrive.
+      maxUses: 1,
     },
   }),
 })
