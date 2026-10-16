@@ -1,0 +1,28 @@
+name: Cloudflare staging authenticated runtime tests
+
+on:
+  push:
+    branches: [cloudflare-staging-migration]
+    paths:
+      - 'scripts/cloudflare-staging-authenticated.mjs'
+      - '.github/workflows/cloudflare-staging-authenticated.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  authenticated-runtime:
+    name: Read-only CMS and article runtime smoke checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    environment: cloudflare-staging
+    env:
+      STAGING_ACCESS_PASSWORD: ${{ secrets.CLOUDFLARE_STAGING_ACCESS_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Execute read-only checks against protected staging
+        run: node scripts/cloudflare-staging-authenticated.mjs
