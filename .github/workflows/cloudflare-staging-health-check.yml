@@ -23,7 +23,7 @@ jobs:
           node --input-type=module <<'NODE'
           const password = process.env.STAGING_ACCESS_PASSWORD;
           if (!password || password.length < 24) throw Error('Staging access secret missing');
-          const url = 'https://faultlinebrief-cf-staging.zakria25.workers.dev/__staging-health';
+          const url = 'https://faultlinebrief-cf-staging.zakria25.workers.dev/staging-health';
           const authorization = 'Basic ' + Buffer.from('staging:' + password).toString('base64');
           const response = await fetch(url, {headers:{authorization},signal:AbortSignal.timeout(25000)});
           const type = response.headers.get('content-type')||'';
