@@ -1,0 +1,85 @@
+name: Cloudflare staging deploy (manual, never production)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_staging:
+        description: 'Type DEPLOY-STAGING to authorize only faultlinebrief-cf-staging'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-staging:
+    name: Deploy isolated staging Worker
+    if: ${{ github.ref == 'refs/heads/cloudflare-staging-migration' && inputs.confirm_staging == 'DEPLOY-STAGING' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: cloudflare-staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+      DATABASE_URL: ${{ secrets.CLOUDFLARE_STAGING_DATABASE_URL }}
+      PAYLOAD_SECRET: ${{ secrets.CLOUDFLARE_STAGING_PAYLOAD_SECRET }}
+      R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_STAGING_R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_STAGING_R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.CLOUDFLARE_STAGING_R2_ENDPOINT }}
+      R2_BUCKET: faultlinebrief-staging-media
+      CI: 'true'
+    steps:
+      - name: Verify mandatory staging secrets exist (values never printed)
+        shell: bash
+        run: |
+          for key in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID DATABASE_URL PAYLOAD_SECRET R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_ENDPOINT; do
+            if [[ -z "${!key}" ]]; then echo "::error::Missing staging secret $key"; exit 1; fi
+          done
+          if [[ "$R2_ENDPOINT" != https://*.r2.cloudflarestorage.com* ]]; then
+            echo "::error::Unexpected R2 S3 endpoint"; exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Install staging-only adapter tools
+        run: pnpm add -D @opennextjs/cloudflare@1.20.12 wrangler@4.151.1
+      - name: Validate isolated deployment destination
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const c = JSON.parse(fs.readFileSync('wrangler.staging.jsonc','utf8'));
+          if (c.name !== 'faultlinebrief-cf-staging') throw Error('Invalid Worker target');
+          if (c.routes?.length !== 0 || c.workers_dev !== true) throw Error('Custom domain target prohibited');
+          if (c.d1_databases || c.hyperdrive) throw Error('Legacy database references prohibited');
+          if (c.r2_buckets?.length !== 1 || c.r2_buckets[0].bucket_name !== 'faultlinebrief-staging-media') throw Error('Production R2 references prohibited');
+          console.log('Staging destination checks passed');
+          NODE
+      - name: Build Worker
+        run: pnpm exec opennextjs-cloudflare build --config=wrangler.staging.jsonc
+      - name: Check bundle exists
+        run: test -s .open-next/worker.js
+      - name: Upload staging Worker (no custom domain)
+        run: pnpm exec wrangler deploy --config wrangler.staging.jsonc --name faultlinebrief-cf-staging
+      - name: Set Cloudflare secrets on staging Worker
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const names = ['DATABASE_URL','PAYLOAD_SECRET','R2_ACCESS_KEY_ID','R2_SECRET_ACCESS_KEY','R2_ENDPOINT','R2_BUCKET'];
+          const data = Object.fromEntries(names.map(n=>[n,process.env[n]]));
+          fs.writeFileSync('/tmp/faultline-staging-secrets.json', JSON.stringify(data), { mode: 0o600 });
+          NODE
+          pnpm exec wrangler secret bulk /tmp/faultline-staging-secrets.json --config wrangler.staging.jsonc --name faultlinebrief-cf-staging
+          rm -f /tmp/faultline-staging-secrets.json
+      - name: Report staged deployment
+        run: echo "Deployed isolated staging Worker only. No production DNS or Vercel changes."
