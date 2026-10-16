@@ -6,3 +6,5 @@ Diagnostic TypeScript fix confirmed for isolated staging test.
 Deploy route correction for authorized staging diagnostics.
 
 Staging-only diagnostic error classification update.
+
+Nested staging-only DB diagnostics enabled.
