@@ -8,7 +8,7 @@ Created 2026-10-16. **Staging only; production cutover NOT authorized.**
 | --- | --- | --- |
 | Git branch | `google-news-sitemap` | `cloudflare-staging-migration` |
 | Web frontend | Vercel `faultlinebrief.com` | Worker `faultlinebrief-cf-staging` (NOT deployed) |
-| CMS + PostgreSQL | Neon `br-dry-fog-b4q67dzl` | Neon `br-noisy-forest-b4k3mjmr` (created without compute) |
+| CMS + PostgreSQL | Neon `br-dry-fog-b4q67dzl` | Neon `br-noisy-forest-b4k3mjmr` (isolated read-write compute `ep-red-dream-b42nh8xe`, active; SQL connectivity verified 2026-10-16) |
 | Media | Existing Cloudflare R2 bucket | Prefer separate test R2 bucket and test-only credentials |
 | DNS | Current production records | **DO NOT CHANGE** |
 
@@ -17,12 +17,12 @@ The existing `wrangler.jsonc` refers to a prior D1-based Worker and is **not** a
 ## Current status
 
 - [x] Separate GitHub branch created.
-- [x] Separate Neon database branch created (no compute initially).
+- [x] Separate Neon database branch created; compute provisioned and read-only SQL connectivity test passed (2026-10-16).
 - [x] Staging-only Worker configuration prepared; not deployed.
 - [x] Read-only smoke-test script added; not yet executed against Cloudflare.
-- [ ] Select and pin tested `@opennextjs/cloudflare` and `wrangler` dependencies; update pnpm lockfile in this branch.
+- [x] Trial OpenNext 1.20.12 and Wrangler 4.151.1 installed in isolated GitHub Actions runner; Worker bundle compiled successfully.\n- [ ] Pin confirmed adapter dependencies and update pnpm lockfile in this branch for reproducible deployment.
 - [ ] Confirm Next.js 16.3.3 + Payload CMS 3.90.2 adapter compatibility during cloud build.
-- [ ] Provision staging compute for the Neon branch and create staging-only `DATABASE_URL`, `PAYLOAD_SECRET` and R2 environment secrets in Cloudflare.
+- [x] Provision staging Neon compute (`ep-red-dream-b42nh8xe`), confirm active, test SQL.\n- [ ] Create staging-only `DATABASE_URL`, `PAYLOAD_SECRET` and R2 environment secrets in Cloudflare; do not commit secrets.
 - [ ] Decide how R2 media will be copied or read safely (DO NOT point staging writes at production bucket).
 - [ ] Deploy only the `faultlinebrief-cf-staging` Worker after protecting its URL with Cloudflare Access or equivalent. Prevent duplicate indexing.
 - [ ] Run smoke tests and live CMS write/read/update, media uploads, admin sign-in, editorial publish/preview, canonical/schema, sitemap, robots, and scheduled cache freshness tests.
