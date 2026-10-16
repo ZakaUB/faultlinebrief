@@ -83,6 +83,7 @@ jobs:
               if not any(k in doc for k in ('step','ok')):
                 print('EDGE_RESPONSE_NOT_STAGING_DIAGNOSTIC')
                 print('EDGE_JSON_TOP_KEYS',sorted(doc.keys()))
+                print('EDGE_STRUCTURED_CODE',str(doc.get('error_code','unknown'))[:80], 'category',str(doc.get('error_category','unknown'))[:80], 'owner_action_required',doc.get('owner_action_required'))
                 if isinstance(doc.get('errors'),list):
                   print('EDGE_ERROR_CODES',[e.get('code') for e in doc['errors'][:3] if isinstance(e,dict) and isinstance(e.get('code'),int)])
                 if isinstance(doc.get('code'),int):
