@@ -94,5 +94,32 @@ jobs:
           NODE
           pnpm exec wrangler secret bulk /tmp/faultline-staging-secrets.json --config wrangler.staging.jsonc --name faultlinebrief-cf-staging
           rm -f /tmp/faultline-staging-secrets.json
+      - name: Probe protected staging runtime (sanitized JSON only)
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request, urllib.error, base64
+          url = "https://faultlinebrief-cf-staging.zakria25.workers.dev/staging-health"
+          credential = base64.b64encode(("staging:" + os.environ["STAGING_ACCESS_PASSWORD"]).encode()).decode()
+          req = urllib.request.Request(url, headers={"Authorization": "Basic " + credential, "Accept": "application/json"})
+          try:
+              response = urllib.request.urlopen(req, timeout=35)
+          except urllib.error.HTTPError as exc:
+              response = exc
+          except Exception as exc:
+              print("STAGING_HEALTH network_failure", type(exc).__name__)
+              raise SystemExit(1)
+          try:
+              data = json.loads(response.read(8192))
+              safe_fields = ["ok","step","kind","signature","directPostgres","errorName"]
+              sanitized = {key:data[key] for key in safe_fields if isinstance(data.get(key),(str,bool))}
+              nested = data.get("nested")
+              if isinstance(nested,dict):
+                  sanitized["nested"] = {"depth":nested.get("depth"),"indicators":nested.get("indicators"),"hasCause":nested.get("hasCause")}
+              print("STAGING_HEALTH", response.status, json.dumps(sanitized,sort_keys=True))
+          except Exception:
+              print("STAGING_HEALTH",response.status,"non_json_response")
+              raise SystemExit(1)
+          PY
       - name: Report staged deployment
         run: echo "Deployed isolated staging Worker only. No production DNS or Vercel changes."
