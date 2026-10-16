@@ -1,2 +1,3 @@
 Cloudflare staging-only deploy authorization, 2026-10-16.
 Do not change production DNS, Vercel, or Neon production database.
+Confirmed by user: initiate isolated staging deployment for runtime testing.
