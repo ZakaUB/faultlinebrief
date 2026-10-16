@@ -110,6 +110,7 @@ jobs:
               print("STAGING_HEALTH network_failure", type(exc).__name__)
               raise SystemExit(1)
           try:
+              print("STAGING_RESPONSE_META", response.status, "content_type", response.headers.get("Content-Type","").split(";")[0], "cf_ray_present", bool(response.headers.get("CF-RAY")), "server", response.headers.get("Server","unknown"), "www_authenticate_present", bool(response.headers.get("WWW-Authenticate")))
               data = json.loads(response.read(8192))
               safe_fields = ["ok","step","kind","signature","directPostgres","errorName"]
               sanitized = {key:data[key] for key in safe_fields if isinstance(data.get(key),(str,bool))}
