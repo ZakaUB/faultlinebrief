@@ -18,3 +18,5 @@ Staging-only direct PostgreSQL SELECT 1 versus Payload init diagnostic (commit c
 Staging-only retry with pg and @types/pg installed for direct Neon diagnostic.
 
 Automated authenticated staging health probe, sanitized CI output only.
+
+Fail staging verification when health endpoint returns HTTP 403 or unhealthy result.
