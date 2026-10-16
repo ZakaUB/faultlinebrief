@@ -86,3 +86,16 @@ Before executing a real staging deploy, confirm that the Cloudflare Worker scrip
 The Worker build passes, but staging contains a copy of production Neon records. Its middleware therefore requires HTTP Basic Authentication with username `staging` and a unique password stored in the GitHub environment secret `CLOUDFLARE_STAGING_ACCESS_PASSWORD`. Without a password of at least 24 characters, requests fail closed with HTTP 503. Non-authenticated requests return HTTP 401. The staging password is never committed. This is a migration-branch-only protection, not a feature for production.
 
 Before first deployment, create the secret and review Cloudflare's runtime compatibility with reading `process.env.STAGING_ACCESS_PASSWORD` in Next.js middleware. Once staged, verify unauthenticated access returns HTTP 401, authenticated access works, and that protected content is not reachable through static asset endpoints. Prefer adding Cloudflare Access as a second layer.
+
+## Runtime compatibility investigation — 2026-10-16
+
+The following staging-only changes were compiled, deployed, and retested. They **did not** resolve Payload's initialization 500:
+- `src/payload.config.ts`: `pool.maxUses: 1` as recommended in Cloudflare's official Payload Workers implementation.
+- `next.config.ts`: bundle `pg-cloudflare` rather than marking it external.
+- Staging-only `/staging-health`: reports sanitized status and allowlisted diagnostic signatures; no secrets are emitted.
+
+Latest read-only diagnostic: `HTTP 500`, step `initialize-payload`, signature `database-other`, one outer error with no nested cause. Static and some dynamic routes continue to work. Publishing, admin sign-in and CMS runtime have **not passed**.
+
+**Next hypothesis:** Payload config is evaluated at module initialization and captures `process.env.DATABASE_URL` before runtime Worker request bindings are available. Cloudflare's official Payload example uses `getCloudflareContext({ async: true })` and `cloudflare.env.HYPERDRIVE.connectionString` while building Payload's config. A staging-only Hyperdrive configuration connected **strictly to the staging Neon branch** is the next test. Provisioning Hyperdrive needs separate Cloudflare permissions; no ID, connection string or custom domain may be guessed or committed. Ensure binding is configured, then evaluate runtime env and requests. Do not migrate production unless Payload login/edit/publish/media, articles and sitemaps all pass.
+
+Cloudflare source: https://blog.cloudflare.com/payload-cms-workers/
