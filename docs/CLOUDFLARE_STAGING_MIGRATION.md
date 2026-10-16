@@ -80,3 +80,9 @@ The workflow pins OpenNext/Wrangler in its ephemeral build environment and sets 
 **Important GitHub limitation:** `workflow_dispatch` is generally discoverable/run through GitHub Actions only when the workflow file is present on the repository default branch (`main`). The workflow is intentionally only on the staging branch now, so the Actions UI might not offer a Run button yet. Do not copy the workflow into main or enable automated deploys without an explicit, reviewed decision; preserve production branch isolation.
 
 Before executing a real staging deploy, confirm that the Cloudflare Worker script upload fits account limits, Cloudflare Access is prepared, and the Neon staging branch URL is correct. R2 binding has been declared but the CMS currently uses S3-compatible R2 credentials, not the Worker binding.
+
+## Security gate before first staging deploy
+
+The Worker build passes, but staging contains a copy of production Neon records. Its middleware therefore requires HTTP Basic Authentication with username `staging` and a unique password stored in the GitHub environment secret `CLOUDFLARE_STAGING_ACCESS_PASSWORD`. Without a password of at least 24 characters, requests fail closed with HTTP 503. Non-authenticated requests return HTTP 401. The staging password is never committed. This is a migration-branch-only protection, not a feature for production.
+
+Before first deployment, create the secret and review Cloudflare's runtime compatibility with reading `process.env.STAGING_ACCESS_PASSWORD` in Next.js middleware. Once staged, verify unauthenticated access returns HTTP 401, authenticated access works, and that protected content is not reachable through static asset endpoints. Prefer adding Cloudflare Access as a second layer.
