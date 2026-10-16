@@ -1,0 +1,47 @@
+name: Cloudflare migration staging preflight
+
+on:
+  push:
+    branches:
+      - cloudflare-staging-migration
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  configuration:
+    name: Staging configuration checks (no deployment)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify isolated worker config, CMS database and protected domain
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const raw = fs.readFileSync('wrangler.staging.jsonc','utf8');
+          const config = JSON.parse(raw);
+          if (config.name !== 'faultlinebrief-cf-staging') throw new Error('Unexpected Worker name');
+          if (config.routes?.length !== 0) throw new Error('Staging must not define routes');
+          if (config.workers_dev !== true) throw new Error('workers.dev must be enabled for staging');
+          if (config.d1_databases || config.r2_buckets || config.hyperdrive) throw new Error('Staging bindings not yet approved');
+          if (raw.includes('faultlinebrief.com')) throw new Error('Production domain in staging config');
+          const docs = fs.readFileSync('docs/CLOUDFLARE_STAGING_MIGRATION.md','utf8');
+          if (!docs.includes('br-noisy-forest-b4k3mjmr')) throw new Error('Staging Neon branch not documented');
+          console.log('Staging config isolation checks passed.');
+          NODE
+      - name: Verify smoke script parses
+        run: node --check scripts/cloudflare-staging-smoke.mjs
+      - name: Verify current stack unchanged
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const p = JSON.parse(fs.readFileSync('package.json','utf8'));
+          for (const name of ['payload', '@payloadcms/db-postgres', 'next']) {
+            if (!p.dependencies[name]) throw new Error('Missing required application dependency: ' + name);
+          }
+          console.log('Current Next.js/Payload dependencies preserved.');
+          NODE
