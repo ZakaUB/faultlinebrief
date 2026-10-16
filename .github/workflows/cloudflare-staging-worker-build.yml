@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/workflows/cloudflare-staging-worker-build.yml'
       - 'open-next.config.ts'
+      - 'src/middleware.ts'
       - 'wrangler.staging.jsonc'
       - 'package.json'
       - 'pnpm-lock.yaml'
