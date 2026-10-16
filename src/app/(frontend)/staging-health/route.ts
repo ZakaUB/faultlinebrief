@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
+import { Client } from 'pg'
 
 export const dynamic = 'force-dynamic'
 
@@ -87,13 +88,35 @@ export async function GET() {
   if (!process.env.STAGING_ACCESS_PASSWORD || !process.env.DATABASE_URL?.includes('ep-red-dream-b42nh8xe')) {
     return NextResponse.json({ step: 'safety-check', ok: false }, { status: 503 })
   }
+  // Staging-only read-only connection probe. Never expose raw errors or URLs.
+  // Runs before Payload to distinguish network/driver issues from CMS initialization.
+  const probe = { ok: false, signature: 'not-run' }
+  let client: Client | undefined
+  try {
+    client = new Client({ connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 5000 })
+    await client.connect()
+    await client.query('SELECT 1')
+    probe.ok = true
+    probe.signature = 'connected'
+  } catch (error) {
+    probe.signature = signature(error)
+    return NextResponse.json({
+      ok: false, step: 'direct-postgres-connect', kind: category(error),
+      signature: probe.signature, nested: nestedDiagnostics(error),
+      errorName: error instanceof Error ? error.name : 'Unknown',
+    }, { status: 500, headers: { 'Cache-Control': 'no-store' } })
+  } finally {
+    if (client) {
+      try { await client.end() } catch { /* diagnostic cleanup */ }
+    }
+  }
   let step = 'initialize-payload'
   try {
     const payload = await getPayload({ config })
     step = 'read-articles'
     const result = await payload.find({ collection: 'articles' as any, limit: 1, depth: 0, overrideAccess: false, where: { status: { equals: 'published' } } })
-    return NextResponse.json({ ok: true, step: 'complete', count: result.docs.length }, { headers: { 'Cache-Control': 'no-store' } })
+    return NextResponse.json({ ok: true, step: 'complete', directPostgres: probe.signature, count: result.docs.length }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
-    return NextResponse.json({ ok: false, step, kind: category(error), signature: signature(error), nested: nestedDiagnostics(error), errorName: error instanceof Error ? error.name : 'Unknown' }, {status: 500, headers: { 'Cache-Control': 'no-store' }})
+    return NextResponse.json({ ok: false, step, directPostgres: probe.signature, kind: category(error), signature: signature(error), nested: nestedDiagnostics(error), errorName: error instanceof Error ? error.name : 'Unknown' }, {status: 500, headers: { 'Cache-Control': 'no-store' }})
   }
 }
