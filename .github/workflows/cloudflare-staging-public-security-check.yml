@@ -1,0 +1,30 @@
+name: Cloudflare staging access-gate smoke test
+
+on:
+  push:
+    branches: [cloudflare-staging-migration]
+    paths: ['.github/workflows/cloudflare-staging-public-security-check.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unauthenticated-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Confirm copied newsroom content is inaccessible without password
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const u='https://faultlinebrief-cf-staging.zakria25.workers.dev';
+          for (const path of ['/','/admin/login','/articles/example-not-real']) {
+            const response=await fetch(u+path,{redirect:'manual',signal:AbortSignal.timeout(15000)});
+            const robots=response.headers.get('x-robots-tag') || '';
+            console.log(path, 'status=', response.status, 'robots=',robots);
+            if (![401,503].includes(response.status)) throw new Error('Staging is not access-protected: '+path);
+            if (!robots.includes('noindex')) throw new Error('Staging noindex response missing: '+path);
+          }
+          console.log('PASS: unauthenticated staging requests are blocked');
+          NODE
