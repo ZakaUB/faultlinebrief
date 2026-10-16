@@ -41,7 +41,8 @@ jobs:
           import fs from 'node:fs';
           const config=JSON.parse(fs.readFileSync('wrangler.staging.jsonc','utf8'));
           if(config.name!=='faultlinebrief-cf-staging'||config.routes?.length!==0||config.workers_dev!==true) throw Error('Unsafe staging target');
-          if(config.d1_databases||config.r2_buckets||config.hyperdrive) throw Error('Unreviewed bindings');
+          if(config.d1_databases||config.hyperdrive) throw Error('Unreviewed database bindings');
+          if(config.r2_buckets?.length!==1||config.r2_buckets[0].bucket_name!=='faultlinebrief-staging-media'||config.r2_buckets[0].preview_bucket_name!=='faultlinebrief-staging-media') throw Error('Unsafe R2 bucket');
           console.log('Staging isolation checked');
           NODE
       - name: Build Cloudflare Worker (NO deploy)
