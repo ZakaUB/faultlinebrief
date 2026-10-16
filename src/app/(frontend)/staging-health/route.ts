@@ -96,6 +96,7 @@ export async function GET() {
     client = new Client({ connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 5000 })
     await client.connect()
     await client.query('SELECT 1')
+    await client.query("SELECT id FROM public.articles WHERE status = 'published' LIMIT 1")
     probe.ok = true
     probe.signature = 'connected'
   } catch (error) {
