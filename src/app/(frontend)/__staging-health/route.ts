@@ -22,7 +22,7 @@ export async function GET() {
   try {
     const payload = await getPayload({ config })
     step = 'read-articles'
-    const result = await payload.find({ collection: 'articles', limit: 1, depth: 0, overrideAccess: false, where: { status: { equals: 'published' } } })
+    const result = await payload.find({ collection: 'articles' as any, limit: 1, depth: 0, overrideAccess: false, where: { status: { equals: 'published' } } })
     return NextResponse.json({ ok: true, step: 'complete', count: result.docs.length }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     return NextResponse.json({ ok: false, step, kind: category(error), errorName: error instanceof Error ? error.name : 'Unknown' }, {status: 500, headers: { 'Cache-Control': 'no-store' }})
