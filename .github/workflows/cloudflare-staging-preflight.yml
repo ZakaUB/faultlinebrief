@@ -27,7 +27,8 @@ jobs:
           if (config.name !== 'faultlinebrief-cf-staging') throw new Error('Unexpected Worker name');
           if (config.routes?.length !== 0) throw new Error('Staging must not define routes');
           if (config.workers_dev !== true) throw new Error('workers.dev must be enabled for staging');
-          if (config.d1_databases || config.r2_buckets || config.hyperdrive) throw new Error('Staging bindings not yet approved');
+          if (config.d1_databases || config.hyperdrive) throw new Error('Unapproved staging database bindings');
+          if (config.r2_buckets?.length !== 1 || config.r2_buckets[0]?.bucket_name !== 'faultlinebrief-staging-media' || config.r2_buckets[0]?.preview_bucket_name !== 'faultlinebrief-staging-media') throw new Error('Staging R2 binding mismatch');
           if (raw.includes('faultlinebrief.com')) throw new Error('Production domain in staging config');
           const docs = fs.readFileSync('docs/CLOUDFLARE_STAGING_MIGRATION.md','utf8');
           if (!docs.includes('br-noisy-forest-b4k3mjmr')) throw new Error('Staging Neon branch not documented');
