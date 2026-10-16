@@ -82,6 +82,11 @@ jobs:
               print('STAGING_HEALTH_SAFE',json.dumps({k:doc[k] for k in allowed if k in doc and isinstance(doc[k],(str,bool))}))
               if not any(k in doc for k in ('step','ok')):
                 print('EDGE_RESPONSE_NOT_STAGING_DIAGNOSTIC')
+                print('EDGE_JSON_TOP_KEYS',sorted(doc.keys()))
+                if isinstance(doc.get('errors'),list):
+                  print('EDGE_ERROR_CODES',[e.get('code') for e in doc['errors'][:3] if isinstance(e,dict) and isinstance(e.get('code'),int)])
+                if isinstance(doc.get('code'),int):
+                  print('EDGE_ERROR_CODE',doc['code'])
           except ValueError:
             print('EDGE_RESPONSE_NOT_JSON')
           PY
