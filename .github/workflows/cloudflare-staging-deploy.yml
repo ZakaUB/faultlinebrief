@@ -117,6 +117,8 @@ jobs:
               if isinstance(nested,dict):
                   sanitized["nested"] = {"depth":nested.get("depth"),"indicators":nested.get("indicators"),"hasCause":nested.get("hasCause")}
               print("STAGING_HEALTH", response.status, json.dumps(sanitized,sort_keys=True))
+              if response.status != 200 or data.get("ok") is not True:
+                  raise SystemExit(1)
           except Exception:
               print("STAGING_HEALTH",response.status,"non_json_response")
               raise SystemExit(1)
