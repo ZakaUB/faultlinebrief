@@ -14,3 +14,5 @@ Cloudflare Payload postgres maxUses=1 isolated staging test.
 Cloudflare staging diagnostic: bundle pg-cloudflare instead of externalizing.
 
 Staging-only direct PostgreSQL SELECT 1 versus Payload init diagnostic (commit cb32edb).
+
+Staging-only retry with pg and @types/pg installed for direct Neon diagnostic.
