@@ -44,6 +44,44 @@ function signature(error: unknown) {
   return 'unknown';
 }
 
+// Only approved diagnostic phrases leave the Worker; never return arbitrary error text.
+function nestedDiagnostics(error: unknown) {
+  const candidates: unknown[] = [error];
+  const messages: string[] = [];
+  const seen = new Set<unknown>();
+  for (let i=0; i<candidates.length && i<8; i++) {
+    const item = candidates[i];
+    if (!item || typeof item!=='object' || seen.has(item)) continue;
+    seen.add(item);
+    const e = item as {message?:unknown;cause?:unknown;errors?:unknown;code?:unknown};
+    if (typeof e.message==='string') messages.push(e.message);
+    if (e.cause) candidates.push(e.cause);
+    if (Array.isArray(e.errors)) candidates.push(...e.errors.slice(0,3));
+  }
+  const sanitized = messages.join(' | ');
+  const whitelist: Array<[RegExp,string]> = [
+    [/using a custom Pool constructor/i,'custom-pool'],
+    [/getaddrinfo ENOTFOUND|ENOTFOUND/i,'dns-lookup-failed'],
+    [/ECONNREFUSED/i,'connection-refused'],
+    [/ECONNRESET/i,'connection-reset'],
+    [/ETIMEDOUT|timed out/i,'timeout'],
+    [/SSL|TLS|CERTIFICATE/i,'tls'],
+    [/TCP sockets|socket/i,'socket'],
+    [/pg-cloudflare/i,'pg-cloudflare'],
+    [/fetch failed/i,'fetch'],
+    [/Connection terminated unexpectedly/i,'terminated'],
+    [/Unable to connect to the database/i,'db-connect-failed'],
+    [/database connection string/i,'connection-string'],
+    [/invalid.*password|password authentication/i,'db-credentials'],
+    [/cannot find|module not found/i,'module-resolution'],
+    [/process\.env|undefined/i,'env-or-undefined'],
+    [/does not exist|relation.*missing/i,'missing-schema'],
+    [/No such host|DNS/i,'dns'],
+  ];
+  const indicators = whitelist.filter(([pattern])=>pattern.test(sanitized)).map(([,code])=>code);
+  return {depth:messages.length,indicators:[...new Set(indicators)].slice(0,4),hasCause:messages.length>1};
+}
+
 /** Only in isolated staging branch, protected by staging Basic Auth middleware. */
 export async function GET() {
   if (!process.env.STAGING_ACCESS_PASSWORD || !process.env.DATABASE_URL?.includes('ep-red-dream-b42nh8xe')) {
@@ -56,6 +94,6 @@ export async function GET() {
     const result = await payload.find({ collection: 'articles' as any, limit: 1, depth: 0, overrideAccess: false, where: { status: { equals: 'published' } } })
     return NextResponse.json({ ok: true, step: 'complete', count: result.docs.length }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
-    return NextResponse.json({ ok: false, step, kind: category(error), signature: signature(error), errorName: error instanceof Error ? error.name : 'Unknown' }, {status: 500, headers: { 'Cache-Control': 'no-store' }})
+    return NextResponse.json({ ok: false, step, kind: category(error), signature: signature(error), nested: nestedDiagnostics(error), errorName: error instanceof Error ? error.name : 'Unknown' }, {status: 500, headers: { 'Cache-Control': 'no-store' }})
   }
 }
