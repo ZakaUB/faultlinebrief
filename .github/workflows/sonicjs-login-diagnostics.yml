@@ -37,3 +37,64 @@ jobs:
           print('STAGING_RESPONSE_FIELDS',','.join(sorted(obj.keys())) if isinstance(obj,dict) else 'non-json')
           if status not in (400,401,403,422): raise SystemExit('Staging login endpoint still fails for invalid credentials')
           PY
+
+      - name: Test valid disposable login and cleanup
+        env:
+          STAGING_ACCESS_PASSWORD: ${{ secrets.CLOUDFLARE_STAGING_ACCESS_PASSWORD }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          email="sonic-qa-${GITHUB_RUN_ID}@example.invalid"
+          export QA_EMAIL="$email"
+          export QA_PASSWORD="$(openssl rand -hex 32)"
+          cleanup() {
+            cat > /tmp/sonic-cleanup.toml <<'EOF'
+          name = "faultlinebrief-sonicjs-cleanup-staging"
+          main = "/tmp/sonic-noop.ts"
+          compatibility_date = "2026-10-15"
+          [[d1_databases]]
+          binding = "DB"
+          database_name = "faultlinebrief-sonicjs-staging"
+          database_id = "e30e35e4-51df-4d3b-b446-a47ddd55e3c7"
+          EOF
+            printf 'export default {fetch(){return new Response("not deployed")}}\n' > /tmp/sonic-noop.ts
+            for table in auth_session auth_account auth_user; do
+              if [ "$table" = auth_user ]; then
+                clause="email = '$email'"
+              else
+                clause="user_id IN (SELECT id FROM auth_user WHERE email = '$email')"
+              fi
+              npx --yes wrangler@4 d1 execute DB --config /tmp/sonic-cleanup.toml --remote --command "DELETE FROM $table WHERE $clause;" >/dev/null || true
+            done
+            echo STAGING_DISPOSABLE_CLEANUP_ATTEMPTED
+          }
+          trap cleanup EXIT
+          python3 - <<'PY'
+          import os,json,base64,urllib.request,urllib.error,http.cookiejar
+          base='https://faultlinebrief-sonicjs-cms-staging.zakria25.workers.dev'
+          auth='Basic '+base64.b64encode(('staging:'+os.environ['STAGING_ACCESS_PASSWORD']).encode()).decode()
+          jar=http.cookiejar.CookieJar()
+          client=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+          def post(path,data):
+            req=urllib.request.Request(base+path,data=json.dumps(data).encode(),headers={'Authorization':auth,'Content-Type':'application/json','Accept':'application/json','Origin':base},method='POST')
+            try:
+              with client.open(req,timeout=25) as res: return res.status,res.read(4096)
+            except urllib.error.HTTPError as e: return e.code,e.read(4096)
+          email=os.environ['QA_EMAIL'];password=os.environ['QA_PASSWORD']
+          status,raw=post('/auth/register',{'email':email,'password':password,'username':'sonic-staging-qa','firstName':'Staging','lastName':'QA'})
+          print('STAGING_REGISTER_HTTP',status)
+          if status not in (200,201): raise SystemExit('Registration failed')
+          status,raw=post('/auth/login',{'email':email,'password':password})
+          print('STAGING_VALID_LOGIN_HTTP',status)
+          if status not in (200,201,302): raise SystemExit('Valid login failed')
+          print('STAGING_SESSION_COOKIE',bool(list(jar)))
+          req=urllib.request.Request(base+'/admin',headers={'Authorization':auth,'Accept':'text/html'})
+          try:
+            with client.open(req,timeout=25) as res: status=res.status
+          except urllib.error.HTTPError as e: status=e.code
+          print('STAGING_ADMIN_HTTP',status)
+          if status!=200: raise SystemExit('Admin page unavailable')
+          PY
