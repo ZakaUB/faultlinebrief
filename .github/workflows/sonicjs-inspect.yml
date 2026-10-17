@@ -71,6 +71,8 @@ jobs:
               print('AUTH_REQUIRED_FILE',f.name)
               print(s[max(0,pos-750):pos+450].replace('\\n',' ')[:1200])
           PY
+          echo 'SONIC_D1_AUTH_COUNTS'
+          npx --yes wrangler@4 d1 execute e30e35e4-51df-4d3b-b446-a47ddd55e3c7 --remote --command "SELECT (SELECT count(*) FROM auth_user) AS users,(SELECT count(*) FROM auth_session) AS sessions,(SELECT count(*) FROM documents) AS documents;" --json | python3 -c "import json,sys; x=json.load(sys.stdin);print('SONIC_AUTH_COUNTS',x[0]['results'])"
           echo 'SONIC_D1_TABLE_NAMES'
           cd "$GITHUB_WORKSPACE"
           npx --yes wrangler@4 d1 execute e30e35e4-51df-4d3b-b446-a47ddd55e3c7 --remote --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;" --json | python3 -c "import sys,json; x=json.load(sys.stdin); print([v.get('name') for v in x[0].get('results',[])])"
