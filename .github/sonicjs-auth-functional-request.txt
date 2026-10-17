@@ -7,3 +7,5 @@ Retry disposable SonicJS registration using standard curl after Cloudflare 1010.
 Retry safe SonicJS account test with corrected curl response parsing.
 
 Repeat disposable account test after Drizzle dependency alignment.
+
+Classify persistent SonicJS login 500 after dependency alignment.
