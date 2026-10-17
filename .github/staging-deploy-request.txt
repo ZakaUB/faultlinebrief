@@ -36,3 +36,5 @@ Remove temporary write-capable authentication test endpoint and retain read-only
 Test Node crypto and WebCrypto 600000 PBKDF2 compatibility on staging Worker only.
 
 Remove completed PBKDF2 compatibility probe; restore staging-only baseline.
+
+Restore isolated Payload staging with bounded hashing work factor.
