@@ -13,3 +13,5 @@ Deploy protected CMS shell without unavailable migration files; verify no public
 Install pinned SonicJS core and deploy protected Worker if bundling succeeds.
 
 Remove invalid placeholder KV binding and retry isolated CMS Worker upload.
+
+Verify authenticated gateway pass-through distinctly from SonicJS session requirements.
