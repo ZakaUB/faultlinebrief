@@ -99,6 +99,8 @@ jobs:
                   snip=s[max(0,at-100):at+700]
                   print('CONFIG_FIND',f.name,term,snip.replace('\\n',' ')[:800])
           PY
+          echo 'SONIC_USER_STATE'
+          npx --yes wrangler@4 d1 execute e30e35e4-51df-4d3b-b446-a47ddd55e3c7 --remote --command "SELECT (SELECT COUNT(*) FROM auth_user) AS users,(SELECT COUNT(*) FROM auth_account) AS accounts,(SELECT COUNT(*) FROM auth_session) AS sessions;" --json | python3 -c "import sys,json; print('SONIC_USER_COUNTS',json.load(sys.stdin)[0]['results'])"
           echo 'SONIC_D1_TABLE_NAMES'
           cd "$GITHUB_WORKSPACE"
           npx --yes wrangler@4 d1 execute e30e35e4-51df-4d3b-b446-a47ddd55e3c7 --remote --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;" --json | python3 -c "import sys,json; x=json.load(sys.stdin); print([v.get('name') for v in x[0].get('results',[])])"
