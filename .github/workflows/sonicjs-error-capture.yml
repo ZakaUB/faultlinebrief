@@ -23,13 +23,10 @@ jobs:
         run: |
           set -euo pipefail
           test "${#STAGING_ACCESS_PASSWORD}" -ge 24
-          (timeout 40s npx --yes wrangler@4 tail faultlinebrief-sonicjs-cms-staging --format json > /tmp/sonic-tail.jsonl 2>/tmp/tail-stderr || true) &
+          (timeout 150s npx --yes wrangler@4 tail faultlinebrief-sonicjs-cms-staging --format json > /tmp/sonic-tail.jsonl 2>/tmp/tail-stderr || true) &
           tail_pid=$!
-          sleep 12
-          nonce=$(date +%s)
-          url="https://faultlinebrief-sonicjs-cms-staging.zakria25.workers.dev/auth/sign-in/email"
-          status=$(curl --silent --show-error --max-time 20 --output /dev/null --write-out '%{http_code}' --user "staging:$STAGING_ACCESS_PASSWORD" --header 'Content-Type: application/json' --header 'Accept: application/json' --data "{\"email\":\"nonexistent-${nonce}@example.invalid\",\"password\":\"deliberately-incorrect-password\"}" "$url")
-          echo "AUTH_INVALID_CREDENTIAL_HTTP=$status"
+          echo "LIVE_LOGIN_CAPTURE_WINDOW_STARTED"
+          sleep 130
           wait "$tail_pid" || true
           python3 - <<'PY'
           import json,re
@@ -49,7 +46,7 @@ jobs:
                 continue
               if isinstance(obj,dict):events.append(obj)
           print('TAIL_PARSED_OBJECTS',len(events))
-          print('TAIL_EVENT_SHAPES',[{'keys':list(x.keys())[:15],'log_count':len(x.get('logs') or []),'exception_count':len(x.get('exceptions') or [])} for x in events[:8]])
+          print('TAIL_EVENT_COUNTS',len(events))
           sensitive=re.compile(r'(bearer|password|authorization|cookie|secret|token|email|credential)',re.I)
           if events:
             for event in events:
