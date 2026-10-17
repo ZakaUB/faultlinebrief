@@ -41,6 +41,7 @@ jobs:
             for line in f.read_text(errors='replace').splitlines():
               try: event=json.loads(line)
               except Exception: continue
+              if not isinstance(event,dict): continue
               for item in event.get('logs',[]):
                 msg=str(item.get('message','')) if isinstance(item,dict) else str(item)
                 if msg and not sensitive.search(msg):
