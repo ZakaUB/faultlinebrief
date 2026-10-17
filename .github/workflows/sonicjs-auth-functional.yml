@@ -1,0 +1,93 @@
+name: SonicJS disposable admin sign-in test
+on:
+  push:
+    branches: [cloudflare-staging-migration]
+    paths: ['.github/sonicjs-auth-functional-request.txt']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+      STAGING_ACCESS_PASSWORD: ${{ secrets.CLOUDFLARE_STAGING_ACCESS_PASSWORD }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare one-use staging credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${#STAGING_ACCESS_PASSWORD}" -ge 24
+          echo "sonic-qa-${GITHUB_RUN_ID}@example.invalid" > /tmp/test-email
+          openssl rand -base64 36 | tr -d '\n' > /tmp/test-password
+          chmod 600 /tmp/test-email /tmp/test-password
+      - name: Register, sign in, and assess admin session
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,urllib.request,urllib.error,http.cookiejar
+          base='https://faultlinebrief-sonicjs-cms-staging.zakria25.workers.dev'
+          email=open('/tmp/test-email').read().strip()
+          password=open('/tmp/test-password').read().strip()
+          import base64
+          basic='Basic '+base64.b64encode(('staging:'+os.environ['STAGING_ACCESS_PASSWORD']).encode()).decode()
+          jar=http.cookiejar.CookieJar()
+          opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+          def request(path, body):
+            headers={'Authorization':basic,'Accept':'application/json','Content-Type':'application/json','Origin':base}
+            data=json.dumps(body).encode()
+            try:
+              r=opener.open(urllib.request.Request(base+path,data=data,headers=headers,method='POST'),timeout=20)
+              status=r.status;raw=r.read(15000)
+            except urllib.error.HTTPError as e:
+              status=e.code;raw=e.read(15000)
+            try: doc=json.loads(raw)
+            except Exception: doc={}
+            print('STAGING_AUTH_CHECK',path,'HTTP',status,'fields',sorted(doc.keys()) if isinstance(doc,dict) else [])
+            if isinstance(doc,dict) and 'user' in doc and isinstance(doc['user'],dict):
+              print('STAGING_USER_ROLE',doc['user'].get('role'))
+            return status,doc
+          status,doc=request('/auth/register',{'email':email,'password':password,'username':'sonic-staging-qa','firstName':'Staging','lastName':'QA'})
+          if status not in (200,201):
+            raise SystemExit('Disposable registration not successful')
+          status,doc=request('/auth/login',{'email':email,'password':password})
+          if status not in (200,201,302):
+            raise SystemExit('Disposable sign-in not successful')
+          print('STAGING_SESSION_COOKIE_SET', bool(list(jar)))
+          req=urllib.request.Request(base+'/admin',headers={'Authorization':basic,'Accept':'text/html'})
+          try:
+            r=opener.open(req,timeout=20)
+            print('STAGING_ADMIN_PAGE_HTTP',r.status)
+          except urllib.error.HTTPError as e:
+            print('STAGING_ADMIN_PAGE_HTTP',e.code)
+            raise
+          PY
+      - name: Clean up only the disposable account
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f /tmp/test-email ]; then exit 0; fi
+          email=$(cat /tmp/test-email)
+          case "$email" in sonic-qa-*@example.invalid) ;; *) exit 1 ;; esac
+          cat > /tmp/wrangler-sonic-cleanup.toml <<'EOF'
+          name = "faultlinebrief-sonicjs-cleanup-staging"
+          main = "/tmp/sonic-noop.ts"
+          compatibility_date = "2026-10-15"
+          [[d1_databases]]
+          binding = "DB"
+          database_name = "faultlinebrief-sonicjs-staging"
+          database_id = "e30e35e4-51df-4d3b-b446-a47ddd55e3c7"
+          EOF
+          printf 'export default {fetch(){return new Response("not deployed")}}\n' >/tmp/sonic-noop.ts
+          email_sql=$(printf '%s' "$email" | sed "s/'/''/g")
+          for table in auth_session auth_account auth_user; do
+            npx --yes wrangler@4 d1 execute DB --config /tmp/wrangler-sonic-cleanup.toml --remote --command "DELETE FROM $table WHERE $(if [ "$table" = auth_user ]; then echo email; else echo user_id; fi) $(if [ "$table" = auth_user ]; then echo "= '$email_sql'"; else echo "IN (SELECT id FROM auth_user WHERE email = '$email_sql')"; fi);" >/dev/null
+          done
+          echo 'STAGING_DISPOSABLE_USER_CLEANUP_ATTEMPTED'
