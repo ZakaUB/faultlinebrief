@@ -9,3 +9,5 @@ Check SonicJS admin login routes after gateway strips Basic Authorization header
 Read-only SonicJS login response classification.
 
 Retry YAML-valid login diagnostic.
+
+Retry safe SonicJS auth-response classification.
