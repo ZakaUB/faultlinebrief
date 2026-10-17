@@ -19,3 +19,5 @@ Verify authenticated gateway pass-through distinctly from SonicJS session requir
 Isolate staging Basic authorization header from SonicJS internal auth after D1 initialization.
 
 Align Better Auth and Drizzle ORM peer versions, redeploy protected SonicJS only.
+
+Deploy isolated SonicJS Worker using user-created CACHE_KV namespace fb0f7420c1ca4c30af0ce03798a6cb9c.
