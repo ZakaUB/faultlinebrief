@@ -1,0 +1,1 @@
+Test and clean up one disposable SonicJS staging account only.
