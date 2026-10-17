@@ -83,6 +83,10 @@ jobs:
               if at>=0:
                 print('SAMPLE',f.name,repr(term),s[max(0,at-100):at+900].replace('\\n',' ')[:1000])
           PY
+          echo 'SONIC_CONFIG_FILES'
+          find package/dist -maxdepth 1 -type f -name 'config*' -printf '%f\n' | head -20
+          echo 'SONIC_DYNAMIC_CONFIG_REFERENCE'
+          grep -l "config-SN7GXG7O" package/dist/*.js | head -10
           echo 'BETTER_AUTH_CONFIG_EXCERPT'
           python3 - <<'PY'
           from pathlib import Path
