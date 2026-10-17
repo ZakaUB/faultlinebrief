@@ -36,21 +36,23 @@ jobs:
           from pathlib import Path
           f=Path('/tmp/sonic-tail.jsonl')
           print('TAIL_CAPTURE_BYTES',f.stat().st_size if f.exists() else 0)
+          events=[]
           if f.exists():
-            events=[]
-            for line in f.read_text(errors='replace').splitlines():
-              try:
-                obj=json.loads(line)
-                if isinstance(obj,dict):
-                  events.append({'keys':list(obj.keys()),'log_count':len(obj.get('logs') or []),'exception_count':len(obj.get('exceptions') or []),'outcome':obj.get('outcome'),'event_type':obj.get('event',{}).get('request',{}).get('method') if isinstance(obj.get('event'),dict) else None})
-              except Exception: pass
-            print('TAIL_EVENT_SHAPES',events[:8])
+            raw=f.read_text(errors='replace')
+            decoder=json.JSONDecoder()
+            offset=0
+            while offset<len(raw):
+              while offset<len(raw) and raw[offset].isspace():offset+=1
+              try: obj,offset=decoder.raw_decode(raw,offset)
+              except Exception:
+                offset+=1
+                continue
+              if isinstance(obj,dict):events.append(obj)
+          print('TAIL_PARSED_OBJECTS',len(events))
+          print('TAIL_EVENT_SHAPES',[{'keys':list(x.keys())[:15],'log_count':len(x.get('logs') or []),'exception_count':len(x.get('exceptions') or [])} for x in events[:8]])
           sensitive=re.compile(r'(bearer|password|authorization|cookie|secret|token|email|credential)',re.I)
-          if f.exists():
-            for line in f.read_text(errors='replace').splitlines():
-              try: event=json.loads(line)
-              except Exception: continue
-              if not isinstance(event,dict): continue
+          if events:
+            for event in events:
               for item in (event.get('logs') or []):
                 msg=str(item.get('message','')) if isinstance(item,dict) else str(item)
                 if msg and not sensitive.search(msg):
