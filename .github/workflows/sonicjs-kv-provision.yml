@@ -28,6 +28,14 @@ jobs:
           def call(method,url,body=None):
             req=urllib.request.Request(url,data=json.dumps(body).encode() if body is not None else None,headers=headers,method=method)
             with urllib.request.urlopen(req,timeout=30) as f:return json.load(f)
+          import urllib.error
+          for label,url in [('token','https://api.cloudflare.com/client/v4/user/tokens/verify'),('d1','https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/d1/database?per_page=1'),('kv',base+'?per_page=1')]:
+            try:
+              call('GET',url)
+              print('CF_ACCESS',label,200)
+            except urllib.error.HTTPError as err:
+              print('CF_ACCESS',label,err.code)
+              if label=='kv':raise SystemExit('KV permission not effective for Actions token')
           allns=[];page=1
           while True:
             data=call('GET',base+'?per_page=100&page='+str(page))
