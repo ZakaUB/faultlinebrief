@@ -45,11 +45,11 @@ jobs:
             echo "SONIC_SAFE_ROUTE $route status=$code $ctype $redirect"
             if [ "$code" = 401 ]; then
               python3 - <<'PY'
-from pathlib import Path
-s=Path('/tmp/sonic-response').read_text(errors='replace').strip()
-if len(s)<250 and 'password' not in s.lower() and 'token' not in s.lower():
- print('SONIC_401_BODY',repr(s))
-PY
+              from pathlib import Path
+              s=Path('/tmp/sonic-response').read_text(errors='replace').strip()
+              if len(s)<250 and 'password' not in s.lower() and 'token' not in s.lower():
+               print('SONIC_401_BODY',repr(s))
+              PY
             fi
           done
           for route in /admin /admin/login /login /; do
