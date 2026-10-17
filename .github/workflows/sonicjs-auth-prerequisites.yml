@@ -22,7 +22,7 @@ jobs:
         run: |
           set -euo pipefail
           name=faultlinebrief-sonicjs-cms-staging
-          npx --yes wrangler@4 secret list --name "$name" --json > /tmp/sonic-secrets.json
+          npx --yes wrangler@4 secret list --name "$name" > /tmp/sonic-secrets.json
           for key in JWT_SECRET BETTER_AUTH_SECRET; do
             if python3 -c "import json,sys; x=json.load(open('/tmp/sonic-secrets.json')); sys.exit(0 if any(y.get('name')==sys.argv[1] for y in x) else 1)" "$key"; then
               echo "STAGING_SECRET_PRESENT=$key"
