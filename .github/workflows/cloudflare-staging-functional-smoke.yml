@@ -1,0 +1,64 @@
+name: Cloudflare staging CMS functional smoke (read only)
+
+on:
+  push:
+    branches: [cloudflare-staging-migration]
+    paths: ['.github/staging-functional-smoke-request.txt']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: github.ref == 'refs/heads/cloudflare-staging-migration'
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 10
+    env:
+      STAGING_ACCESS_PASSWORD: ${{ secrets.CLOUDFLARE_STAGING_ACCESS_PASSWORD }}
+    steps:
+      - name: Read-only authenticated staging smoke tests
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, os, urllib.request, urllib.error, json
+          base='https://faultlinebrief-cf-staging.zakria25.workers.dev'
+          auth='Basic '+base64.b64encode(('staging:'+os.environ['STAGING_ACCESS_PASSWORD']).encode()).decode()
+          paths=[
+            ('health','/staging-health'),
+            ('admin-login','/admin/login'),
+            ('articles-api','/api/articles?limit=1&depth=0'),
+            ('homepage','/'),
+            ('news-sitemap','/news-sitemap.xml'),
+            ('main-sitemap','/sitemap.xml'),
+            ('robots','/robots.txt')
+          ]
+          failed=0
+          for label,path in paths:
+            req=urllib.request.Request(base+path,headers={'Authorization':auth,'Accept':'*/*','User-Agent':'FaultlineBrief-Staging-HealthCheck/1.0 (+github-actions; authorized staging verification)'})
+            try: response=urllib.request.urlopen(req,timeout=25)
+            except urllib.error.HTTPError as error: response=error
+            except Exception as error:
+              print('SMOKE',label,'NETWORK_ERROR',type(error).__name__)
+              failed+=1
+              continue
+            status=response.status
+            content_type=response.headers.get('content-type','').split(';')[0]
+            body=response.read(1048576)
+            diagnostic=''
+            if label=='health' and content_type=='application/json':
+              try:
+                d=json.loads(body)
+                diagnostic=json.dumps({k:d.get(k) for k in ('ok','step','directPostgres','signature') if k in d})
+              except (ValueError,TypeError): diagnostic='invalid-json'
+            if label=='articles-api' and content_type=='application/json' and status==200:
+              try:
+                d=json.loads(body);diagnostic='valid_collection='+str(isinstance(d.get('docs'),list))
+              except (ValueError,TypeError): diagnostic='invalid-json'
+            ok=(status==200 and (label!='health' or '"ok": true' in diagnostic or '"ok":true' in diagnostic))
+            print('SMOKE',label,'PASS' if ok else 'FAIL','http',status,'content_type',content_type,'bytes',len(body),diagnostic)
+            if not ok: failed+=1
+          print('SMOKE_FAILURES',failed)
+          raise SystemExit(1 if failed else 0)
+          PY
