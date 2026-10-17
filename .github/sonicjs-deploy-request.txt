@@ -27,3 +27,5 @@ Isolated auth schema compatibility test: temporarily omit broken Better Auth org
 Retry isolated schema compatibility shim matched to compiled organization call.
 
 Deploy supported staging-only Better Auth extension excluding organization schema plugin.
+
+Deploy privacy-safe legacy password verification outcome diagnostics to SonicJS staging only.
