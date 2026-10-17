@@ -150,6 +150,25 @@ jobs:
           npx --yes pnpm@10.28.0 add @sonicjs-cms/core@3.0.0-beta.28
           npx --yes pnpm@10.28.0 add drizzle-orm@0.45.4
           test -d node_modules/@sonicjs-cms/core || { echo 'Pinned SonicJS core missing'; exit 1; }
+      - name: Correct SonicJS organization field mapping in staging package
+        shell: bash
+        run: |
+          cd faultlinebrief-sonicjs-staging
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          root=Path('node_modules/@sonicjs-cms/core')
+          changed=[]
+          for path in root.rglob('*.js'):
+            original=path.read_text(errors='replace')
+            updated,n=re.subn(r'(organizationId\\s*:\\s*[\\x22\\x27\\x60])tenant_id([\\x22\\x27\\x60])',r'\\1tenantId\\2',original)
+            if n:
+              path.write_text(updated)
+              changed.append((str(path),n))
+          if not changed:
+            raise SystemExit('STAGING_ORGANIZATION_MAPPING_NOT_FOUND; refusing unverified deployment')
+          print('STAGING_ORGANIZATION_MAPPING_PATCHED',sum(n for _,n in changed))
+          PY
       - name: Check packaged migration availability
         run: |
           cd faultlinebrief-sonicjs-staging
