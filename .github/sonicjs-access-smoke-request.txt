@@ -19,3 +19,5 @@ Verify actual SonicJS browser login route using Accept text/html.
 Check login/session routes after dedicated CACHE_KV binding deployed.
 
 Verify Better Auth sign-in after organization-schema compatibility configuration.
+
+Check reachability after Chrome ERR_QUIC_PROTOCOL_ERROR and latest manual login attempt.
