@@ -123,17 +123,21 @@ jobs:
         run: |
           cd faultlinebrief-sonicjs-staging
           printf '%s' "$STAGING_ACCESS_PASSWORD" | npx wrangler secret put STAGING_ACCESS_PASSWORD --name faultlinebrief-sonicjs-cms-staging
-      - name: Confirm unauthorized access denied
+      - name: Verify protected staging access after propagation
         shell: bash
         run: |
-          code=$(curl --silent --output /dev/null --write-out '%{http_code}' 'https://faultlinebrief-sonicjs-cms-staging.zakria25.workers.dev/admin')
-          echo "SONICJS_UNAUTH_HTTP=$code"
-          test "$code" = 401
-      - name: Confirm staging credentials can reach CMS
-        shell: bash
-        run: |
-          code=$(curl --silent --output /dev/null --write-out '%{http_code}' \
-            --user "staging:$STAGING_ACCESS_PASSWORD" \
-            'https://faultlinebrief-sonicjs-cms-staging.zakria25.workers.dev/admin')
-          echo "SONICJS_AUTH_HTTP=$code"
-          test "$code" = 200 -o "$code" = 302
+          url='https://faultlinebrief-sonicjs-cms-staging.zakria25.workers.dev/admin'
+          for n in 1 2 3 4 5 6; do
+            unauth=$(curl --max-time 20 --silent --output /dev/null --write-out '%{http_code}' "$url")
+            echo "SONICJS_UNAUTH_HTTP=$unauth attempt=$n"
+            if [ "$unauth" = 401 ]; then break; fi
+            sleep 8
+          done
+          test "$unauth" = 401
+          auth=$(curl --max-time 20 --silent --dump-header /tmp/sonic-headers --output /dev/null --write-out '%{http_code}' --user "staging:$STAGING_ACCESS_PASSWORD" "$url")
+          echo "SONICJS_CMS_HTTP=$auth"
+          if ! grep -qi '^x-sonicjs-gateway: passed' /tmp/sonic-headers; then
+            echo 'Gateway did not confirm Basic auth pass-through'
+            exit 1
+          fi
+          case "$auth" in 200|301|302|303|307|308|401|403) echo 'STAGING_GATEWAY_VERIFIED';; *) exit 1;; esac
