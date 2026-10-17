@@ -27,4 +27,16 @@ jobs:
           if [ "$code" != 401 ]; then exit 1; fi
           code=$(curl --max-time 20 --silent --output /dev/null --write-out '%{http_code}' --user "staging:$STAGING_ACCESS_PASSWORD" "$url")
           echo "SONICJS_AUTH_HTTP=$code"
-          case "$code" in 200|302) exit 0;; *) exit 1;; esac
+          # A second 401 can be SonicJS login denial after the gateway passes.
+          # Distinguish it without exposing credentials, cookies, or response bodies.
+          curl --max-time 20 --silent --dump-header /tmp/sonic-admin-headers --output /dev/null --user "staging:$STAGING_ACCESS_PASSWORD" "$url"
+          if grep -qi '^x-sonicjs-gateway: passed' /tmp/sonic-admin-headers; then
+            echo 'SONICJS_GATEWAY=passed'
+          else
+            echo 'SONICJS_GATEWAY=failed'
+            exit 1
+          fi
+          for route in /admin /admin/login /login /; do
+            status=$(curl --max-time 20 --silent --output /dev/null --write-out '%{http_code}' --user "staging:$STAGING_ACCESS_PASSWORD" "https://faultlinebrief-sonicjs-cms-staging.zakria25.workers.dev$route")
+            echo "SONICJS_ROUTE $route HTTP=$status"
+          done
