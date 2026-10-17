@@ -125,13 +125,17 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           files=list(Path('node_modules/@sonicjs-cms/core/dist').glob('config-*.js'))
-          matches=[(f,f.read_text()) for f in files if 'organization({' in f.read_text()]
+          matches=[(f,f.read_text()) for f in files if 'auth_tenant_member' in f.read_text() and 'organization' in f.read_text()]
           if len(matches)!=1: raise SystemExit('Unable to safely locate unique Better Auth config')
           path,code=matches[0]
-          start=code.index('organization({')
+          import re
+          calls=list(re.finditer(r'organization[A-Za-z0-9_]*\(\{',code))
+          if len(calls)!=1: raise SystemExit('Organization plugin call not uniquely identified')
+          start=calls[0].start()
+          fn=calls[0].group().split('(')[0]
           depth=0
           end=None
-          for i in range(start+len('organization'),len(code)):
+          for i in range(start+len(fn),len(code)):
             if code[i]=='(':depth+=1
             elif code[i]==')':
               depth-=1
@@ -140,7 +144,7 @@ jobs:
                 break
           if not end or 'modelName: "auth_tenant"' not in code[start:end] and 'modelName: "auth_tenant_member"' not in code[start:end]:
             raise SystemExit('Unexpected organization plugin syntax; refusing change')
-          patched=code[:start]+'null /* isolated staging: disable incompatible organization plugin pending upstream schema fix */'+code[end:]
+          patched=code[:start]+'null /* isolated staging: organization plugin schema incompatible */'+code[end:]
           path.write_text(patched)
           print('STAGING_AUTH_ORG_SCHEMA_SHIM_APPLIED')
           PY
