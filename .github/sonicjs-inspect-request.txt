@@ -3,3 +3,5 @@ Read-only isolated SonicJS package and D1 schema inspection.
 Inspect SonicJS internal auth routes and bootstrap requirements.
 
 Read packaged runtime config guidance for admin bootstrap.
+
+Inspect auth initialization and admin routes in published SonicJS package.
