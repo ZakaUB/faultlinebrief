@@ -1,1 +1,3 @@
 Provision only SonicJS staging KV session namespace.
+
+Retry dedicated SonicJS KV provisioning after updated token permission.
