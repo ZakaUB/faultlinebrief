@@ -17,3 +17,5 @@ Remove invalid placeholder KV binding and retry isolated CMS Worker upload.
 Verify authenticated gateway pass-through distinctly from SonicJS session requirements.
 
 Isolate staging Basic authorization header from SonicJS internal auth after D1 initialization.
+
+Align Better Auth and Drizzle ORM peer versions, redeploy protected SonicJS only.
