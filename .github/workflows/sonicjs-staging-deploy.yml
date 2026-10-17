@@ -88,6 +88,7 @@ jobs:
           extension="""const config: SonicJSConfig = {
             auth: {
               extendBetterAuth: (opts) => {
+                console.log('STAGING_AUTH_PLUGIN_IDS', (opts.plugins ?? []).map((plugin) => plugin.id).join(','))
                 const originalVerify = opts.emailAndPassword?.password?.verify
                 return {
                   ...opts,
