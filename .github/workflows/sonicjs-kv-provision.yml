@@ -1,0 +1,45 @@
+name: Provision isolated SonicJS session KV
+on:
+  push:
+    branches: [cloudflare-staging-migration]
+    paths: ['.github/sonicjs-kv-request.txt']
+permissions:
+  contents: read
+jobs:
+  kv:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Create or reuse dedicated KV only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,urllib.request
+          base='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/storage/kv/namespaces'
+          token=os.environ['CLOUDFLARE_API_TOKEN']
+          headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'}
+          def call(method,url,body=None):
+            req=urllib.request.Request(url,data=json.dumps(body).encode() if body is not None else None,headers=headers,method=method)
+            with urllib.request.urlopen(req,timeout=30) as f:return json.load(f)
+          allns=[];page=1
+          while True:
+            data=call('GET',base+'?per_page=100&page='+str(page))
+            if not data.get('success'):raise SystemExit('KV list denied')
+            allns+=data.get('result',[])
+            if page>=data.get('result_info',{}).get('total_pages',1):break
+            page+=1
+          matches=[n for n in allns if n.get('title')=='faultlinebrief-sonicjs-session-staging']
+          if len(matches)>1:raise SystemExit('Duplicate isolated KV namespace')
+          if matches:ns=matches[0];print('STAGING_KV_REUSED',ns['id'])
+          else:
+            data=call('POST',base,{'title':'faultlinebrief-sonicjs-session-staging'})
+            if not data.get('success'):raise SystemExit('KV create failed')
+            ns=data['result'];print('STAGING_KV_CREATED',ns['id'])
+          PY
