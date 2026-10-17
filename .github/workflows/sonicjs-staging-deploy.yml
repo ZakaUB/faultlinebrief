@@ -92,7 +92,7 @@ jobs:
                 const originalVerify = opts.emailAndPassword?.password?.verify
                 return {
                   ...opts,
-                  plugins: (opts.plugins ?? []).filter((plugin) => plugin.id !== 'organization'),
+                  plugins: (opts.plugins ?? []).filter((plugin) => !['organization', 'organization-plugin'].includes(plugin.id) && !Object.keys(plugin.schema ?? {}).some((key) => ['organization', 'member', 'invitation', 'team'].includes(key))),
                   emailAndPassword: {
                     ...opts.emailAndPassword,
                     password: {
