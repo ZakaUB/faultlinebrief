@@ -13,3 +13,5 @@ Retry YAML-valid login diagnostic.
 Retry safe SonicJS auth-response classification.
 
 Run cleaned and isolated SonicJS admin 401 probe.
+
+Verify actual SonicJS browser login route using Accept text/html.
