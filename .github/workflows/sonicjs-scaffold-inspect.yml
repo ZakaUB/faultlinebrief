@@ -20,6 +20,10 @@ jobs:
           mkdir -p sonic-package
           tar -xzf "$(cat /tmp/sonic-pack-name)" -C sonic-package
           grep -R -n -E 'process.argv|commander|databaseName|Database name|prompts|inquirer|confirm|flags|--yes' sonic-package/package/bin | head -90 || true
+      - name: Inspect published SonicJS entry configuration
+        shell: bash
+        run: |
+          find /tmp/sonic-package/package -path '*/starter/src/index.ts' -exec sh -c 'echo STAGING_SONIC_STARTER_ENTRY; sed -n "1,115p" "$1"' _ {} \;
       - name: Run starter in noninteractive dry run
         shell: bash
         env:
