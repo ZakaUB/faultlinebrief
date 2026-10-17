@@ -25,3 +25,5 @@ Deploy isolated SonicJS Worker using user-created CACHE_KV namespace fb0f7420c1c
 Isolated auth schema compatibility test: temporarily omit broken Better Auth organization plugin.
 
 Retry isolated schema compatibility shim matched to compiled organization call.
+
+Deploy supported staging-only Better Auth extension excluding organization schema plugin.
