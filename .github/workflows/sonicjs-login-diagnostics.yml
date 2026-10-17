@@ -11,6 +11,7 @@ jobs:
     environment: cloudflare-staging
     timeout-minutes: 5
     steps:
+      # Staging diagnostic rerun requested 2026-10-17; no production resources touched.
       - name: Verify Cloudflare gateway and classify SonicJS response
         env:
           STAGING_ACCESS_PASSWORD: ${{ secrets.CLOUDFLARE_STAGING_ACCESS_PASSWORD }}
