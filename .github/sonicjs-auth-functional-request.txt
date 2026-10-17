@@ -9,3 +9,5 @@ Retry safe SonicJS account test with corrected curl response parsing.
 Repeat disposable account test after Drizzle dependency alignment.
 
 Classify persistent SonicJS login 500 after dependency alignment.
+
+Diagnose direct Better Auth login separate from legacy login controller.
