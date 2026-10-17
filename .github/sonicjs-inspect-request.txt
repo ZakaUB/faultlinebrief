@@ -13,3 +13,5 @@ Count isolated SonicJS users, sessions, and documents after schema initializatio
 Inspect beta login and registration implementation after disposable test.
 
 Final staging-only check that disposable user and sessions were cleared and documents remain.
+
+Inspect packaged Better Auth configuration for login failure.
