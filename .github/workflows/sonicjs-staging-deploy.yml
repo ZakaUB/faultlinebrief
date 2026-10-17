@@ -27,12 +27,20 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           test "${#STAGING_ACCESS_PASSWORD}" -ge 24
-      - name: Generate pinned SonicJS starter without resource creation
+      - name: Extract pinned official SonicJS starter template
+        shell: bash
         run: |
-          npx --yes create-sonicjs@3.0.0-beta.28 faultlinebrief-sonicjs-staging \
-            --template=starter --database=faultlinebrief-sonicjs-staging \
-            --bucket=faultlinebrief-staging-media --skip-example --skip-install \
-            --skip-git --skip-cloudflare
+          mkdir -p /tmp/sonicjs-cli
+          cd /tmp/sonicjs-cli
+          package=$(npm pack create-sonicjs@3.0.0-beta.28 --silent)
+          tar -xzf "$package"
+          echo 'TEMPLATE_CANDIDATES'
+          find package -maxdepth 8 -type f -name package.json -not -path '*/node_modules/*' | head -20
+          candidate=$(find package -maxdepth 8 -type f -path '*/starter/package.json' -print -quit)
+          test -n "$candidate" || { echo 'Official starter template not found in npm package'; exit 1; }
+          mkdir -p "$GITHUB_WORKSPACE/faultlinebrief-sonicjs-staging"
+          cp -R "$(dirname "$candidate")/." "$GITHUB_WORKSPACE/faultlinebrief-sonicjs-staging/"
+          test -f "$GITHUB_WORKSPACE/faultlinebrief-sonicjs-staging/src/index.ts"
       - name: Constrain resources and install fail-closed staging gateway
         shell: bash
         run: |
