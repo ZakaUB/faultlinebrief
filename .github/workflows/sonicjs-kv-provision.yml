@@ -16,38 +16,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Create or reuse dedicated KV only
+      - name: Provision dedicated session KV through Wrangler
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import os,json,urllib.request
-          base='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/storage/kv/namespaces'
-          token=os.environ['CLOUDFLARE_API_TOKEN']
-          headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'}
-          def call(method,url,body=None):
-            req=urllib.request.Request(url,data=json.dumps(body).encode() if body is not None else None,headers=headers,method=method)
-            with urllib.request.urlopen(req,timeout=30) as f:return json.load(f)
-          import urllib.error
-          for label,url in [('token','https://api.cloudflare.com/client/v4/user/tokens/verify'),('d1','https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/d1/database?per_page=1'),('kv',base+'?per_page=1')]:
-            try:
-              call('GET',url)
-              print('CF_ACCESS',label,200)
-            except urllib.error.HTTPError as err:
-              print('CF_ACCESS',label,err.code)
-              if label=='kv':raise SystemExit('KV permission not effective for Actions token')
-          allns=[];page=1
-          while True:
-            data=call('GET',base+'?per_page=100&page='+str(page))
-            if not data.get('success'):raise SystemExit('KV list denied')
-            allns+=data.get('result',[])
-            if page>=data.get('result_info',{}).get('total_pages',1):break
-            page+=1
-          matches=[n for n in allns if n.get('title')=='faultlinebrief-sonicjs-session-staging']
-          if len(matches)>1:raise SystemExit('Duplicate isolated KV namespace')
-          if matches:ns=matches[0];print('STAGING_KV_REUSED',ns['id'])
-          else:
-            data=call('POST',base,{'title':'faultlinebrief-sonicjs-session-staging'})
-            if not data.get('success'):raise SystemExit('KV create failed')
-            ns=data['result'];print('STAGING_KV_CREATED',ns['id'])
-          PY
+          echo 'WRANGLER_KV_ATTEMPT'
+          npx --yes wrangler@4 kv namespace create faultlinebrief-sonicjs-session-staging
