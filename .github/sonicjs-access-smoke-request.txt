@@ -5,3 +5,5 @@ Check SonicJS admin login routes without account changes.
 Repeat protected SonicJS administrator status checks after isolated database initialization.
 
 Check SonicJS admin login routes after gateway strips Basic Authorization header.
+
+Read-only SonicJS login response classification.
