@@ -1,1 +1,3 @@
 Capture safe Cloudflare Worker authentication exception, no account mutation.
+
+Retry sanitized exception capture with robust parser.
