@@ -36,17 +36,26 @@ jobs:
           from pathlib import Path
           f=Path('/tmp/sonic-tail.jsonl')
           print('TAIL_CAPTURE_BYTES',f.stat().st_size if f.exists() else 0)
+          if f.exists():
+            events=[]
+            for line in f.read_text(errors='replace').splitlines():
+              try:
+                obj=json.loads(line)
+                if isinstance(obj,dict):
+                  events.append({'keys':list(obj.keys()),'log_count':len(obj.get('logs') or []),'exception_count':len(obj.get('exceptions') or []),'outcome':obj.get('outcome'),'event_type':obj.get('event',{}).get('request',{}).get('method') if isinstance(obj.get('event'),dict) else None})
+              except Exception: pass
+            print('TAIL_EVENT_SHAPES',events[:8])
           sensitive=re.compile(r'(bearer|password|authorization|cookie|secret|token|email|credential)',re.I)
           if f.exists():
             for line in f.read_text(errors='replace').splitlines():
               try: event=json.loads(line)
               except Exception: continue
               if not isinstance(event,dict): continue
-              for item in event.get('logs',[]):
+              for item in (event.get('logs') or []):
                 msg=str(item.get('message','')) if isinstance(item,dict) else str(item)
                 if msg and not sensitive.search(msg):
                   print('SERVER_LOG',msg[:250])
-              for err in event.get('exceptions',[]):
+              for err in (event.get('exceptions') or []):
                 name=str(err.get('name',''))[:70] if isinstance(err,dict) else 'unknown'
                 msg=str(err.get('message','')) if isinstance(err,dict) else str(err)
                 if sensitive.search(msg): msg='REDACTED'
