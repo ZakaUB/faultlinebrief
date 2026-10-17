@@ -3,3 +3,5 @@ Verify SonicJS CMS Worker fail-closed and authorized admin access after secret p
 Check SonicJS admin login routes without account changes.
 
 Repeat protected SonicJS administrator status checks after isolated database initialization.
+
+Check SonicJS admin login routes after gateway strips Basic Authorization header.
