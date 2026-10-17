@@ -42,12 +42,12 @@ jobs:
               try: event=json.loads(line)
               except Exception: continue
               for item in event.get('logs',[]):
-                msg=str(item.get('message',''))
+                msg=str(item.get('message','')) if isinstance(item,dict) else str(item)
                 if msg and not sensitive.search(msg):
                   print('SERVER_LOG',msg[:250])
               for err in event.get('exceptions',[]):
-                name=str(err.get('name',''))[:70]
-                msg=str(err.get('message',''))
+                name=str(err.get('name',''))[:70] if isinstance(err,dict) else 'unknown'
+                msg=str(err.get('message','')) if isinstance(err,dict) else str(err)
                 if sensitive.search(msg): msg='REDACTED'
                 print('SERVER_EXCEPTION',name,msg[:500])
           PY
