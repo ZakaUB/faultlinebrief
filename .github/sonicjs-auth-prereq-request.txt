@@ -1,0 +1,1 @@
+Set missing strong authentication secrets only for SonicJS isolated Worker.
