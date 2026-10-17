@@ -3,3 +3,5 @@ Provision only SonicJS staging KV session namespace.
 Retry dedicated SonicJS KV provisioning after updated token permission.
 
 Diagnose effective GitHub Actions Cloudflare token scopes.
+
+Try creating isolated KV via Wrangler CLI.
