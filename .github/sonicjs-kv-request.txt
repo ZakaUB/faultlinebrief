@@ -7,3 +7,5 @@ Diagnose effective GitHub Actions Cloudflare token scopes.
 Try creating isolated KV via Wrangler CLI.
 
 Retry Wrangler KV provisioning after D1 permission addition 2026-10-17.
+
+Retry Wrangler staging KV namespace after current GitHub secret update.
