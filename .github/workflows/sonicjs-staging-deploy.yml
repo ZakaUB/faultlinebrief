@@ -45,8 +45,10 @@ jobs:
           s=p.read_text()
           s,n=re.subn(r'(?m)^name\s*=\s*"[^"]+"', 'name = "faultlinebrief-sonicjs-cms-staging"', s, count=1)
           if n!=1: raise SystemExit('Unexpected Worker name template')
-          if 'workers_dev' not in s: s+='\nworkers_dev = true\n'
-          if 'routes =' not in s: s+='\nroutes = []\n'
+          header = ''
+          if 'workers_dev' not in s: header += 'workers_dev = true\n'
+          if 'routes =' not in s: header += 'routes = []\n'
+          s = header + s
           if '[[d1_databases]]' not in s: raise SystemExit('Missing D1 binding stanza')
           s,n=re.subn(r'(?m)^database_name\s*=\s*"[^"]+"', 'database_name = "faultlinebrief-sonicjs-staging"',s,count=1)
           if n!=1: raise SystemExit('Unexpected D1 name structure')
