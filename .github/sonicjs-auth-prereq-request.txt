@@ -1,1 +1,3 @@
 Set missing strong authentication secrets only for SonicJS isolated Worker.
+
+Retry supported Wrangler secret enumeration for SonicJS auth.
