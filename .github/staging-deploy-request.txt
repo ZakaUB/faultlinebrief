@@ -28,3 +28,5 @@ Read-only SQL article query and staging-only Payload access check.
 Disposable staging-only Payload admin authentication test; no production changes.
 
 Diagnose isolated staging-only administrator creation error.
+
+Identify staging-only Payload create error class and runtime name.
