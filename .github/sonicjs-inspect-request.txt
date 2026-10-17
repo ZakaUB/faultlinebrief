@@ -21,3 +21,5 @@ Check missing dynamic login authentication config module.
 Inspect current SonicJS account counts only after manual registration.
 
 Read-only existing-user credential format inspection after manual login failure.
+
+Check published PBKDF2 compatibility and account hash consistency; read-only.
