@@ -67,24 +67,24 @@ jobs:
           # Protect ALL requests, including initial/default administrator login.
           gateway=Path('src/staging-gateway.ts')
           gateway.write_text("""import sonic from './index'
-type Env = { STAGING_ACCESS_PASSWORD?: string }
-export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const password = env.STAGING_ACCESS_PASSWORD
-    if (!password || password.length < 24) return new Response('Staging unavailable', {status: 503})
-    const expected = 'Basic ' + btoa('staging:' + password)
-    const supplied = request.headers.get('Authorization') || ''
-    let diff = expected.length ^ supplied.length
-    for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ (supplied.charCodeAt(i) || 0)
-    if (diff !== 0) return new Response('Staging access required', {status:401,headers: {'WWW-Authenticate':'Basic realm="SonicJS Staging"','X-Robots-Tag':'noindex, nofollow, noarchive','Cache-Control':'no-store'}})
-    const res = await sonic.fetch(request, env, ctx)
-    const result = new Response(res.body,res)
-    result.headers.set('X-Robots-Tag','noindex, nofollow, noarchive')
-    result.headers.set('Cache-Control','no-store')
-    return result
-  }
-}
-""")
+          type Env = { STAGING_ACCESS_PASSWORD?: string }
+          export default {
+            async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+              const password = env.STAGING_ACCESS_PASSWORD
+              if (!password || password.length < 24) return new Response('Staging unavailable', {status: 503})
+              const expected = 'Basic ' + btoa('staging:' + password)
+              const supplied = request.headers.get('Authorization') || ''
+              let diff = expected.length ^ supplied.length
+              for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ (supplied.charCodeAt(i) || 0)
+              if (diff !== 0) return new Response('Staging access required', {status:401,headers: {'WWW-Authenticate':'Basic realm="SonicJS Staging"','X-Robots-Tag':'noindex, nofollow, noarchive','Cache-Control':'no-store'}})
+              const res = await sonic.fetch(request, env, ctx)
+              const result = new Response(res.body,res)
+              result.headers.set('X-Robots-Tag','noindex, nofollow, noarchive')
+              result.headers.set('Cache-Control','no-store')
+              return result
+            }
+          }
+          """)
           s=p.read_text()
           s,n=re.subn(r'(?m)^main\s*=\s*"[^"]+"','main = "src/staging-gateway.ts"',s,count=1)
           if n!=1: raise SystemExit('Missing main entry')
