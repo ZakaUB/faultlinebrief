@@ -1,0 +1,60 @@
+name: Initialize dedicated SonicJS staging schema
+on:
+  push:
+    branches: [cloudflare-staging-migration]
+    paths: ['.github/sonicjs-init-request.txt']
+permissions:
+  contents: read
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate isolated migration source and target
+        shell: bash
+        run: |
+          mkdir -p /tmp/sonic-schema
+          cd /tmp/sonic-schema
+          archive=$(npm pack @sonicjs-cms/core@3.0.0-beta.28 --silent)
+          tar -xzf "$archive"
+          test "$(find package/migrations -maxdepth 1 -type f -name '*.sql' | wc -l)" -eq 7
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          files=sorted(Path('package/migrations').glob('*.sql'))
+          for file in files:
+            sql=file.read_text()
+            if re.search(r'\b(DROP\s+(TABLE|DATABASE)|DELETE\s+FROM|TRUNCATE|ATTACH\s+DATABASE)\b',sql,re.I):
+              raise SystemExit('Destructive SQL found; refusing '+file.name)
+            print('MIGRATION_AUDIT',file.name,'safe')
+          PY
+          cat > wrangler.toml <<'EOF'
+          name = "faultlinebrief-sonicjs-migration-staging"
+          main = "noop.ts"
+          compatibility_date = "2026-10-15"
+          [[d1_databases]]
+          binding = "DB"
+          database_name = "faultlinebrief-sonicjs-staging"
+          database_id = "e30e35e4-51df-4d3b-b446-a47ddd55e3c7"
+          EOF
+          printf 'export default { fetch() { return new Response("no deployment") } }\n' > noop.ts
+      - name: Apply isolated SonicJS schema migrations
+        shell: bash
+        run: |
+          cd /tmp/sonic-schema
+          for f in package/migrations/*.sql; do
+            echo "APPLY_STAGING_MIGRATION $(basename "$f")"
+            npx --yes wrangler@4 d1 execute DB --remote --file "$f"
+          done
+      - name: Verify resulting table names
+        shell: bash
+        run: |
+          cd /tmp/sonic-schema
+          npx --yes wrangler@4 d1 execute DB --remote --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;" --json | python3 -c "import sys,json; x=json.load(sys.stdin); names=[v.get('name') for v in x[0].get('results',[])]; print('SONICJS_D1_TABLE_COUNT',len(names)); print('SONICJS_D1_TABLES',names); assert len(names)>7"
