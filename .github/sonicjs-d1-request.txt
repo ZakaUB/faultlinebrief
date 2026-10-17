@@ -1,3 +1,5 @@
 Create SonicJS-only D1 database named faultlinebrief-sonicjs-staging. No production resources.
 
 Retry restricted SonicJS staging D1 provisioning after access review.
+
+Check Cloudflare token validity separately from D1 authorization.
