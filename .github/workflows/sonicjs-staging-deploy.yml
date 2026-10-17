@@ -118,6 +118,32 @@ jobs:
           npx --yes pnpm@10.28.0 add @sonicjs-cms/core@3.0.0-beta.28
           npx --yes pnpm@10.28.0 add drizzle-orm@0.45.4
           test -d node_modules/@sonicjs-cms/core || { echo 'Pinned SonicJS core missing'; exit 1; }
+      - name: Apply temporary staging-only SonicJS organization schema compatibility shim
+        shell: bash
+        run: |
+          cd faultlinebrief-sonicjs-staging
+          python3 - <<'PY'
+          from pathlib import Path
+          files=list(Path('node_modules/@sonicjs-cms/core/dist').glob('config-*.js'))
+          matches=[(f,f.read_text()) for f in files if 'organization({' in f.read_text()]
+          if len(matches)!=1: raise SystemExit('Unable to safely locate unique Better Auth config')
+          path,code=matches[0]
+          start=code.index('organization({')
+          depth=0
+          end=None
+          for i in range(start+len('organization'),len(code)):
+            if code[i]=='(':depth+=1
+            elif code[i]==')':
+              depth-=1
+              if depth==0:
+                end=i+1
+                break
+          if not end or 'modelName: "auth_tenant"' not in code[start:end] and 'modelName: "auth_tenant_member"' not in code[start:end]:
+            raise SystemExit('Unexpected organization plugin syntax; refusing change')
+          patched=code[:start]+'null /* isolated staging: disable incompatible organization plugin pending upstream schema fix */'+code[end:]
+          path.write_text(patched)
+          print('STAGING_AUTH_ORG_SCHEMA_SHIM_APPLIED')
+          PY
       - name: Check packaged migration availability
         run: |
           cd faultlinebrief-sonicjs-staging
