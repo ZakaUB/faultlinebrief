@@ -1,0 +1,26 @@
+name: SonicJS staging starter compatibility
+on:
+  push:
+    branches: [cloudflare-staging-migration]
+    paths: ['.github/sonicjs-starter-request.txt']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    if: github.ref == 'refs/heads/cloudflare-staging-migration'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read published SonicJS starter package metadata
+        shell: bash
+        run: |
+          npm view create-sonicjs version --json
+          npm view create-sonicjs bin --json
+          npm view @sonicjs-cms/core version --json
+      - name: Inspect CLI help without installing or deploying an app
+        shell: bash
+        run: |
+          timeout 60s npx --yes create-sonicjs@latest --help || test "$?" -eq 124
