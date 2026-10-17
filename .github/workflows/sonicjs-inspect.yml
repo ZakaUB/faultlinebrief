@@ -83,6 +83,18 @@ jobs:
               if at>=0:
                 print('SAMPLE',f.name,repr(term),s[max(0,at-100):at+900].replace('\\n',' ')[:1000])
           PY
+          echo 'BETTER_AUTH_CONFIG_EXCERPT'
+          python3 - <<'PY'
+          from pathlib import Path
+          for f in Path('package/dist').glob('config-*.js'):
+            s=f.read_text(errors='replace')
+            if 'createAuth' in s:
+              for term in ['function createAuth','var createAuth','betterAuth({','BETTER_AUTH_SECRET','baseURL','basePath']:
+                at=s.find(term)
+                if at >= 0:
+                  snip=s[max(0,at-100):at+700]
+                  print('CONFIG_FIND',f.name,term,snip.replace('\\n',' ')[:800])
+          PY
           echo 'SONIC_D1_TABLE_NAMES'
           cd "$GITHUB_WORKSPACE"
           npx --yes wrangler@4 d1 execute e30e35e4-51df-4d3b-b446-a47ddd55e3c7 --remote --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;" --json | python3 -c "import sys,json; x=json.load(sys.stdin); print([v.get('name') for v in x[0].get('results',[])])"
