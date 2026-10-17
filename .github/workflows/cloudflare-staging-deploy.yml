@@ -101,7 +101,7 @@ jobs:
           import json, os, urllib.request, urllib.error, base64
           url = "https://faultlinebrief-cf-staging.zakria25.workers.dev/staging-health"
           credential = base64.b64encode(("staging:" + os.environ["STAGING_ACCESS_PASSWORD"]).encode()).decode()
-          req = urllib.request.Request(url, headers={"Authorization": "Basic " + credential, "Accept": "application/json"})
+          req = urllib.request.Request(url, headers={"Authorization": "Basic " + credential, "Accept": "application/json", "User-Agent": "FaultlineBrief-Staging-HealthCheck/1.0 (+github-actions; authorized staging verification)"})
           try:
               response = urllib.request.urlopen(req, timeout=35)
           except urllib.error.HTTPError as exc:
@@ -123,6 +123,22 @@ jobs:
           except Exception:
               print("STAGING_HEALTH",response.status,"non_json_response")
               raise SystemExit(1)
+          PY
+      - name: Verify disposable Payload administrator authentication
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os,base64,json,urllib.request,urllib.error
+          url='https://faultlinebrief-cf-staging.zakria25.workers.dev/staging-auth-test'
+          auth='Basic '+base64.b64encode(('staging:'+os.environ['STAGING_ACCESS_PASSWORD']).encode()).decode()
+          headers={'Authorization':auth,'Accept':'application/json','User-Agent':'FaultlineBrief-Staging-HealthCheck/1.0 (+github-actions; authorized staging verification)'}
+          request=urllib.request.Request(url,headers=headers,data=b'{}',method='POST')
+          try: response=urllib.request.urlopen(request,timeout=40)
+          except urllib.error.HTTPError as error: response=error
+          result=json.loads(response.read(4096))
+          print('STAGING_ADMIN_AUTH',response.status,{key:result.get(key) for key in ['ok','step','temporaryUserCreated','loginVerified']})
+          if response.status != 200 or result.get('loginVerified') is not True:
+            raise SystemExit(1)
           PY
       - name: Report staged deployment
         run: echo "Deployed isolated staging Worker only. No production DNS or Vercel changes."
