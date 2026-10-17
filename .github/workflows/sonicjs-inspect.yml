@@ -56,6 +56,10 @@ jobs:
               if 'admin/login' in line or 'auth/sign-in' in line:
                 print('AUTH_LINE',n+1,repr(line[:220]))
           PY
+          echo 'SONIC_ADMIN_ROUTE_LOGIC'
+          sed -n '850,910p' package/dist/index.js | head -60
+          echo 'SONIC_LOGIN_HANDLER'
+          sed -n '16835,16895p' package/dist/index.js | head -60
           echo 'SONIC_D1_TABLE_NAMES'
           cd "$GITHUB_WORKSPACE"
           npx --yes wrangler@4 d1 execute e30e35e4-51df-4d3b-b446-a47ddd55e3c7 --remote --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;" --json | python3 -c "import sys,json; x=json.load(sys.stdin); print([v.get('name') for v in x[0].get('results',[])])"
