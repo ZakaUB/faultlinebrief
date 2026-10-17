@@ -42,7 +42,7 @@ jobs:
           names=[n for n in payload.get('result',[]) if n.get('title')=='faultlinebrief-sonicjs-session-staging']
           if len(names)!=1:raise SystemExit('Dedicated SonicJS staging KV namespace must exist exactly once')
           kid=names[0]['id']
-          with open(os.environ['GITHUB_ENV'],'a') as env:env.write('SONICJS_KV_ID='+kid+'\\n')
+          with open(os.environ['GITHUB_ENV'],'a') as env:env.write('SONICJS_KV_ID='+kid+'\n')
           print('STAGING_KV_RESOLVED',kid)
           PY
       - name: Extract pinned official SonicJS starter template
@@ -90,7 +90,7 @@ jobs:
           if 'YOUR_KV_NAMESPACE_ID' in s: raise SystemExit('Unresolved KV placeholder')
           kv_id = __import__('os').environ.get('SONICJS_KV_ID','')
           if not __import__('re').fullmatch(r'[a-f0-9]{32}', kv_id): raise SystemExit('Invalid isolated staging KV ID')
-          s += '\\n[[kv_namespaces]]\\nbinding = "CACHE_KV"\\nid = "' + kv_id + '"\\n'
+          s += '\n[[kv_namespaces]]\nbinding = "CACHE_KV"\nid = "' + kv_id + '"\n'
           if 'faultlinebrief.com' in s: raise SystemExit('Production domain in config')
           p.write_text(s)
           entry=Path('src/index.ts')
