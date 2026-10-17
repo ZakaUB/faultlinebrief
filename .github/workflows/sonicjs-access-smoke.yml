@@ -1,0 +1,30 @@
+name: SonicJS isolated staging access smoke
+on:
+  push:
+    branches: [cloudflare-staging-migration]
+    paths: ['.github/sonicjs-access-smoke-request.txt']
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 5
+    env:
+      STAGING_ACCESS_PASSWORD: ${{ secrets.CLOUDFLARE_STAGING_ACCESS_PASSWORD }}
+    steps:
+      - name: Verify access without exposing response content
+        shell: bash
+        run: |
+          test "${#STAGING_ACCESS_PASSWORD}" -ge 24
+          url="https://faultlinebrief-sonicjs-cms-staging.zakria25.workers.dev/admin"
+          for n in 1 2 3 4 5; do
+            code=$(curl --max-time 20 --silent --output /dev/null --write-out '%{http_code}' "$url")
+            echo "SONICJS_UNAUTH_HTTP=$code attempt=$n"
+            if [ "$code" = 401 ]; then break; fi
+            sleep 10
+          done
+          if [ "$code" != 401 ]; then exit 1; fi
+          code=$(curl --max-time 20 --silent --output /dev/null --write-out '%{http_code}' --user "staging:$STAGING_ACCESS_PASSWORD" "$url")
+          echo "SONICJS_AUTH_HTTP=$code"
+          case "$code" in 200|302) exit 0;; *) exit 1;; esac
