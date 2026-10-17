@@ -9,3 +9,5 @@ Retry scaffold dependency installation with pinned pnpm.
 Retry dedicated D1 migrations with supported Wrangler flags.
 
 Deploy protected CMS shell without unavailable migration files; verify no public access.
+
+Install pinned SonicJS core and deploy protected Worker if bundling succeeds.
