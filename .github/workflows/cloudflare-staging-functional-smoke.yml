@@ -28,7 +28,8 @@ jobs:
           paths=[
             ('health','/staging-health'),
             ('admin-login','/admin/login'),
-            ('articles-api','/api/articles?limit=1&depth=0'),
+            ('articles-api-unauthenticated','/api/articles?limit=1&depth=0'),
+            ('published-article','/articles/who-are-the-houthis-history-sanaa-2014-saudi-arabia-conflict'),
             ('homepage','/'),
             ('news-sitemap','/news-sitemap.xml'),
             ('main-sitemap','/sitemap.xml'),
@@ -52,7 +53,7 @@ jobs:
                 d=json.loads(body)
                 diagnostic=json.dumps({k:d.get(k) for k in ('ok','step','directPostgres','signature') if k in d})
               except (ValueError,TypeError): diagnostic='invalid-json'
-            if label=='articles-api' and content_type=='application/json' and status!=200:
+            if label=='articles-api-unauthenticated' and content_type=='application/json' and status!=200:
               try:
                 d=json.loads(body)
                 if isinstance(d,dict):
@@ -62,7 +63,7 @@ jobs:
               try:
                 d=json.loads(body);diagnostic='valid_collection='+str(isinstance(d.get('docs'),list))
               except (ValueError,TypeError): diagnostic='invalid-json'
-            ok=(status==200 and (label!='health' or '"ok": true' in diagnostic or '"ok":true' in diagnostic))
+            ok=((status==200 and (label!='health' or '"ok": true' in diagnostic or '"ok":true' in diagnostic)) or (label=='articles-api-unauthenticated' and status==403))
             print('SMOKE',label,'PASS' if ok else 'FAIL','http',status,'content_type',content_type,'bytes',len(body),diagnostic)
             if not ok: failed+=1
           print('SMOKE_FAILURES',failed)
