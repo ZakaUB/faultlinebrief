@@ -15,3 +15,5 @@ Inspect beta login and registration implementation after disposable test.
 Final staging-only check that disposable user and sessions were cleared and documents remain.
 
 Inspect packaged Better Auth configuration for login failure.
+
+Check missing dynamic login authentication config module.
