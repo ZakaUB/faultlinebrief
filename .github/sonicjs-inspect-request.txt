@@ -1,1 +1,3 @@
 Read-only isolated SonicJS package and D1 schema inspection.
+
+Inspect SonicJS internal auth routes and bootstrap requirements.
