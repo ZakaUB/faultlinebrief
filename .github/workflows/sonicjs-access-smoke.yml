@@ -36,6 +36,22 @@ jobs:
             echo 'SONICJS_GATEWAY=failed'
             exit 1
           fi
+          echo 'SONIC_AUTH_RESPONSE_CLASS'
+          for route in /admin/login /admin /auth/session /auth/get-session; do
+            curl --silent --max-time 20 --user "staging:$STAGING_ACCESS_PASSWORD" -o /tmp/sonic-response -D /tmp/sonic-header "https://faultlinebrief-sonicjs-cms-staging.zakria25.workers.dev$route"
+            code=$(awk 'toupper($1) ~ /^HTTP/ {v=$2} END {print v}' /tmp/sonic-header)
+            ctype=$(grep -i '^content-type:' /tmp/sonic-header | tail -1 | cut -c1-85)
+            redirect=$(grep -i '^location:' /tmp/sonic-header | tail -1 | cut -c1-100)
+            echo "SONIC_SAFE_ROUTE $route status=$code $ctype $redirect"
+            if [ "$code" = 401 ]; then
+              python3 - <<'PY'
+from pathlib import Path
+s=Path('/tmp/sonic-response').read_text(errors='replace').strip()
+if len(s)<250 and 'password' not in s.lower() and 'token' not in s.lower():
+ print('SONIC_401_BODY',repr(s))
+PY
+            fi
+          done
           for route in /admin /admin/login /login /; do
             status=$(curl --max-time 20 --silent --output /dev/null --write-out '%{http_code}' --user "staging:$STAGING_ACCESS_PASSWORD" "https://faultlinebrief-sonicjs-cms-staging.zakria25.workers.dev$route")
             echo "SONICJS_ROUTE $route HTTP=$status"
