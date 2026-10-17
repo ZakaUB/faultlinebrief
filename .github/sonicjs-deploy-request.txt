@@ -3,3 +3,5 @@ Deploy only faultlinebrief-sonicjs-cms-staging with dedicated SonicJS D1 and sta
 Retry validated YAML and fail-closed staging gateway.
 
 Retry from pinned package starter files, never touching existing workers.
+
+Retry scaffold dependency installation with pinned pnpm.
