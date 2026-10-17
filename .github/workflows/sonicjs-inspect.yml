@@ -128,6 +128,10 @@ jobs:
               index=s.find(term)
               if index>=0: print('PBKDF2_IMPLEMENTATION',f.name,term,s[max(0,index-180):index+1350].replace('\\n',' ')[:1500])
           PY
+          echo 'STAGING_AUTH_SCHEMA_COLUMNS'
+          for tbl in auth_user auth_account auth_session auth_tenant auth_tenant_member auth_tenant_invitation auth_tenant_team; do
+            TABLE="$tbl" npx --yes wrangler@4 d1 execute e30e35e4-51df-4d3b-b446-a47ddd55e3c7 --remote --command "PRAGMA table_info($tbl);" --json | TABLE="$tbl" python3 -c "import json,os,sys; x=json.load(sys.stdin);print('STAGING_TABLE_COLUMNS',os.environ['TABLE'],[(v['name'],v['notnull']) for v in x[0]['results']])"
+          done
           echo 'SONIC_D1_TABLE_NAMES'
           cd "$GITHUB_WORKSPACE"
           npx --yes wrangler@4 d1 execute e30e35e4-51df-4d3b-b446-a47ddd55e3c7 --remote --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;" --json | python3 -c "import sys,json; x=json.load(sys.stdin); print([v.get('name') for v in x[0].get('results',[])])"
