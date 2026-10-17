@@ -7,3 +7,5 @@ Read structured Cloudflare edge error code and category without confidential fie
 Test authorized staging health client with explicit user agent.
 
 Run staging-only 600k PBKDF2 dummy-input compatibility probe.
+
+Read-only staging administrator existence check.
