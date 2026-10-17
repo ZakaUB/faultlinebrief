@@ -100,10 +100,14 @@ jobs:
           print('STAGING_ISOLATION_CONFIGURED')
           PY
           npx --yes pnpm@10.28.0 install --no-frozen-lockfile
-      - name: Apply SonicJS migrations to dedicated staging D1 only
+      - name: Check packaged migration availability
         run: |
           cd faultlinebrief-sonicjs-staging
-          npx wrangler d1 migrations apply DB --remote
+          if test -d node_modules/@sonicjs-cms/core/migrations; then
+            echo 'Migrations directory exists; deferring migrations until CMS initialization is verified.'
+          else
+            echo 'No separate packaged migrations directory; deployment will not modify D1 schema.'
+          fi
       - name: Deploy fail-closed staging worker
         run: |
           cd faultlinebrief-sonicjs-staging
