@@ -15,3 +15,5 @@ Retry safe SonicJS auth-response classification.
 Run cleaned and isolated SonicJS admin 401 probe.
 
 Verify actual SonicJS browser login route using Accept text/html.
+
+Check login/session routes after dedicated CACHE_KV binding deployed.
