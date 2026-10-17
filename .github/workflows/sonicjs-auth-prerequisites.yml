@@ -1,0 +1,33 @@
+name: SonicJS staging auth prerequisites
+on:
+  push:
+    branches: [cloudflare-staging-migration]
+    paths: ['.github/sonicjs-auth-prereq-request.txt']
+permissions:
+  contents: read
+jobs:
+  auth:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 7
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Ensure isolated SonicJS runtime auth secrets exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          name=faultlinebrief-sonicjs-cms-staging
+          npx --yes wrangler@4 secret list --name "$name" --json > /tmp/sonic-secrets.json
+          for key in JWT_SECRET BETTER_AUTH_SECRET; do
+            if python3 -c "import json,sys; x=json.load(open('/tmp/sonic-secrets.json')); sys.exit(0 if any(y.get('name')==sys.argv[1] for y in x) else 1)" "$key"; then
+              echo "STAGING_SECRET_PRESENT=$key"
+            else
+              openssl rand -hex 48 | tr -d '\n' | npx --yes wrangler@4 secret put "$key" --name "$name" >/dev/null
+              echo "STAGING_SECRET_CREATED=$key"
+            fi
+          done
