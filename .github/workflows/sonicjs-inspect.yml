@@ -101,6 +101,8 @@ jobs:
           PY
           echo 'SONIC_USER_STATE'
           npx --yes wrangler@4 d1 execute e30e35e4-51df-4d3b-b446-a47ddd55e3c7 --remote --command "SELECT (SELECT COUNT(*) FROM auth_user) AS users,(SELECT COUNT(*) FROM auth_account) AS accounts,(SELECT COUNT(*) FROM auth_session) AS sessions;" --json | python3 -c "import sys,json; print('SONIC_USER_COUNTS',json.load(sys.stdin)[0]['results'])"
+          echo 'STAGING_CREDENTIAL_DIAGNOSTICS'
+          npx --yes wrangler@4 d1 execute e30e35e4-51df-4d3b-b446-a47ddd55e3c7 --remote --command "SELECT u.role AS user_role,u.is_active AS active,u.email_verified AS verified,a.provider_id AS provider,CASE WHEN a.password IS NULL OR a.password='' THEN 'missing' WHEN a.password LIKE 'pbkdf2:%' THEN 'pbkdf2' WHEN a.password LIKE '%:%' THEN 'other_colon_format' ELSE 'non_pbkdf2' END AS account_password_format,CASE WHEN u.password_hash IS NULL OR u.password_hash='' THEN 'missing' WHEN u.password_hash LIKE 'pbkdf2:%' THEN 'pbkdf2' ELSE 'other' END AS legacy_hash_format,CASE WHEN a.user_id=u.id THEN 'matched' ELSE 'mismatch' END AS user_id_match FROM auth_user u LEFT JOIN auth_account a ON a.user_id=u.id LIMIT 3;" --json | python3 -c "import json,sys; print('STAGING_CREDENTIAL_FORMATS',json.load(sys.stdin)[0]['results'])"
           echo 'SONIC_D1_TABLE_NAMES'
           cd "$GITHUB_WORKSPACE"
           npx --yes wrangler@4 d1 execute e30e35e4-51df-4d3b-b446-a47ddd55e3c7 --remote --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;" --json | python3 -c "import sys,json; x=json.load(sys.stdin); print([v.get('name') for v in x[0].get('results',[])])"
