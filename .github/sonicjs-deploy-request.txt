@@ -5,3 +5,5 @@ Retry validated YAML and fail-closed staging gateway.
 Retry from pinned package starter files, never touching existing workers.
 
 Retry scaffold dependency installation with pinned pnpm.
+
+Retry dedicated D1 migrations with supported Wrangler flags.
