@@ -5,3 +5,5 @@ Inspect SonicJS internal auth routes and bootstrap requirements.
 Read packaged runtime config guidance for admin bootstrap.
 
 Inspect auth initialization and admin routes in published SonicJS package.
+
+Trace SonicJS auth middleware causing login 401.
