@@ -1,0 +1,47 @@
+name: Cloudflare staging Payload login API diagnostic
+
+on:
+  push:
+    branches: [cloudflare-staging-migration]
+    paths: ['.github/staging-login-request.txt']
+permissions:
+  contents: read
+jobs:
+  login-check:
+    if: github.ref == 'refs/heads/cloudflare-staging-migration'
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 8
+    env:
+      STAGING_ACCESS_PASSWORD: ${{ secrets.CLOUDFLARE_STAGING_ACCESS_PASSWORD }}
+    steps:
+      - name: Check Payload login security, staging only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os,json,base64,urllib.request,urllib.error
+          base='https://faultlinebrief-cf-staging.zakria25.workers.dev'
+          authorization='Basic '+base64.b64encode(('staging:'+os.environ['STAGING_ACCESS_PASSWORD']).encode()).decode()
+          headers={'Authorization':authorization,'User-Agent':'FaultlineBrief-Staging-HealthCheck/1.0 (+github-actions; authorized staging verification)','Accept':'application/json'}
+          def check(label,path,method='GET',payload=None):
+            h=dict(headers)
+            data=None
+            if payload is not None:
+              h['Content-Type']='application/json'
+              data=json.dumps(payload).encode()
+            req=urllib.request.Request(base+path,headers=h,data=data,method=method)
+            try:r=urllib.request.urlopen(req,timeout=25)
+            except urllib.error.HTTPError as e:r=e
+            raw=r.read(8192)
+            try:d=json.loads(raw)
+            except ValueError:d={}
+            print('LOGIN_CHECK',label,'http',r.status,'json_fields',sorted(d) if isinstance(d,dict) else [])
+            return r.status,d
+          health,d=check('health','/staging-health')
+          me,_=check('anonymous-me','/api/users/me')
+          # An intentionally non-existent identity; no existing user is targeted.
+          bad,_=check('invalid-login','/api/users/login','POST',{'email':'nonexistent-staging-probe@example.invalid','password':'invalid-probe-password'})
+          passed=health==200 and me in (200,401,403) and bad in (400,401,403)
+          print('LOGIN_API_DIAGNOSTIC', 'PASS' if passed else 'FAIL', 'successful_password_login_not_tested')
+          raise SystemExit(0 if passed else 1)
+          PY
