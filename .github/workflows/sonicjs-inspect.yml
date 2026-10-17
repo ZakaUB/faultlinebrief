@@ -1,0 +1,36 @@
+name: Inspect isolated SonicJS runtime and schema
+on:
+  push:
+    branches: [cloudflare-staging-migration]
+    paths: ['.github/sonicjs-inspect-request.txt']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+      SONICJS_TELEMETRY: 'false'
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Inspect published package and D1 metadata without writes
+        shell: bash
+        run: |
+          mkdir -p /tmp/sonic
+          cd /tmp/sonic
+          npm pack @sonicjs-cms/core@3.0.0-beta.28 --silent >/tmp/pkgname
+          tar -xzf "$(cat /tmp/pkgname)"
+          echo 'SONIC_MIGRATION_FILES'
+          find package/migrations -maxdepth 2 -type f | head -25
+          echo 'SONIC_CORE_CONFIG'
+          cat package/package.json | grep -E '"(main|exports|module|version|drizzle-orm|better-auth)"' | head -22
+          echo 'SONIC_AUTH_FILE_NAMES'
+          find package -type f | grep -Ei 'auth|login|migrations' | head -35
+          echo 'SONIC_D1_TABLE_NAMES'
+          cd "$GITHUB_WORKSPACE"
+          npx --yes wrangler@4 d1 execute e30e35e4-51df-4d3b-b446-a47ddd55e3c7 --remote --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;" --json | python3 -c "import sys,json; x=json.load(sys.stdin); print([v.get('name') for v in x[0].get('results',[])])"
