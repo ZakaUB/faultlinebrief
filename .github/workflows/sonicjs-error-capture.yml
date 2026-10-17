@@ -1,0 +1,53 @@
+name: SonicJS staging login exception capture
+on:
+  push:
+    branches: [cloudflare-staging-migration]
+    paths: ['.github/sonicjs-error-capture-request.txt']
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 6
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+      STAGING_ACCESS_PASSWORD: ${{ secrets.CLOUDFLARE_STAGING_ACCESS_PASSWORD }}
+    steps:
+      - uses: actions/setup-node@v4
+        with: 
+          node-version: '22'
+      - name: Capture sanitized auth exception with non-existent credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${#STAGING_ACCESS_PASSWORD}" -ge 24
+          (timeout 40s npx --yes wrangler@4 tail faultlinebrief-sonicjs-cms-staging --format json > /tmp/sonic-tail.jsonl 2>/tmp/tail-stderr || true) &
+          tail_pid=$!
+          sleep 12
+          nonce=$(date +%s)
+          url="https://faultlinebrief-sonicjs-cms-staging.zakria25.workers.dev/auth/sign-in/email"
+          status=$(curl --silent --show-error --max-time 20 --output /dev/null --write-out '%{http_code}' --user "staging:$STAGING_ACCESS_PASSWORD" --header 'Content-Type: application/json' --header 'Accept: application/json' --data "{\"email\":\"nonexistent-${nonce}@example.invalid\",\"password\":\"deliberately-incorrect-password\"}" "$url")
+          echo "AUTH_INVALID_CREDENTIAL_HTTP=$status"
+          wait "$tail_pid" || true
+          python3 - <<'PY'
+          import json,re
+          from pathlib import Path
+          f=Path('/tmp/sonic-tail.jsonl')
+          print('TAIL_CAPTURE_BYTES',f.stat().st_size if f.exists() else 0)
+          sensitive=re.compile(r'(bearer|password|authorization|cookie|secret|token|email|credential)',re.I)
+          if f.exists():
+            for line in f.read_text(errors='replace').splitlines():
+              try: event=json.loads(line)
+              except Exception: continue
+              for item in event.get('logs',[]):
+                msg=str(item.get('message',''))
+                if msg and not sensitive.search(msg):
+                  print('SERVER_LOG',msg[:250])
+              for err in event.get('exceptions',[]):
+                name=str(err.get('name',''))[:70]
+                msg=str(err.get('message',''))
+                if sensitive.search(msg): msg='REDACTED'
+                print('SERVER_EXCEPTION',name,msg[:500])
+          PY
