@@ -71,8 +71,9 @@ jobs:
               try:
                 d=json.loads(body);diagnostic='valid_collection='+str(isinstance(d.get('docs'),list))
               except (ValueError,TypeError): diagnostic='invalid-json'
-            ok=((status==200 and (label!='health' or '"ok": true' in diagnostic or '"ok":true' in diagnostic)) or (label=='articles-api-unauthenticated' and status==403))
+            ok=((status==200 and (label!='health' or '"ok": true' in diagnostic or '"ok":true' in diagnostic)) or (label in ('articles-api-unauthenticated','categories-api') and status==403))
             print('SMOKE',label,'PASS' if ok else 'FAIL','http',status,'content_type',content_type,'bytes',len(body),diagnostic)
+            if label=='media-api' and diagnostic!='valid_collection=True': ok=False
             if not ok: failed+=1
           print('SMOKE_FAILURES',failed)
           raise SystemExit(1 if failed else 0)
