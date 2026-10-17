@@ -13,6 +13,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Inspect CLI prompt and flags
+        run: |
+          cd /tmp
+          npm pack create-sonicjs@3.0.0-beta.28 --silent > /tmp/sonic-pack-name
+          mkdir -p sonic-package
+          tar -xzf "$(cat /tmp/sonic-pack-name)" -C sonic-package
+          grep -R -n -E 'process.argv|commander|databaseName|Database name|prompts|inquirer|confirm|flags|--yes' sonic-package/package/bin | head -90 || true
       - name: Run starter in noninteractive dry run
         shell: bash
         env:
