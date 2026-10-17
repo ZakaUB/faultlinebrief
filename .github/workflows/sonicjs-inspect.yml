@@ -45,6 +45,17 @@ jobs:
               if term in s:
                 print('PATH_FOUND', f.name,term)
           PY
+          echo 'SONIC_RUNTIME_README'
+          sed -n '45,160p' package/README.md | head -115
+          echo 'SONIC_AUTH_CONFIG_SNIPPETS'
+          python3 - <<'PY'
+          from pathlib import Path
+          for name in ['package/dist/index.js']:
+            s=Path(name).read_text(errors='ignore').splitlines()
+            for n,line in enumerate(s):
+              if 'admin/login' in line or 'auth/sign-in' in line:
+                print('AUTH_LINE',n+1,repr(line[:220]))
+          PY
           echo 'SONIC_D1_TABLE_NAMES'
           cd "$GITHUB_WORKSPACE"
           npx --yes wrangler@4 d1 execute e30e35e4-51df-4d3b-b446-a47ddd55e3c7 --remote --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;" --json | python3 -c "import sys,json; x=json.load(sys.stdin); print([v.get('name') for v in x[0].get('results',[])])"
