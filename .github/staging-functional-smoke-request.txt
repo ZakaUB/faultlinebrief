@@ -3,3 +3,5 @@ Run staging-only read-only CMS, site and sitemap validation; do not modify produ
 Classify articles API HTTP 403 with safe error metadata.
 
 Verify expected unauthenticated Payload API restrictions and published article page.
+
+Read-only staging verification for media, categories and Payload admin dashboard.
