@@ -70,9 +70,12 @@ jobs:
           status,doc=request('/auth/register',{'email':email,'password':password,'username':'sonic-staging-qa','firstName':'Staging','lastName':'QA'})
           if status not in (200,201):
             raise SystemExit('Disposable registration not successful')
-          status,doc=request('/auth/login',{'email':email,'password':password})
+          status,doc=request('/auth/sign-in/email',{'email':email,'password':password})
+          print('STAGING_DIRECT_BETTER_AUTH',status)
           if status not in (200,201,302):
-            raise SystemExit('Disposable sign-in not successful')
+            status,doc=request('/auth/login',{'email':email,'password':password})
+          if status not in (200,201,302):
+            raise SystemExit('Neither direct Better Auth nor legacy sign-in succeeded')
           print('STAGING_SESSION_COOKIE_SET', bool(list(jar)))
           import subprocess
           command=['curl','--silent','--show-error','--max-time','25','--user','staging:'+os.environ['STAGING_ACCESS_PASSWORD'],'--cookie','/tmp/sonic-test-cookies','--header','Accept: text/html','--output','/dev/null','--write-out','%{http_code}',base+'/admin']
