@@ -37,3 +37,5 @@ Deploy staging tenant-plugin schema mismatch fix.
 Enforce live auth endpoint schema regression gate.
 
 Apply tenant field mapping correction.
+
+Test organization plugin schema mapping via auth extension.
