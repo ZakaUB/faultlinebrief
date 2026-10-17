@@ -19,3 +19,5 @@ Inspect packaged Better Auth configuration for login failure.
 Check missing dynamic login authentication config module.
 
 Inspect current SonicJS account counts only after manual registration.
+
+Read-only existing-user credential format inspection after manual login failure.
