@@ -61,6 +61,22 @@ jobs:
           cache: pnpm
       - name: Install
         run: pnpm install --frozen-lockfile
+      - name: Apply isolated staging PBKDF2 compatibility override
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          import path from 'node:path'
+          const base = 'node_modules/payload/dist/auth/strategies/local'
+          const target = path.join(base, 'generatePasswordSaltHash.js')
+          if (!fs.existsSync(target)) throw Error('Payload hashing implementation not found; aborting deployment')
+          const original = fs.readFileSync(target, 'utf8')
+          const pattern = /currentPasswordHashIterations\s*=\s*600000\b/g
+          const matches = [...original.matchAll(pattern)]
+          if (matches.length !== 1) throw Error('Unexpected Payload PBKDF2 implementation; aborting deployment')
+          fs.writeFileSync(target, original.replace(pattern, 'currentPasswordHashIterations = 100000'))
+          console.log('Staging-only Payload PBKDF2 work factor patched to 100000')
+          NODE
       - name: Install staging-only adapter tools
         run: pnpm add -D @opennextjs/cloudflare@1.20.12 wrangler@4.151.1
       - name: Install staging-only direct PostgreSQL diagnostic dependency
