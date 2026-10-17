@@ -1,0 +1,1 @@
+Verify SonicJS CMS Worker fail-closed and authorized admin access after secret propagation.
