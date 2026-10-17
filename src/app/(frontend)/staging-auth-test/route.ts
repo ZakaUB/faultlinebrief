@@ -42,7 +42,7 @@ export async function POST() {
     const knownCodes = new Set(['23505', '23503', '23502', '42P01', '42703', '42501', 'ECONNRESET', 'ETIMEDOUT'])
     const rawCode = typeof e?.code === 'string' ? e.code : typeof e?.cause?.code === 'string' ? e.cause.code : ''
     const category = /relation .* does not exist|column .* does not exist|schema/i.test(msg) ? 'schema' : /permission|denied/i.test(msg) ? 'permission' : /timeout|connect|network|socket/i.test(msg) ? 'connectivity' : /validation|invalid|required/i.test(msg) ? 'validation' : 'unclassified'
-    return NextResponse.json({ ok: false, step, errorCategory: category, errorCode: knownCodes.has(rawCode) ? rawCode : 'unknown', errorName: error instanceof Error ? error.name : 'unknown' }, { status: 500, headers: { 'Cache-Control': 'no-store' } })
+    return NextResponse.json({ ok: false, step: step + ':' + category + ':' + (knownCodes.has(rawCode) ? rawCode : 'unknown'), errorCategory: category, errorCode: knownCodes.has(rawCode) ? rawCode : 'unknown', errorName: error instanceof Error ? error.name : 'unknown' }, { status: 500, headers: { 'Cache-Control': 'no-store' } })
   } finally {
     if (id !== undefined) {
       try {
