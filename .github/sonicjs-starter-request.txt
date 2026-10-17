@@ -1,0 +1,1 @@
+Verify published SonicJS starter and CLI usage only; no deploy.
