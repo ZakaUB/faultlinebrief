@@ -30,3 +30,5 @@ Disposable staging-only Payload admin authentication test; no production changes
 Diagnose isolated staging-only administrator creation error.
 
 Identify staging-only Payload create error class and runtime name.
+
+Remove temporary write-capable authentication test endpoint and retain read-only staging health verification.
