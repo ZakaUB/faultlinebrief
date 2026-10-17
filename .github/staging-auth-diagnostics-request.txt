@@ -5,3 +5,5 @@ Classify staging edge 403 response using safe numeric Cloudflare error codes.
 Read structured Cloudflare edge error code and category without confidential fields.
 
 Test authorized staging health client with explicit user agent.
+
+Run staging-only 600k PBKDF2 dummy-input compatibility probe.
