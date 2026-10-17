@@ -1,0 +1,30 @@
+name: SonicJS staging scaffold inspection
+on:
+  push:
+    branches: [cloudflare-staging-migration]
+    paths: ['.github/sonicjs-scaffold-request.txt']
+permissions:
+  contents: read
+jobs:
+  scaffold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run starter in noninteractive dry run
+        shell: bash
+        env:
+          CI: 'true'
+          SONICJS_TELEMETRY: 'false'
+        run: |
+          mkdir -p /tmp/sonicjs-inspection
+          cd /tmp/sonicjs-inspection
+          set +e
+          timeout 50s npx --yes create-sonicjs@3.0.0-beta.28 faultlinebrief-sonicjs-staging < /dev/null > /tmp/sonicjs-output.txt 2>&1
+          code=$?
+          set -e
+          echo "STARTER_EXIT=$code"
+          sed -E 's/(token|secret|password|key)[=:][^ ]+/\\1=[REDACTED]/Ig' /tmp/sonicjs-output.txt | tail -45
+          find . -maxdepth 3 -type f -not -path '*/node_modules/*' | sort | head -45
