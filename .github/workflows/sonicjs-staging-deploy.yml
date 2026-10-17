@@ -1,0 +1,119 @@
+name: Deploy isolated SonicJS staging CMS
+on:
+  push:
+    branches: [cloudflare-staging-migration]
+    paths: ['.github/sonicjs-deploy-request.txt']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/cloudflare-staging-migration'
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+      STAGING_ACCESS_PASSWORD: ${{ secrets.CLOUDFLARE_STAGING_ACCESS_PASSWORD }}
+      SONICJS_TELEMETRY: 'false'
+      CI: 'true'
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify staging-only configuration
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test "${#STAGING_ACCESS_PASSWORD}" -ge 24
+      - name: Generate pinned SonicJS starter without resource creation
+        run: |
+          npx --yes create-sonicjs@3.0.0-beta.28 faultlinebrief-sonicjs-staging \
+            --template=starter --database=faultlinebrief-sonicjs-staging \
+            --bucket=faultlinebrief-staging-media --skip-example --skip-install \
+            --skip-git --skip-cloudflare
+      - name: Constrain resources and install fail-closed staging gateway
+        shell: bash
+        run: |
+          cd faultlinebrief-sonicjs-staging
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('wrangler.toml')
+          if not p.exists(): raise SystemExit('Missing SonicJS wrangler.toml')
+          s=p.read_text()
+          s,n=re.subn(r'(?m)^name\s*=\s*"[^"]+"', 'name = "faultlinebrief-sonicjs-cms-staging"', s, count=1)
+          if n!=1: raise SystemExit('Unexpected Worker name template')
+          if 'workers_dev' not in s: s+='\nworkers_dev = true\n'
+          if 'routes =' not in s: s+='\nroutes = []\n'
+          if '[[d1_databases]]' not in s: raise SystemExit('Missing D1 binding stanza')
+          s,n=re.subn(r'(?m)^database_name\s*=\s*"[^"]+"', 'database_name = "faultlinebrief-sonicjs-staging"',s,count=1)
+          if n!=1: raise SystemExit('Unexpected D1 name structure')
+          s,n=re.subn(r'(?m)^database_id\s*=\s*"[^"]+"', 'database_id = "e30e35e4-51df-4d3b-b446-a47ddd55e3c7"',s,count=1)
+          if n!=1: raise SystemExit('Missing D1 database_id')
+          if '[[r2_buckets]]' in s:
+            s,n=re.subn(r'(?m)^bucket_name\s*=\s*"[^"]+"', 'bucket_name = "faultlinebrief-staging-media"',s,count=1)
+            if n!=1: raise SystemExit('Unexpected R2 bucket structure')
+          else:
+            s+='\n[[r2_buckets]]\nbinding = "MEDIA_BUCKET"\nbucket_name = "faultlinebrief-staging-media"\n'
+          if 'faultlinebrief.com' in s: raise SystemExit('Production domain in config')
+          p.write_text(s)
+          entry=Path('src/index.ts')
+          if not entry.exists(): raise SystemExit('Missing SonicJS entry')
+          text=entry.read_text()
+          # Protect ALL requests, including initial/default administrator login.
+          gateway=Path('src/staging-gateway.ts')
+          gateway.write_text("""import sonic from './index'
+type Env = { STAGING_ACCESS_PASSWORD?: string }
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const password = env.STAGING_ACCESS_PASSWORD
+    if (!password || password.length < 24) return new Response('Staging unavailable', {status: 503})
+    const expected = 'Basic ' + btoa('staging:' + password)
+    const supplied = request.headers.get('Authorization') || ''
+    let diff = expected.length ^ supplied.length
+    for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ (supplied.charCodeAt(i) || 0)
+    if (diff !== 0) return new Response('Staging access required', {status:401,headers: {'WWW-Authenticate':'Basic realm="SonicJS Staging"','X-Robots-Tag':'noindex, nofollow, noarchive','Cache-Control':'no-store'}})
+    const res = await sonic.fetch(request, env, ctx)
+    const result = new Response(res.body,res)
+    result.headers.set('X-Robots-Tag','noindex, nofollow, noarchive')
+    result.headers.set('Cache-Control','no-store')
+    return result
+  }
+}
+""")
+          s=p.read_text()
+          s,n=re.subn(r'(?m)^main\s*=\s*"[^"]+"','main = "src/staging-gateway.ts"',s,count=1)
+          if n!=1: raise SystemExit('Missing main entry')
+          p.write_text(s)
+          print('STAGING_ISOLATION_CONFIGURED')
+          PY
+          npm install --no-audit --no-fund
+      - name: Apply SonicJS migrations to dedicated staging D1 only
+        run: |
+          cd faultlinebrief-sonicjs-staging
+          npx wrangler d1 migrations apply DB --remote --yes
+      - name: Deploy fail-closed staging worker
+        run: |
+          cd faultlinebrief-sonicjs-staging
+          npx wrangler deploy
+      - name: Configure protected staging password (never print)
+        shell: bash
+        run: |
+          cd faultlinebrief-sonicjs-staging
+          printf '%s' "$STAGING_ACCESS_PASSWORD" | npx wrangler secret put STAGING_ACCESS_PASSWORD --name faultlinebrief-sonicjs-cms-staging
+      - name: Confirm unauthorized access denied
+        shell: bash
+        run: |
+          code=$(curl --silent --output /dev/null --write-out '%{http_code}' 'https://faultlinebrief-sonicjs-cms-staging.zakria25.workers.dev/admin')
+          echo "SONICJS_UNAUTH_HTTP=$code"
+          test "$code" = 401
+      - name: Confirm staging credentials can reach CMS
+        shell: bash
+        run: |
+          code=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --user "staging:$STAGING_ACCESS_PASSWORD" \
+            'https://faultlinebrief-sonicjs-cms-staging.zakria25.workers.dev/admin')
+          echo "SONICJS_AUTH_HTTP=$code"
+          test "$code" = 200 -o "$code" = 302
