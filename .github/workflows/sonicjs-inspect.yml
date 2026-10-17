@@ -31,6 +31,20 @@ jobs:
           cat package/package.json | grep -E '"(main|exports|module|version|drizzle-orm|better-auth)"' | head -22
           echo 'SONIC_AUTH_FILE_NAMES'
           find package -type f | grep -Ei 'auth|login|migrations' | head -35
+          echo 'SONIC_AUTH_REFERENCES'
+          grep -R -l -E 'admin/login|/login|sign-in|auth/sign-in' package/dist/*.js | head -12
+          echo 'SONIC_AUTH_SCHEMA'
+          grep -R -n -i -E 'default.*admin|setup.*admin|admin.*setup|bootstrap|sign-in/email' package/README.md package/package.json 2>/dev/null | head -25 || true
+          echo 'SONIC_AUTH_STATUS'
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          for f in Path('package/dist').glob('*.js'):
+            s=f.read_text(errors='ignore')
+            for term in ['/admin/login','/login','/api/auth/sign-in/email','/admin/setup']:
+              if term in s:
+                print('PATH_FOUND', f.name,term)
+          PY
           echo 'SONIC_D1_TABLE_NAMES'
           cd "$GITHUB_WORKSPACE"
           npx --yes wrangler@4 d1 execute e30e35e4-51df-4d3b-b446-a47ddd55e3c7 --remote --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;" --json | python3 -c "import sys,json; x=json.load(sys.stdin); print([v.get('name') for v in x[0].get('results',[])])"
