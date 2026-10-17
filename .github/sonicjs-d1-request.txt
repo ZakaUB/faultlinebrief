@@ -1,0 +1,1 @@
+Create SonicJS-only D1 database named faultlinebrief-sonicjs-staging. No production resources.
