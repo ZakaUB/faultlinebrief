@@ -51,7 +51,7 @@ jobs:
               import subprocess
               argv=['curl','--silent','--show-error','--max-time','25','--user','staging:'+os.environ['STAGING_ACCESS_PASSWORD'],'--cookie','/tmp/sonic-test-cookies','--cookie-jar','/tmp/sonic-test-cookies','--header','Content-Type: application/json','--header','Accept: application/json','--header','Origin: '+base,'--data',json.dumps(body),'--write-out','\\n%{http_code}',base+path]
               reply=subprocess.run(argv,capture_output=True,check=True,timeout=35).stdout
-              raw,code=reply.rsplit(b'\\n',1)
+              raw,code=reply.rsplit(bytes([10]),1)
               status=int(code)
             try: doc=json.loads(raw)
             except Exception: doc={}
