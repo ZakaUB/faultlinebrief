@@ -33,3 +33,5 @@ Deploy privacy-safe legacy password verification outcome diagnostics to SonicJS 
 Inspect actual Better Auth plugin identifiers in staging runtime.
 
 Deploy staging tenant-plugin schema mismatch fix.
+
+Enforce live auth endpoint schema regression gate.
