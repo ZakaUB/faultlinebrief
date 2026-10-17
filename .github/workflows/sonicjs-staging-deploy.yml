@@ -27,24 +27,11 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           test "${#STAGING_ACCESS_PASSWORD}" -ge 24
-      - name: Resolve isolated SonicJS session KV namespace
+      - name: Configure user-created isolated KV namespace
         shell: bash
         run: |
-          python3 - <<'PY'
-          import os,json,urllib.request,urllib.error
-          base='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/storage/kv/namespaces'
-          req=urllib.request.Request(base+'?per_page=100',headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_API_TOKEN']})
-          try:
-            with urllib.request.urlopen(req,timeout=20) as resp: payload=json.load(resp)
-          except urllib.error.HTTPError as ex:
-            raise SystemExit('KV access failed (HTTP '+str(ex.code)+'); no deployment attempted')
-          if not payload.get('success'):raise SystemExit('KV listing unsuccessful')
-          names=[n for n in payload.get('result',[]) if n.get('title')=='faultlinebrief-sonicjs-session-staging']
-          if len(names)!=1:raise SystemExit('Dedicated SonicJS staging KV namespace must exist exactly once')
-          kid=names[0]['id']
-          with open(os.environ['GITHUB_ENV'],'a') as env:env.write('SONICJS_KV_ID='+kid+'\n')
-          print('STAGING_KV_RESOLVED',kid)
-          PY
+          echo "SONICJS_KV_ID=fb0f7420c1ca4c30af0ce03798a6cb9c" >> "$GITHUB_ENV"
+          echo "SONICJS_KV_CONFIGURED"
       - name: Extract pinned official SonicJS starter template
         shell: bash
         run: |
