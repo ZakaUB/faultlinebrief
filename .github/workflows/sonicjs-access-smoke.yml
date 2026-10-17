@@ -21,8 +21,8 @@ jobs:
           unauth=$(curl --max-time 20 --silent --output /dev/null --write-out '%{http_code}' "$base/admin")
           echo "SONICJS_UNAUTH_HTTP=$unauth"
           test "$unauth" = 401
-          for route in /admin/login /admin /auth/session /auth/get-session /; do
-            code=$(curl --max-time 20 --silent --dump-header /tmp/sonic-headers --output /tmp/sonic-body --write-out '%{http_code}' --user "staging:$STAGING_ACCESS_PASSWORD" "$base$route")
+          for route in /auth/login /admin/login /admin /auth/session /auth/get-session /; do
+            code=$(curl --max-time 20 --silent --dump-header /tmp/sonic-headers --output /tmp/sonic-body --write-out '%{http_code}' --header "Accept: text/html" --user "staging:$STAGING_ACCESS_PASSWORD" "$base$route")
             marker=$(grep -i '^x-sonicjs-gateway:' /tmp/sonic-headers | tail -1 | tr -d '\r' || true)
             echo "SONICJS_ROUTE $route HTTP=$code $marker"
             test "$marker" = "x-sonicjs-gateway: passed" || exit 1
