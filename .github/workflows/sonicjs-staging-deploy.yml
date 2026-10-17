@@ -108,6 +108,7 @@ jobs:
           PY
           npx --yes pnpm@10.28.0 install --no-frozen-lockfile
           npx --yes pnpm@10.28.0 add @sonicjs-cms/core@3.0.0-beta.28
+          npx --yes pnpm@10.28.0 add drizzle-orm@0.45.4
           test -d node_modules/@sonicjs-cms/core || { echo 'Pinned SonicJS core missing'; exit 1; }
       - name: Check packaged migration availability
         run: |
