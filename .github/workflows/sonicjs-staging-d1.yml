@@ -1,0 +1,43 @@
+name: SonicJS isolated D1 provisioning
+on:
+  push:
+    branches: [cloudflare-staging-migration]
+    paths: ['.github/sonicjs-d1-request.txt']
+permissions:
+  contents: read
+jobs:
+  d1:
+    if: github.ref == 'refs/heads/cloudflare-staging-migration'
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+    steps:
+      - name: Verify staging credentials
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+      - name: Check for existing isolated SonicJS D1 database
+        id: inspect
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request
+          url='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/d1/database?per_page=100'
+          req=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_API_TOKEN']})
+          with urllib.request.urlopen(req,timeout=30) as resp: data=json.load(resp)
+          if not data.get('success'): raise SystemExit('D1 listing failed')
+          matches=[db for db in data.get('result',[]) if db.get('name')=='faultlinebrief-sonicjs-staging']
+          if len(matches)>1: raise SystemExit('Duplicate SonicJS staging databases')
+          if matches:
+            print('SONICJS_D1 already_exists',matches[0].get('uuid'))
+            with open(os.environ['GITHUB_OUTPUT'],'a') as out: out.write('exists=true\n')
+          else:
+            print('SONICJS_D1 not_created_yet')
+            with open(os.environ['GITHUB_OUTPUT'],'a') as out: out.write('exists=false\n')
+          PY
+      - name: Create independent staging-only D1 database
+        if: steps.inspect.outputs.exists == 'false'
+        run: npx --yes wrangler@4 d1 create faultlinebrief-sonicjs-staging
