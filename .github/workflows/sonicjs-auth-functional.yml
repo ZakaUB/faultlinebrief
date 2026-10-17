@@ -58,6 +58,12 @@ jobs:
             print('STAGING_AUTH_CHECK',path,'HTTP',status,'fields',sorted(doc.keys()) if isinstance(doc,dict) else [])
             if isinstance(doc,dict) and 'cloudflare_error' in doc:
               print('STAGING_CF_ERROR_CATEGORY',str(doc.get('error_category','unknown'))[:80],'CODE',str(doc.get('error_code','unknown'))[:80])
+            if status==500 and isinstance(doc,dict) and isinstance(doc.get('error'),str):
+              import re
+              message=doc['error']
+              signatures={'missing-table':r'no such table|table.*not exist','missing-column':r'no such column|column.*not exist','missing-secret':r'secret|jwt|encryption|key','database-adapter':r'drizzle|adapter|sqlite|db','schema':r'schema|migration','runtime':r'unsupported|not supported|not implemented','auth':r'credential|password|auth'}
+              print('STAGING_LOGIN_500_CATEGORY',[name for name,pat in signatures.items() if re.search(pat,message,re.I)] or ['unclassified'])
+              print('STAGING_LOGIN_500_ERROR_CLASS',type(doc.get('error')).__name__)
             if isinstance(doc,dict) and 'user' in doc and isinstance(doc['user'],dict):
               print('STAGING_USER_ROLE',doc['user'].get('role'))
             return status,doc
