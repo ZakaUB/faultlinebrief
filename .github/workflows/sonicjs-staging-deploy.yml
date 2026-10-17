@@ -87,10 +87,30 @@ jobs:
           if text.count(marker)!=1: raise SystemExit('Unexpected starter config; no auth override')
           extension="""const config: SonicJSConfig = {
             auth: {
-              extendBetterAuth: (opts) => ({
-                ...opts,
-                plugins: (opts.plugins ?? []).filter((plugin) => plugin.id !== 'organization'),
-              }),
+              extendBetterAuth: (opts) => {
+                const originalVerify = opts.emailAndPassword?.password?.verify
+                return {
+                  ...opts,
+                  plugins: (opts.plugins ?? []).filter((plugin) => plugin.id !== 'organization'),
+                  emailAndPassword: {
+                    ...opts.emailAndPassword,
+                    password: {
+                      ...opts.emailAndPassword?.password,
+                      verify: async (params: { hash: string; password: string }) => {
+                        if (!originalVerify) throw new Error('Missing upstream password verification')
+                        try {
+                          const valid = await originalVerify(params)
+                          console.log('STAGING_PBKDF2_CHECK', params.hash.startsWith('pbkdf2:') ? 'legacy' : 'modern', valid ? 'valid' : 'invalid')
+                          return valid
+                        } catch (error) {
+                          console.error('STAGING_PBKDF2_CHECK_ERROR', error instanceof Error ? error.name : 'unknown')
+                          throw error
+                        }
+                      },
+                    },
+                  },
+                }
+              },
             },"""
           entry.write_text(text.replace(marker,extension))
           print('STAGING_AUTH_SCHEMA_COMPATIBILITY_CONFIGURED')
