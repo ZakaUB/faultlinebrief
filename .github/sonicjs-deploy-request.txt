@@ -31,3 +31,5 @@ Deploy supported staging-only Better Auth extension excluding organization schem
 Deploy privacy-safe legacy password verification outcome diagnostics to SonicJS staging only.
 
 Inspect actual Better Auth plugin identifiers in staging runtime.
+
+Deploy staging tenant-plugin schema mismatch fix.
