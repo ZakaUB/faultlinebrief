@@ -30,12 +30,17 @@ jobs:
             except urllib.error.HTTPError as e: return e.code,e.read(8192),dict(e.headers)
           status,raw,headers=request('/')
           print('STAGING_GATEWAY_HTTP',status)
+          print('STAGING_GATEWAY_HEADER',headers.get('X-SonicJS-Gateway',headers.get('x-sonicjs-gateway','absent')))
+          print('STAGING_EDGE_RAY_PRESENT',bool(headers.get('Cf-Ray',headers.get('cf-ray'))))
           try: obj=json.loads(raw)
           except (ValueError,UnicodeError): obj={}
           if isinstance(obj,dict) and ('cloudflare_error' in obj or 'ray_id' in obj):
             print('STAGING_GATEWAY_BLOCK','cloudflare_edge')
+            print('STAGING_CLOUDFLARE_ERROR_CODE',str(obj.get('error_code','unknown'))[:80])
+            print('STAGING_CLOUDFLARE_ERROR_NAME',str(obj.get('error_name','unknown'))[:80])
             raise SystemExit('Cloudflare blocked staging request before application')
           print('STAGING_GATEWAY_BLOCK','none_detected')
+          if headers.get('X-SonicJS-Gateway',headers.get('x-sonicjs-gateway'))!='passed': raise SystemExit('Authenticated request did not reach SonicJS gateway')
           body=json.dumps({'email':'nonexistent-login-diagnostic@example.invalid','password':'invalid-login-diagnostic'}).encode()
           status,raw,headers=request('/auth/login','POST',body)
           print('STAGING_LOGIN_HTTP',status)
