@@ -9,3 +9,5 @@ Inspect auth initialization and admin routes in published SonicJS package.
 Trace SonicJS auth middleware causing login 401.
 
 Count isolated SonicJS users, sessions, and documents after schema initialization.
+
+Inspect beta login and registration implementation after disposable test.
