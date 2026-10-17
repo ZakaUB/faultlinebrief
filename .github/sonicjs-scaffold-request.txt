@@ -1,1 +1,3 @@
 Inspect SonicJS CLI starter without deploying or exposing the admin console.
+
+Inspect CLI supported unattended flags and prompt sequence.
