@@ -5,3 +5,5 @@ Retry sanitized exception capture with robust parser.
 Parse Wrangler JSON tail safely after event-type fix.
 
 Capture trace JSON shape for targeted SonicJS Better Auth exception.
+
+Parse multiline Cloudflare tail logs for exact staging Better Auth error.
