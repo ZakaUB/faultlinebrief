@@ -18,6 +18,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Verify deployed staging Worker auth secret metadata without exposing values
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 secret list --name faultlinebrief-sonicjs-cms-staging --format json > /tmp/staging-secret-list.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data=json.loads(Path('/tmp/staging-secret-list.json').read_text())
+          names={item.get('name') for item in data if isinstance(item,dict)}
+          for key in ('BETTER_AUTH_SECRET','BETTER_AUTH_URL','STAGING_ACCESS_PASSWORD'):
+            print('STAGING_SECRET_PRESENT',key,key in names)
+          if 'BETTER_AUTH_SECRET' not in names: raise SystemExit('STAGING_BETTER_AUTH_SECRET_MISSING')
+          PY
       - name: Inspect published package and D1 metadata without writes
         shell: bash
         run: |
