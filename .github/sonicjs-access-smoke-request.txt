@@ -7,3 +7,5 @@ Repeat protected SonicJS administrator status checks after isolated database ini
 Check SonicJS admin login routes after gateway strips Basic Authorization header.
 
 Read-only SonicJS login response classification.
+
+Retry YAML-valid login diagnostic.
