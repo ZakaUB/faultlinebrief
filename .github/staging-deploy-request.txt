@@ -24,3 +24,5 @@ Fail staging verification when health endpoint returns HTTP 403 or unhealthy res
 Capture safe HTTP response metadata to classify recurring staging-only 403.
 
 Read-only SQL article query and staging-only Payload access check.
+
+Disposable staging-only Payload admin authentication test; no production changes.
