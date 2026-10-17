@@ -1,1 +1,3 @@
 Test and clean up one disposable SonicJS staging account only.
+
+Classify Cloudflare 403 without exposing registration credentials.
