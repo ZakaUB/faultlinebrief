@@ -23,3 +23,5 @@ Align Better Auth and Drizzle ORM peer versions, redeploy protected SonicJS only
 Deploy isolated SonicJS Worker using user-created CACHE_KV namespace fb0f7420c1ca4c30af0ce03798a6cb9c.
 
 Isolated auth schema compatibility test: temporarily omit broken Better Auth organization plugin.
+
+Retry isolated schema compatibility shim matched to compiled organization call.
