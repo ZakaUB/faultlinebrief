@@ -13,47 +13,20 @@ jobs:
     env:
       STAGING_ACCESS_PASSWORD: ${{ secrets.CLOUDFLARE_STAGING_ACCESS_PASSWORD }}
     steps:
-      - name: Verify access without exposing response content
+      - name: Verify staging gateway and classify CMS auth responses
         shell: bash
         run: |
           test "${#STAGING_ACCESS_PASSWORD}" -ge 24
-          url="https://faultlinebrief-sonicjs-cms-staging.zakria25.workers.dev/admin"
-          for n in 1 2 3 4 5; do
-            code=$(curl --max-time 20 --silent --output /dev/null --write-out '%{http_code}' "$url")
-            echo "SONICJS_UNAUTH_HTTP=$code attempt=$n"
+          base="https://faultlinebrief-sonicjs-cms-staging.zakria25.workers.dev"
+          unauth=$(curl --max-time 20 --silent --output /dev/null --write-out '%{http_code}' "$base/admin")
+          echo "SONICJS_UNAUTH_HTTP=$unauth"
+          test "$unauth" = 401
+          for route in /admin/login /admin /auth/session /auth/get-session /; do
+            code=$(curl --max-time 20 --silent --dump-header /tmp/sonic-headers --output /tmp/sonic-body --write-out '%{http_code}' --user "staging:$STAGING_ACCESS_PASSWORD" "$base$route")
+            marker=$(grep -i '^x-sonicjs-gateway:' /tmp/sonic-headers | tail -1 | tr -d '\r' || true)
+            echo "SONICJS_ROUTE $route HTTP=$code $marker"
+            test "$marker" = "x-sonicjs-gateway: passed" || exit 1
             if [ "$code" = 401 ]; then
-              python3 -c "from pathlib import Path; s=Path('/tmp/sonic-response').read_text(errors='replace').strip(); print('SONIC_401_BODY',repr(s) if len(s)<180 and 'token' not in s.lower() else 'redacted')"
+              python3 -c "from pathlib import Path; s=Path('/tmp/sonic-body').read_text(errors='replace').strip(); print('SONIC_401_BODY', repr(s) if len(s)<180 and 'token' not in s.lower() else 'redacted')"
             fi
-          done
-          if [ "$code" != 401 ]; then exit 1; fi
-          code=$(curl --max-time 20 --silent --output /dev/null --write-out '%{http_code}' --user "staging:$STAGING_ACCESS_PASSWORD" "$url")
-          echo "SONICJS_AUTH_HTTP=$code"
-          # A second 401 can be SonicJS login denial after the gateway passes.
-          # Distinguish it without exposing credentials, cookies, or response bodies.
-          curl --max-time 20 --silent --dump-header /tmp/sonic-admin-headers --output /dev/null --user "staging:$STAGING_ACCESS_PASSWORD" "$url"
-          if grep -qi '^x-sonicjs-gateway: passed' /tmp/sonic-admin-headers; then
-            echo 'SONICJS_GATEWAY=passed'
-          else
-            echo 'SONICJS_GATEWAY=failed'
-            exit 1
-          fi
-          echo 'SONIC_AUTH_RESPONSE_CLASS'
-          for route in /admin/login /admin /auth/session /auth/get-session; do
-            curl --silent --max-time 20 --user "staging:$STAGING_ACCESS_PASSWORD" -o /tmp/sonic-response -D /tmp/sonic-header "https://faultlinebrief-sonicjs-cms-staging.zakria25.workers.dev$route"
-            code=$(awk 'toupper($1) ~ /^HTTP/ {v=$2} END {print v}' /tmp/sonic-header)
-            ctype=$(grep -i '^content-type:' /tmp/sonic-header | tail -1 | cut -c1-85)
-            redirect=$(grep -i '^location:' /tmp/sonic-header | tail -1 | cut -c1-100)
-            echo "SONIC_SAFE_ROUTE $route status=$code $ctype $redirect"
-            if [ "$code" = 401 ]; then
-              python3 - <<'PY'
-              from pathlib import Path
-              s=Path('/tmp/sonic-response').read_text(errors='replace').strip()
-              if len(s)<250 and 'password' not in s.lower() and 'token' not in s.lower():
-               print('SONIC_401_BODY',repr(s))
-              PY
-            fi
-          done
-          for route in /admin /admin/login /login /; do
-            status=$(curl --max-time 20 --silent --output /dev/null --write-out '%{http_code}' --user "staging:$STAGING_ACCESS_PASSWORD" "https://faultlinebrief-sonicjs-cms-staging.zakria25.workers.dev$route")
-            echo "SONICJS_ROUTE $route HTTP=$status"
           done
