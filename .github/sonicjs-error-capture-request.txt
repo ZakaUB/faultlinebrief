@@ -11,3 +11,5 @@ Parse multiline Cloudflare tail logs for exact staging Better Auth error.
 Capture one manual SonicJS sign-in attempt with sanitized logs.
 
 Start coordinated live sign-in trace after PBKDF2 diagnostics deployment.
+
+Capture staging authentication exception after failed login.
