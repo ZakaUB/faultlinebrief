@@ -33,7 +33,10 @@ jobs:
             ('homepage','/'),
             ('news-sitemap','/news-sitemap.xml'),
             ('main-sitemap','/sitemap.xml'),
-            ('robots','/robots.txt')
+            ('robots','/robots.txt'),
+            ('media-api','/api/media?limit=1&depth=0'),
+            ('categories-api','/api/categories?limit=1&depth=0'),
+            ('admin-dashboard','/admin')
           ]
           failed=0
           for label,path in paths:
@@ -59,6 +62,11 @@ jobs:
                 if isinstance(d,dict):
                   print('ARTICLES_403_CLASSIFICATION','keys',sorted(d.keys()),'code',str(d.get('error_code','unknown'))[:60],'category',str(d.get('error_category','unknown'))[:60])
               except ValueError: print('ARTICLES_403_CLASSIFICATION','invalid-json')
+            if label in ('media-api','categories-api') and content_type=='application/json' and status==200:
+              try:
+                d=json.loads(body)
+                diagnostic='valid_collection='+str(isinstance(d.get('docs'),list))
+              except (ValueError,TypeError): diagnostic='invalid-json'
             if label=='articles-api' and content_type=='application/json' and status==200:
               try:
                 d=json.loads(body);diagnostic='valid_collection='+str(isinstance(d.get('docs'),list))
