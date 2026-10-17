@@ -1,0 +1,39 @@
+name: SonicJS staging login diagnostics
+on:
+  push:
+    branches: [cloudflare-staging-migration]
+    paths: ['.github/workflows/sonicjs-login-diagnostics.yml']
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 5
+    steps:
+      - name: Classify staging login response without exposing data
+        env:
+          STAGING_ACCESS_PASSWORD: ${{ secrets.CLOUDFLARE_STAGING_ACCESS_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test "${#STAGING_ACCESS_PASSWORD}" -ge 24
+          python3 - <<'PY'
+          import os, json, base64, urllib.request, urllib.error, re
+          base='https://faultlinebrief-sonicjs-cms-staging.zakria25.workers.dev'
+          auth=base64.b64encode(('staging:'+os.environ['STAGING_ACCESS_PASSWORD']).encode()).decode()
+          # Deliberately invalid identity: no user is created or modified.
+          body=json.dumps({'email':'nonexistent-login-diagnostic@example.invalid','password':'invalid-login-diagnostic'}).encode()
+          req=urllib.request.Request(base+'/auth/login',data=body,headers={'Authorization':'Basic '+auth,'Content-Type':'application/json','Accept':'application/json','Origin':base},method='POST')
+          try:
+            with urllib.request.urlopen(req,timeout=20) as r: status=r.status; raw=r.read(4096)
+          except urllib.error.HTTPError as e: status=e.code; raw=e.read(4096)
+          print('STAGING_LOGIN_HTTP',status)
+          try: obj=json.loads(raw)
+          except (ValueError,UnicodeError): obj={}
+          msg=str(obj.get('error','')) if isinstance(obj,dict) else ''
+          categories={'database':r'database|sqlite|drizzle|d1|no such table|no such column','crypto':r'crypto|subtle|hash|scrypt|bcrypt|argon','session':r'session|cookie|token|jwt','runtime':r'unsupported|not implemented|undefined|typeerror','validation':r'validation|invalid credentials|unauthorized'}
+          print('STAGING_ERROR_CATEGORY',','.join(k for k,v in categories.items() if re.search(v,msg,re.I)) or 'unclassified')
+          print('STAGING_ERROR_FIELD_PRESENT',bool(msg))
+          print('STAGING_RESPONSE_FIELDS',','.join(sorted(obj.keys())) if isinstance(obj,dict) else 'non-json')
+          if status not in (400,401,403,422): raise SystemExit('Staging login endpoint still fails for invalid credentials')
+          PY
