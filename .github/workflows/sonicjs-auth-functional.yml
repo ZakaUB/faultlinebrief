@@ -47,6 +47,12 @@ jobs:
               status=r.status;raw=r.read(15000)
             except urllib.error.HTTPError as e:
               status=e.code;raw=e.read(15000)
+            if status == 403 and b'cloudflare_error' in raw:
+              import subprocess
+              argv=['curl','--silent','--show-error','--max-time','25','--user','staging:'+os.environ['STAGING_ACCESS_PASSWORD'],'--cookie','/tmp/sonic-test-cookies','--cookie-jar','/tmp/sonic-test-cookies','--header','Content-Type: application/json','--header','Accept: application/json','--header','Origin: '+base,'--data',json.dumps(body),'--write-out','\\n%{http_code}',base+path]
+              reply=subprocess.run(argv,capture_output=True,check=True,timeout=35).stdout
+              raw,code=reply.rsplit(b'\\n',1)
+              status=int(code)
             try: doc=json.loads(raw)
             except Exception: doc={}
             print('STAGING_AUTH_CHECK',path,'HTTP',status,'fields',sorted(doc.keys()) if isinstance(doc,dict) else [])
@@ -62,13 +68,12 @@ jobs:
           if status not in (200,201,302):
             raise SystemExit('Disposable sign-in not successful')
           print('STAGING_SESSION_COOKIE_SET', bool(list(jar)))
-          req=urllib.request.Request(base+'/admin',headers={'Authorization':basic,'Accept':'text/html'})
-          try:
-            r=opener.open(req,timeout=20)
-            print('STAGING_ADMIN_PAGE_HTTP',r.status)
-          except urllib.error.HTTPError as e:
-            print('STAGING_ADMIN_PAGE_HTTP',e.code)
-            raise
+          import subprocess
+          command=['curl','--silent','--show-error','--max-time','25','--user','staging:'+os.environ['STAGING_ACCESS_PASSWORD'],'--cookie','/tmp/sonic-test-cookies','--header','Accept: text/html','--output','/dev/null','--write-out','%{http_code}',base+'/admin']
+          p=subprocess.run(command,capture_output=True,check=True,timeout=35)
+          print('STAGING_ADMIN_PAGE_HTTP',p.stdout.decode())
+          if p.stdout.strip()!=b'200':
+            raise SystemExit('Admin page did not accept disposable session')
           PY
       - name: Clean up only the disposable account
         if: always()
