@@ -103,7 +103,7 @@ jobs:
       - name: Apply SonicJS migrations to dedicated staging D1 only
         run: |
           cd faultlinebrief-sonicjs-staging
-          npx wrangler d1 migrations apply DB --remote --yes
+          npx wrangler d1 migrations apply DB --remote
       - name: Deploy fail-closed staging worker
         run: |
           cd faultlinebrief-sonicjs-staging
