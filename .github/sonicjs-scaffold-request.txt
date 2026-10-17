@@ -1,3 +1,5 @@
 Inspect SonicJS CLI starter without deploying or exposing the admin console.
 
 Inspect CLI supported unattended flags and prompt sequence.
+
+Inspect starter app config for supported auth extension point.
