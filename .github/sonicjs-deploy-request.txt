@@ -1,1 +1,3 @@
 Deploy only faultlinebrief-sonicjs-cms-staging with dedicated SonicJS D1 and staging R2. Enforce Basic auth before exposing admin.
+
+Retry validated YAML and fail-closed staging gateway.
