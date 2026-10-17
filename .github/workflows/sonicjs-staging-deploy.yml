@@ -185,3 +185,8 @@ jobs:
             exit 1
           fi
           case "$auth" in 200|301|302|303|307|308|401|403) echo 'STAGING_GATEWAY_VERIFIED';; *) exit 1;; esac
+          login_status=$(curl --max-time 25 --silent --output /dev/null --write-out '%{http_code}' --user "staging:$STAGING_ACCESS_PASSWORD" -H 'Content-Type: application/json' --data '{"email":"nobody-auth-check@example.invalid","password":"invalid-check-only"}' 'https://faultlinebrief-sonicjs-cms-staging.zakria25.workers.dev/auth/sign-in/email')
+          echo "SONICJS_INVALID_LOGIN_HTTP=$login_status"
+          if [ "$login_status" != 401 ]; then echo 'AUTH_SCHEMA_OR_ENDPOINT_REGRESSION'; exit 1; fi
+          echo 'STAGING_AUTH_ENDPOINT_VERIFIED'
+
