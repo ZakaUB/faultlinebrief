@@ -21,8 +21,9 @@ jobs:
           for n in 1 2 3 4 5; do
             code=$(curl --max-time 20 --silent --output /dev/null --write-out '%{http_code}' "$url")
             echo "SONICJS_UNAUTH_HTTP=$code attempt=$n"
-            if [ "$code" = 401 ]; then break; fi
-            sleep 10
+            if [ "$code" = 401 ]; then
+              python3 -c "from pathlib import Path; s=Path('/tmp/sonic-response').read_text(errors='replace').strip(); print('SONIC_401_BODY',repr(s) if len(s)<180 and 'token' not in s.lower() else 'redacted')"
+            fi
           done
           if [ "$code" != 401 ]; then exit 1; fi
           code=$(curl --max-time 20 --silent --output /dev/null --write-out '%{http_code}' --user "staging:$STAGING_ACCESS_PASSWORD" "$url")
