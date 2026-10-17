@@ -11,3 +11,5 @@ Retry dedicated D1 migrations with supported Wrangler flags.
 Deploy protected CMS shell without unavailable migration files; verify no public access.
 
 Install pinned SonicJS core and deploy protected Worker if bundling succeeds.
+
+Remove invalid placeholder KV binding and retry isolated CMS Worker upload.
