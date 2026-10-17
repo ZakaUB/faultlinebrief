@@ -52,6 +52,12 @@ jobs:
                 d=json.loads(body)
                 diagnostic=json.dumps({k:d.get(k) for k in ('ok','step','directPostgres','signature') if k in d})
               except (ValueError,TypeError): diagnostic='invalid-json'
+            if label=='articles-api' and content_type=='application/json' and status!=200:
+              try:
+                d=json.loads(body)
+                if isinstance(d,dict):
+                  print('ARTICLES_403_CLASSIFICATION','keys',sorted(d.keys()),'code',str(d.get('error_code','unknown'))[:60],'category',str(d.get('error_category','unknown'))[:60])
+              except ValueError: print('ARTICLES_403_CLASSIFICATION','invalid-json')
             if label=='articles-api' and content_type=='application/json' and status==200:
               try:
                 d=json.loads(body);diagnostic='valid_collection='+str(isinstance(d.get('docs'),list))
