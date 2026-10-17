@@ -67,6 +67,9 @@ jobs:
             if n!=1: raise SystemExit('Unexpected R2 bucket structure')
           else:
             s+='\n[[r2_buckets]]\nbinding = "MEDIA_BUCKET"\nbucket_name = "faultlinebrief-staging-media"\n'
+          # Disable unresolved upstream KV placeholder in isolated staging.
+          s = re.sub(r'(?ms)^\[\[kv_namespaces\]\]\n(?:(?!^\[).*(?:\n|$))*', '', s)
+          if 'YOUR_KV_NAMESPACE_ID' in s: raise SystemExit('Unresolved KV placeholder')
           if 'faultlinebrief.com' in s: raise SystemExit('Production domain in config')
           p.write_text(s)
           entry=Path('src/index.ts')
@@ -113,7 +116,7 @@ jobs:
       - name: Deploy fail-closed staging worker
         run: |
           cd faultlinebrief-sonicjs-staging
-          npx wrangler deploy
+          npx wrangler deploy --env=""
       - name: Configure protected staging password (never print)
         shell: bash
         run: |
