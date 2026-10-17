@@ -92,23 +92,7 @@ jobs:
                 const originalVerify = opts.emailAndPassword?.password?.verify
                 return {
                   ...opts,
-                  plugins: (opts.plugins ?? []).map((plugin) => {
-                    if (plugin.id !== 'organization') return plugin
-                    const schema = plugin.schema ?? {}
-                    const fix = (part: any) => part ? ({
-                      ...part,
-                      fields: { ...(part.fields ?? {}), organizationId: 'tenantId' },
-                    }) : part
-                    return {
-                      ...plugin,
-                      schema: {
-                        ...schema,
-                        member: fix(schema.member),
-                        invitation: fix(schema.invitation),
-                        team: fix(schema.team),
-                      },
-                    }
-                  }),
+                  plugins: (opts.plugins ?? []).filter((plugin) => !['organization', 'organization-plugin'].includes(plugin.id) && !Object.keys(plugin.schema ?? {}).some((key) => ['organization', 'member', 'invitation', 'team'].includes(key))),
                   emailAndPassword: {
                     ...opts.emailAndPassword,
                     password: {
@@ -166,28 +150,6 @@ jobs:
           npx --yes pnpm@10.28.0 add @sonicjs-cms/core@3.0.0-beta.28
           npx --yes pnpm@10.28.0 add drizzle-orm@0.45.4
           test -d node_modules/@sonicjs-cms/core || { echo 'Pinned SonicJS core missing'; exit 1; }
-      - name: Correct staging Better Auth organization field mapping
-        shell: bash
-        run: |
-          cd faultlinebrief-sonicjs-staging
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          root=Path('node_modules/@sonicjs-cms/core')
-          changed=[]
-          for path in root.rglob('*'):
-            if path.suffix not in ('.js','.mjs','.cjs'): continue
-            original=path.read_text(errors='replace')
-            updated,n=re.subn(r'(organizationId\\s*:\\s*[\\x22\\x27\\x60])tenant_id([\\x22\\x27\\x60])',r'\\1tenantId\\2',original)
-            if n:
-              path.write_text(updated)
-              changed.append((str(path),n))
-          if not changed:
-            print('STAGING_MAPPING_SOURCE_NOT_IN_PACKAGE')
-            print('STAGING_MAPPING_HANDLED_BY_AUTH_EXTENSION')
-          else:
-            print('STAGING_ORGANIZATION_MAPPING_PATCHED',sum(n for _,n in changed))
-          PY
       - name: Check packaged migration availability
         run: |
           cd faultlinebrief-sonicjs-staging
