@@ -17,3 +17,5 @@ Final staging-only check that disposable user and sessions were cleared and docu
 Inspect packaged Better Auth configuration for login failure.
 
 Check missing dynamic login authentication config module.
+
+Inspect current SonicJS account counts only after manual registration.
