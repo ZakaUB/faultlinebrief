@@ -52,7 +52,7 @@ jobs:
           opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
           def call(path,method='GET',payload=None):
             data=json.dumps(payload).encode() if payload is not None else None
-            req=urllib.request.Request(base+path,data=data,method=method,headers={'Content-Type':'application/json','User-Agent':'FaultlineBrief-Editor-Staging-CI'})
+            req=urllib.request.Request(base+path,data=data,method=method,headers={'Content-Type':'application/json','User-Agent':'FaultlineBrief-Editor-Staging-CI','Origin':base})
             try: resp=opener.open(req,timeout=35)
             except urllib.error.HTTPError as e: resp=e
             return resp.status,json.loads(resp.read())
@@ -72,6 +72,18 @@ jobs:
             status,body=call('/'+endpoint)
             assert status==200 and isinstance(body.get('items'),list),endpoint+' staging read failed'
             print('EDITOR_'+endpoint.upper()+'_READ PASS count='+str(len(body['items'])))
+          import uuid
+          slug='cf-staging-test-'+uuid.uuid4().hex[:16]
+          status,body=call('/editor/articles','POST',{'headline':'Cloudflare Staging Editorial Draft Test','deck':'This is a staging-only test article, not an actual news report.','slug':slug})
+          assert status==201 and body.get('article',{}).get('status')=='draft','create draft failed'
+          article_id=body['article']['id']
+          print('EDITOR_ARTICLE_CREATE PASS id='+str(article_id))
+          status,body=call('/editor/articles/'+str(article_id),'PATCH',{'action':'edit','headline':'Cloudflare Staging Editorial Edited Test','deck':'Edited successfully in the isolated Cloudflare staging editorial system.'})
+          assert status==200 and body.get('article',{}).get('headline')=='Cloudflare Staging Editorial Edited Test','edit draft failed'
+          print('EDITOR_ARTICLE_EDIT PASS')
+          status,body=call('/editor/articles/'+str(article_id),'PATCH',{'action':'publish','headline':'Cloudflare Staging Editorial Published Test','deck':'Published staging-only verification article. This is not real news.'})
+          assert status==200 and body.get('article',{}).get('status')=='published' and body['article'].get('published_at'),'publish failed'
+          print('EDITOR_ARTICLE_PUBLISH PASS')
           status,body=call('/logout','POST',{})
           assert status==200,'logout failed'
           status,_=call('/me')
