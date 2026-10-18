@@ -45,6 +45,10 @@ jobs:
             if (columns.has('email')) {
               const count = await client.query('SELECT count(*)::int AS n FROM public.users')
               console.log('STAGING_USER_COUNT',count.rows[0].n)
+              if (columns.has('hash')) {
+                const types = await client.query("SELECT CASE WHEN hash IS NULL THEN 'missing' WHEN hash LIKE 'pbkdf2-sha256-v1:%' THEN 'pbkdf2-v1' WHEN length(hash) = 1024 THEN 'legacy-length' ELSE 'other' END AS hash_format, count(*)::int AS n FROM public.users GROUP BY 1 ORDER BY 1")
+                for (const row of types.rows) console.log('STAGING_HASH_FORMAT',row.hash_format,'COUNT',row.n)
+              }
             }
             // Do not query, print or export user identities, password hashes, salts or tokens.
             await client.query('ROLLBACK')
