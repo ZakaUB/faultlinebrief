@@ -18,7 +18,7 @@ export default {
       return Number.isFinite(expires) && expires > Date.now()
     }
     // Stage 4: private, authenticated image upload and retrieval in isolated staging R2.
-    const imagePath = /^\\/editor\\/images\\/([a-f0-9]{32})$/.exec(url.pathname)
+    const imagePath = /^\/editor\/images\/([a-f0-9]{32})$/.exec(url.pathname)
     if (url.pathname === '/editor/images' && request.method === 'POST') {
       if (!await authenticated()) return json({ ok: false, error: 'unauthorized' }, 401)
       if (request.headers.get('Origin') !== url.origin) return json({ ok: false, error: 'invalid-origin' }, 403)
