@@ -167,7 +167,12 @@ export default {
       const articleText = body?.article_text == null ? '' : body.article_text
       if (typeof seoTitle !== 'string' || seoTitle.length > 180 || typeof seoDescription !== 'string' || seoDescription.length > 320 || typeof articleText !== 'string' || articleText.length > 12000) return json({ ok: false, error: 'invalid-editorial-fields' }, 400)
       const sources = body?.sources
-      if (sources !== undefined && (!Array.isArray(sources) || sources.length > 30 || sources.some(x => !x || typeof x.name !== 'string' || !x.name.trim() || x.name.length > 180 || typeof (x.url ?? '') !== 'string' || (x.url && (x.url.length > 2000 || !x.url.startsWith('https://') && !x.url.startsWith('http://'))))) return json({ ok: false, error: 'invalid-article-sources' }, 400)
+      if (sources !== undefined) {
+        if (!Array.isArray(sources) || sources.length > 30) return json({ ok: false, error: 'invalid-article-sources' }, 400)
+        for (const source of sources) {
+          if (!source || typeof source.name !== 'string' || !source.name.trim() || source.name.length > 180 || typeof (source.url ?? '') !== 'string' || (source.url && (source.url.length > 2000 || !(source.url.startsWith('https://') || source.url.startsWith('http://'))))) return json({ ok: false, error: 'invalid-article-sources' }, 400)
+        }
+      }
       const imageId = body?.featured_image_id
       if (imageId !== undefined && (!Number.isSafeInteger(imageId) || imageId < 1)) return json({ ok: false, error: 'invalid-featured-image' }, 400)
       const lexical = { root: { type: 'root', format: '', indent: 0, version: 1, direction: 'ltr', children: (articleText.trim() || 'Isolated Cloudflare staging editorial workflow test. Not a real news report.').split(/\r?\n\s*\r?\n/).map(t => ({ type: 'paragraph', format: '', indent: 0, version: 1, direction: 'ltr', children: [{ type: 'text', text: t, detail: 0, format: 0, mode: 'normal', style: '', version: 1 }] })) } }
