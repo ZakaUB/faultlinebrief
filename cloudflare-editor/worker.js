@@ -17,6 +17,32 @@ export default {
       const expires = Number(await object.text())
       return Number.isFinite(expires) && expires > Date.now()
     }
+    // Stage 4: private, authenticated image upload and retrieval in isolated staging R2.
+    const imagePath = /^\\/editor\\/images\\/([a-f0-9]{32})$/.exec(url.pathname)
+    if (url.pathname === '/editor/images' && request.method === 'POST') {
+      if (!await authenticated()) return json({ ok: false, error: 'unauthorized' }, 401)
+      if (request.headers.get('Origin') !== url.origin) return json({ ok: false, error: 'invalid-origin' }, 403)
+      const type = request.headers.get('Content-Type')
+      const allowed = ['image/png', 'image/jpeg', 'image/webp']
+      if (!allowed.includes(type)) return json({ ok: false, error: 'unsupported-image-type' }, 415)
+      const size = Number(request.headers.get('Content-Length'))
+      if (!Number.isInteger(size) || size < 16 || size > 2 * 1024 * 1024) return json({ ok: false, error: 'invalid-image-size' }, 413)
+      const bytes = new Uint8Array(await request.arrayBuffer())
+      if (bytes.length !== size) return json({ ok: false, error: 'image-size-mismatch' }, 400)
+      const png = bytes.length >= 8 && [137,80,78,71,13,10,26,10].every((b,i) => bytes[i] === b)
+      const jpeg = bytes.length >= 4 && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255
+      const webp = bytes.length >= 12 && new TextDecoder().decode(bytes.slice(0,4)) === 'RIFF' && new TextDecoder().decode(bytes.slice(8,12)) === 'WEBP'
+      if (!(type === 'image/png' && png || type === 'image/jpeg' && jpeg || type === 'image/webp' && webp)) return json({ ok: false, error: 'image-signature-mismatch' }, 415)
+      const id = hex(crypto.getRandomValues(new Uint8Array(16)))
+      await env.R2.put('editor-media/staging/' + id, bytes, { httpMetadata: { contentType: type }, customMetadata: { staging: 'true' } })
+      return json({ ok: true, id, bytes: bytes.length, contentType: type }, 201)
+    }
+    if (imagePath && request.method === 'GET') {
+      if (!await authenticated()) return json({ ok: false, error: 'unauthorized' }, 401)
+      const object = await env.R2.get('editor-media/staging/' + imagePath[1])
+      if (!object) return json({ ok: false, error: 'image-not-found' }, 404)
+      return new Response(object.body, { status: 200, headers: { ...headers, 'Content-Type': object.httpMetadata?.contentType || 'application/octet-stream', 'Content-Length': String(object.size) } })
+    }
     if (url.pathname === '/articles' && request.method === 'GET' || url.pathname === '/categories' && request.method === 'GET') {
       if (!await authenticated()) return json({ ok: false, error: 'unauthorized' }, 401)
       if (!env.DATABASE_URL || !new URL(env.DATABASE_URL).hostname.startsWith('ep-red-dream-b42nh8xe')) return json({ ok: false, error: 'staging-database-required' }, 503)
