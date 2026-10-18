@@ -34,7 +34,7 @@ export default {
         } finally { await client.end().catch(() => {}) }
       } catch { return json({ ok: false, error: 'staging-database-unavailable' }, 503) }
     }
-    if (url.pathname === '/editor/articles' && request.method === 'POST' || /^\\/editor\\/articles\\/\\d+$/.test(url.pathname) && request.method === 'PATCH') {
+    if (url.pathname === '/editor/articles' && request.method === 'POST' || /^\/editor\/articles\/\d+$/.test(url.pathname) && request.method === 'PATCH') {
       if (!await authenticated()) return json({ ok: false, error: 'unauthorized' }, 401)
       if (!env.DATABASE_URL || !new URL(env.DATABASE_URL).hostname.startsWith('ep-red-dream-b42nh8xe')) return json({ ok: false, error: 'staging-database-required' }, 503)
       if (request.headers.get('Origin') !== url.origin || !request.headers.get('Content-Type')?.startsWith('application/json')) return json({ ok: false, error: 'invalid-origin-or-content-type' }, 403)
