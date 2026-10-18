@@ -1,3 +1,4 @@
+// Staging redeploy trigger: refresh configured GitHub environment secrets.
 export const adminHtml = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Faultline Brief staging editor</title><style>
 body{font:16px/1.5 system-ui;background:#111827;color:#f3f4f6;margin:0}main{max-width:850px;margin:2rem auto;padding:1rem}section{padding:1.2rem;background:#243043;border-radius:10px;margin:1rem 0}label{display:block;margin:.6rem 0}input,textarea{display:block;width:95%;padding:.6rem;font:inherit}button{padding:.6rem;margin:.4rem .3rem .4rem 0;cursor:pointer}a{color:#a6d5ff}pre{white-space:pre-wrap}article{border-top:1px solid #667;padding:.6rem 0}
