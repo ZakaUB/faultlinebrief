@@ -75,7 +75,7 @@ jobs:
           import base64
           image=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==')
           def upload_image(blob, content_type):
-            req=urllib.request.Request(base+'/editor/images',data=blob,method='POST',headers={'Content-Type':content_type,'Content-Length':str(len(blob)),'Origin':base})
+            req=urllib.request.Request(base+'/editor/images',data=blob,method='POST',headers={'Content-Type':content_type,'Content-Length':str(len(blob)),'Origin':base,'User-Agent':'FaultlineBrief-Editor-Staging-CI'})
             try: response=opener.open(req,timeout=35)
             except urllib.error.HTTPError as e: response=e
             raw=response.read()
