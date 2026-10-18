@@ -72,6 +72,25 @@ jobs:
             status,body=call('/'+endpoint)
             assert status==200 and isinstance(body.get('items'),list),endpoint+' staging read failed'
             print('EDITOR_'+endpoint.upper()+'_READ PASS count='+str(len(body['items'])))
+          import base64
+          image=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==')
+          def upload_image(blob, content_type):
+            req=urllib.request.Request(base+'/editor/images',data=blob,method='POST',headers={'Content-Type':content_type,'Content-Length':str(len(blob)),'Origin':base})
+            try: response=opener.open(req,timeout=35)
+            except urllib.error.HTTPError as e: response=e
+            return response.status,json.loads(response.read())
+          status,_=upload_image(image,'text/plain')
+          assert status==415,'unsupported media type accepted'
+          status,_=call('/editor/images/'+'0'*32)
+          assert status==404,'nonexistent image unexpectedly found'
+          status,body=upload_image(image,'image/png')
+          assert status==201 and body.get('bytes')==len(image),'R2 image upload failed'
+          image_id=body['id']
+          print('EDITOR_R2_IMAGE_UPLOAD PASS id='+image_id)
+          req=urllib.request.Request(base+'/editor/images/'+image_id)
+          with opener.open(req,timeout=35) as response:
+            assert response.status==200 and response.headers.get('Content-Type')=='image/png' and response.read()==image,'R2 image retrieval failed'
+          print('EDITOR_R2_IMAGE_RETRIEVAL PASS')
           import uuid
           slug='cf-staging-test-'+uuid.uuid4().hex[:16]
           status,body=call('/editor/articles','POST',{'headline':'Cloudflare Staging Editorial Draft Test','deck':'This is a staging-only test article, not an actual news report.','slug':slug})
