@@ -78,7 +78,10 @@ jobs:
             req=urllib.request.Request(base+'/editor/images',data=blob,method='POST',headers={'Content-Type':content_type,'Content-Length':str(len(blob)),'Origin':base})
             try: response=opener.open(req,timeout=35)
             except urllib.error.HTTPError as e: response=e
-            return response.status,json.loads(response.read())
+            raw=response.read()
+          try: body=json.loads(raw)
+          except json.JSONDecodeError: body={'non_json_body':raw[:150].decode('utf-8','replace')}
+          return response.status,body
           status,_=upload_image(image,'text/plain')
           assert status==415,'unsupported media type accepted'
           status,_=call('/editor/images/'+'0'*32)
