@@ -163,7 +163,7 @@ export default {
           if (body.action !== 'edit' && body.action !== 'publish') return json({ ok: false, error: 'invalid-action' }, 400)
           result = body.action === 'publish'
             ? await client.query("UPDATE public.articles SET headline=$2,deck=$3,body=CASE WHEN $4::text='' THEN body ELSE $4::jsonb END,seo_title=CASE WHEN $5::text='' THEN seo_title ELSE $5 END,seo_description=CASE WHEN $6::text='' THEN seo_description ELSE $6 END,status='published',published_at=COALESCE(published_at,now()),updated_at=now() WHERE id=$1 RETURNING id,slug,headline,deck,status,published_at",[id,headline,deck,articleText.trim()?JSON.stringify(lexical):'',seoTitle,seoDescription])
-            : await client.query("UPDATE public.articles SET headline=$2,deck=$3,body=CASE WHEN $4::text='' THEN body ELSE $4::jsonb END,seo_title=CASE WHEN $5::text='' THEN seo_title ELSE $5 END,seo_description=CASE WHEN $6::text='' THEN seo_description ELSE $6 END,updated_at=now() WHERE id=$1 RETURNING id,slug,headline,deck,status,published_at",[id,headline,deck])
+            : await client.query("UPDATE public.articles SET headline=$2,deck=$3,body=CASE WHEN $4::text='' THEN body ELSE $4::jsonb END,seo_title=CASE WHEN $5::text='' THEN seo_title ELSE $5 END,seo_description=CASE WHEN $6::text='' THEN seo_description ELSE $6 END,updated_at=now() WHERE id=$1 RETURNING id,slug,headline,deck,status,published_at",[id,headline,deck,articleText.trim()?JSON.stringify(lexical):'',seoTitle,seoDescription])
         }
         await client.query('COMMIT')
         return json({ ok: true, article: result.rows[0] }, request.method === 'POST' ? 201 : 200)
