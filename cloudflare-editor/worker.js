@@ -106,7 +106,7 @@ export default {
             return content.split(/\n\s*\n/).filter(Boolean).map(t => '<'+tag+'>'+escape(t).replace(/\n/g,'<br>')+'</'+tag+'>').join('')
           }).join('')
           const media = mediaRows.rows[0]
-          const imagePath = media?.url && /^\/editor\/images\/[a-f0-9]{32}$/.test(media.url) ? media.url : ''
+          const imagePath = media?.url && /^\/editor\/images\/[a-f0-9]{32}$/.test(media.url) ? media.url : (media?.url && media.url.startsWith(url.origin + '/public/staging-media/') && /^\/public\/staging-media\/[a-f0-9]{32}$/.test(new URL(media.url).pathname) ? media.url : '')
           const featured = imagePath ? '<figure><img src="'+escape(imagePath)+'" alt="'+escape(media.alt||article.headline)+'"><figcaption>'+escape(media.alt||'')+'</figcaption></figure>' : ''
           const sourcesHtml = sourceRows.rows.length ? '<section class="sources"><h2>Sources</h2><ul>'+sourceRows.rows.map(x => '<li>'+(x.url && /^https?:\/\//i.test(x.url) ? '<a href="'+escape(x.url)+'" rel="noopener noreferrer" target="_blank">'+escape(x.name)+'</a>' : escape(x.name))+'</li>').join('')+'</ul></section>' : ''
           const publishedDate = article.published_at ? new Date(article.published_at).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric',timeZone:'UTC'}) : 'Staging draft'
