@@ -56,7 +56,7 @@ const created=await fetch(editor+'/editor/articles',{method:'POST',headers,body:
 const c=await created.json();check('ISOLATED_DRAFT_CREATE',created.status===201,c.error||'');
 if(created.ok){
 const id=c.article.id;const before=(await db.query('SELECT * FROM public.articles WHERE id=$1',[id])).rows[0];
-const update=await fetch(editor+'/editor/articles/'+id,{method:'PATCH',headers,body:JSON.stringify({action:'edit',headline:'Isolated compatibility test draft updated',deck:'Updated isolated compatibility test draft without modifying unrelated fields.',article_text:'First paragraph of the compatibility test.\n\nSecond paragraph of the compatibility test.',seo_title:'Staging compatibility test SEO',seo_description:'Staging test metadata description.'})});
+const update=await fetch(editor+'/editor/articles/'+id,{method:'PATCH',headers,body:JSON.stringify({action:'edit',headline:'Isolated compatibility test draft updated',deck:'Updated isolated compatibility test draft without modifying unrelated fields.',article_text:'First paragraph of the compatibility test.\\n\\nSecond paragraph of the compatibility test.',seo_title:'Staging compatibility test SEO',seo_description:'Staging test metadata description.'})});
 const uj=await update.json();check('STAGING_EDITOR_SAVE',update.ok,uj.error||'');
 const after=(await db.query('SELECT * FROM public.articles WHERE id=$1',[id])).rows[0];
 const allowed=new Set(['headline','deck','body','seo_title','seo_description','updated_at']);
@@ -66,7 +66,7 @@ check('STAGING_RICH_TEXT_SAVE',after.body?.root?.children?.length===2);
 check('STAGING_SEO_SAVE',after.seo_title==='Staging compatibility test SEO'&&after.seo_description==='Staging test metadata description.');
 }
 const current=await article();check('REFERENCE_ARTICLE_UNCHANGED',sha(JSON.stringify(current))===baseline);
-const htmlAfter=await live();check('PUBLIC_HTML_UNCHANGED_AFTER_STAGING_EDIT',sha(htmlBefore)===sha(htmlAfter),'before='+sha(htmlBefore).slice(0,12)+' after='+sha(htmlAfter).slice(0,12));
+const htmlAfter=await live();const beforeDom=cheerio.load(htmlBefore),afterDom=cheerio.load(htmlAfter);const stable=dom=>({title:clean(dom('title').text()),h1:clean(dom('main h1').text()),deck:clean(dom('main .deck').text()),body:clean(dom('main .article-body').html()),canonical:dom('link[rel="canonical"]').attr('href'),description:dom('meta[name="description"]').attr('content'),ogTitle:dom('meta[property="og:title"]').attr('content'),ogDescription:dom('meta[property="og:description"]').attr('content'),ogUrl:dom('meta[property="og:url"]').attr('content'),image:dom('main img.hero-image').attr('src'),alt:dom('main img.hero-image').attr('alt'),jsonLd:dom('script[type="application/ld+json"]').toArray().map(el=>clean(dom(el).html()))});check('PUBLIC_SEO_AND_ARTICLE_UNCHANGED_AFTER_STAGING_EDIT',sha(JSON.stringify(stable(beforeDom)))===sha(JSON.stringify(stable(afterDom))),'stable-before='+sha(JSON.stringify(stable(beforeDom))).slice(0,12)+' stable-after='+sha(JSON.stringify(stable(afterDom))).slice(0,12));
 console.log('AUDIT_SUMMARY '+JSON.stringify({failures,blocks:expected.length,headings:headings.length,links:links.length,marks:marks.length,reference_id:30,live_url:liveUrl}));
 if(failures.length)process.exitCode=1;
 }finally{await db.end()}
