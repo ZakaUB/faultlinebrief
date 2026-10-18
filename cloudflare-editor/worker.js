@@ -222,7 +222,7 @@ export default {
         }
         await client.query('COMMIT')
         return json({ ok: true, article: result.rows[0] }, request.method === 'POST' ? 201 : 200)
-      } catch { await client.query('ROLLBACK').catch(() => {}); return json({ ok: false, error: 'staging-write-failed' }, 503) }
+      } catch (error) { console.error('STAGING_ARTICLE_WRITE_FAILURE', { code: error?.code, constraint: error?.constraint, message: error?.message }); await client.query('ROLLBACK').catch(() => {}); return json({ ok: false, error: 'staging-write-failed' }, 503) }
       finally { await client.end().catch(() => {}) }
     }
     if (url.pathname === '/health' && request.method === 'GET') return json({ ok: true, service: 'cloudflare-native-editor-auth', staging: true })
