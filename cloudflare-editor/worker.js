@@ -203,7 +203,9 @@ export default {
       }
       const imageId = body?.featured_image_id
       if (imageId !== undefined && (!Number.isSafeInteger(imageId) || imageId < 1)) return json({ ok: false, error: 'invalid-featured-image' }, 400)
-      const lexical = { root: { type: 'root', format: '', indent: 0, version: 1, direction: 'ltr', children: (articleText.trim() || 'Isolated Cloudflare staging editorial workflow test. Not a real news report.').split(/\r?\n\s*\r?\n/).map(t => ({ type: 'paragraph', format: '', indent: 0, version: 1, direction: 'ltr', children: [{ type: 'text', text: t, detail: 0, format: 0, mode: 'normal', style: '', version: 1 }] })) } }
+      const normalizedText = articleText.trim().replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\r\n/g, '\n')
+      const paragraphTexts = (normalizedText || 'Isolated Cloudflare staging editorial workflow test. Not a real news report.').split(/\n\s*\n/).map(t=>t.trim()).filter(Boolean)
+      const lexical = { root: { type: 'root', format: '', indent: 0, version: 1, direction: 'ltr', children: paragraphTexts.map(t => ({ type: 'paragraph', format: '', indent: 0, version: 1, direction: 'ltr', children: [{ type: 'text', text: t, detail: 0, format: 0, mode: 'normal', style: '', version: 1 }] })) } }
       const { Client } = await import('pg')
       const client = new Client({ connectionString: env.DATABASE_URL, connectionTimeoutMillis: 8000 })
       try {
