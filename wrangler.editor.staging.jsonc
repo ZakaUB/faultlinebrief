@@ -1,0 +1,9 @@
+{
+  "name": "faultlinebrief-editor-staging",
+  "main": "cloudflare-editor/worker.js",
+  "compatibility_date": "2026-10-15",
+  "workers_dev": true,
+  "routes": [],
+  "r2_buckets": [{"binding":"R2","bucket_name":"faultlinebrief-staging-media","preview_bucket_name":"faultlinebrief-staging-media"}],
+  "observability": {"enabled":true}
+}
