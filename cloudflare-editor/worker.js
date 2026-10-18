@@ -83,6 +83,20 @@ export default {
       } catch { return json({ ok: false, error: 'staging-preview-unavailable' }, 503) }
       finally { await client.query('ROLLBACK').catch(() => {}); await client.end().catch(() => {}) }
     }
+    // Staging-only metadata inspection: never changes slugs, canonical URLs, SEO, or articles.
+    if (/^\/editor\/article-details\/\d+$/.test(url.pathname) && request.method === 'GET') {
+      if (!await authenticated()) return json({ ok: false, error: 'unauthorized' }, 401)
+      if (!env.DATABASE_URL || !new URL(env.DATABASE_URL).hostname.startsWith('ep-red-dream-b42nh8xe')) return json({ ok: false, error: 'staging-database-required' }, 503)
+      const { Client } = await import('pg')
+      const client = new Client({ connectionString: env.DATABASE_URL, connectionTimeoutMillis: 8000 })
+      try {
+        await client.connect()
+        await client.query('BEGIN READ ONLY')
+        const result = await client.query('SELECT id,headline,slug,deck,status,published_at,updated_at,created_at,seo_title,seo_description,featured_image_id,homepage_lead,editorial_placement FROM public.articles WHERE id=$1 LIMIT 1', [Number(url.pathname.split('/').pop())])
+        return result.rowCount ? json({ ok: true, article: result.rows[0] }) : json({ ok: false, error: 'article-not-found' }, 404)
+      } catch { return json({ ok: false, error: 'staging-metadata-unavailable' }, 503) }
+      finally { await client.query('ROLLBACK').catch(() => {}); await client.end().catch(() => {}) }
+    }
     if (url.pathname === '/articles' && request.method === 'GET' || url.pathname === '/categories' && request.method === 'GET') {
       if (!await authenticated()) return json({ ok: false, error: 'unauthorized' }, 401)
       if (!env.DATABASE_URL || !new URL(env.DATABASE_URL).hostname.startsWith('ep-red-dream-b42nh8xe')) return json({ ok: false, error: 'staging-database-required' }, 503)
