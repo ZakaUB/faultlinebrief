@@ -32,7 +32,7 @@ jobs:
           console.log('Isolated editor destination and secret lengths validated')
           NODE
       - name: Install staging database driver
-        run: npm install --no-save --no-package-lock pg@8
+        run: npm install --no-save --no-package-lock pg@8 cheerio@1.1.2
       - name: Deploy isolated editor Worker
         run: npx --yes wrangler@4.151.1 deploy --config wrangler.editor.staging.jsonc
       - name: Configure isolated editor secrets
@@ -124,3 +124,6 @@ jobs:
           assert status==401,'logout did not invalidate session'
           print('EDITOR_LOGOUT PASS')
           PY
+
+      - name: Audit published article compatibility and staging isolation
+        run: node cloudflare-editor/audit-compatibility.mjs
