@@ -38,8 +38,23 @@ export default {
       const webp = bytes.length >= 12 && new TextDecoder().decode(bytes.slice(0,4)) === 'RIFF' && new TextDecoder().decode(bytes.slice(8,12)) === 'WEBP'
       if (!(type === 'image/png' && png || type === 'image/jpeg' && jpeg || type === 'image/webp' && webp)) return json({ ok: false, error: 'image-signature-mismatch' }, 415)
       const id = hex(crypto.getRandomValues(new Uint8Array(16)))
-      await env.R2.put('editor-media/staging/' + id, bytes, { httpMetadata: { contentType: type }, customMetadata: { staging: 'true' } })
-      return json({ ok: true, id, bytes: bytes.length, contentType: type }, 201)
+      if (!env.DATABASE_URL || !new URL(env.DATABASE_URL).hostname.startsWith('ep-red-dream-b42nh8xe')) return json({ ok: false, error: 'staging-database-required' }, 503)
+      const alt = (request.headers.get('X-Image-Alt') || '').trim()
+      if (!alt || alt.length > 240) return json({ ok: false, error: 'image-alt-required' }, 400)
+      const key = 'editor-media/staging/' + id
+      await env.R2.put(key, bytes, { httpMetadata: { contentType: type }, customMetadata: { staging: 'true' } })
+      const { Client } = await import('pg')
+      const client = new Client({ connectionString: env.DATABASE_URL, connectionTimeoutMillis: 8000 })
+      try {
+        await client.connect()
+        const ext = type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg'
+        const filename = 'cf-staging-' + id + '.' + ext
+        const result = await client.query('INSERT INTO public.media (alt,filename,mime_type,filesize,url,_objectkey) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id', [alt,filename,type,bytes.length,'/editor/images/'+id,key])
+        return json({ ok: true, id, mediaId: result.rows[0].id, bytes: bytes.length, contentType: type }, 201)
+      } catch {
+        await env.R2.delete(key).catch(() => {})
+        return json({ ok: false, error: 'staging-media-registration-failed' }, 503)
+      } finally { await client.end().catch(() => {}) }
     }
     if (imagePath && request.method === 'GET') {
       if (!await authenticated()) return json({ ok: false, error: 'unauthorized' }, 401)
