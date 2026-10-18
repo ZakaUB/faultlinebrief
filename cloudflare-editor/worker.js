@@ -17,6 +17,23 @@ export default {
       const expires = Number(await object.text())
       return Number.isFinite(expires) && expires > Date.now()
     }
+    if (url.pathname === '/articles' && request.method === 'GET' || url.pathname === '/categories' && request.method === 'GET') {
+      if (!await authenticated()) return json({ ok: false, error: 'unauthorized' }, 401)
+      if (!env.DATABASE_URL || !new URL(env.DATABASE_URL).hostname.startsWith('ep-red-dream-b42nh8xe')) return json({ ok: false, error: 'staging-database-required' }, 503)
+      try {
+        const { Client } = await import('pg')
+        const client = new Client({ connectionString: env.DATABASE_URL, connectionTimeoutMillis: 8000 })
+        try {
+          await client.connect()
+          await client.query('BEGIN READ ONLY')
+          const result = url.pathname === '/articles'
+            ? await client.query('SELECT id, headline, slug, deck, status, published_at, updated_at FROM public.articles ORDER BY updated_at DESC LIMIT 25')
+            : await client.query('SELECT id, name, slug, description FROM public.categories ORDER BY name LIMIT 100')
+          await client.query('ROLLBACK')
+          return json({ ok: true, items: result.rows, count: result.rowCount })
+        } finally { await client.end().catch(() => {}) }
+      } catch { return json({ ok: false, error: 'staging-database-unavailable' }, 503) }
+    }
     if (url.pathname === '/health' && request.method === 'GET') return json({ ok: true, service: 'cloudflare-native-editor-auth', staging: true })
     if (url.pathname === '/login' && request.method === 'POST') {
       if (Number(request.headers.get('Content-Length') || 0) > 2048) return json({ ok: false }, 413)
