@@ -1,0 +1,73 @@
+name: Cloudflare native editor authentication staging
+on:
+  push:
+    branches: [cloudflare-staging-migration]
+    paths: ['cloudflare-editor/**', 'wrangler.editor.staging.jsonc', '.github/workflows/cloudflare-editor-auth-staging.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deploy-and-verify:
+    if: github.ref == 'refs/heads/cloudflare-staging-migration'
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+      EDITOR_BOOTSTRAP_PASSWORD: ${{ secrets.CLOUDFLARE_STAGING_ACCESS_PASSWORD }}
+      EDITOR_SESSION_SECRET: ${{ secrets.CLOUDFLARE_STAGING_PAYLOAD_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify isolated target and credentials
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const c = JSON.parse(fs.readFileSync('wrangler.editor.staging.jsonc','utf8'))
+          if (c.name !== 'faultlinebrief-editor-staging' || c.routes?.length || !c.workers_dev || c.r2_buckets?.[0]?.bucket_name !== 'faultlinebrief-staging-media') throw Error('Staging-only destination required')
+          if ((process.env.EDITOR_BOOTSTRAP_PASSWORD||'').length < 24 || (process.env.EDITOR_SESSION_SECRET||'').length < 32) throw Error('Missing strong staging secrets')
+          console.log('Isolated editor destination and secret lengths validated')
+          NODE
+      - name: Deploy isolated editor Worker
+        run: npx --yes wrangler@4.151.1 deploy --config wrangler.editor.staging.jsonc
+      - name: Configure isolated editor secrets
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          fs.writeFileSync('/tmp/fb-editor-secrets.json',JSON.stringify({EDITOR_BOOTSTRAP_PASSWORD:process.env.EDITOR_BOOTSTRAP_PASSWORD,EDITOR_SESSION_SECRET:process.env.EDITOR_SESSION_SECRET}),{mode:0o600})
+          NODE
+          npx --yes wrangler@4.151.1 secret bulk /tmp/fb-editor-secrets.json --config wrangler.editor.staging.jsonc
+          rm -f /tmp/fb-editor-secrets.json
+      - name: Verify actual login session and logout on Cloudflare
+        run: |
+          python3 - <<'PY'
+          import json,os,urllib.request,urllib.error,http.cookiejar
+          base='https://faultlinebrief-editor-staging.zakria25.workers.dev'
+          jar=http.cookiejar.CookieJar()
+          opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+          def call(path,method='GET',payload=None):
+            data=json.dumps(payload).encode() if payload is not None else None
+            req=urllib.request.Request(base+path,data=data,method=method,headers={'Content-Type':'application/json','User-Agent':'FaultlineBrief-Editor-Staging-CI'})
+            try: resp=opener.open(req,timeout=35)
+            except urllib.error.HTTPError as e: resp=e
+            return resp.status,json.loads(resp.read(4096))
+          status,body=call('/health')
+          assert status==200 and body.get('ok') is True,'health failed'
+          status,_=call('/me')
+          assert status==401,'anonymous access not blocked'
+          status,_=call('/login','POST',{'password':'deliberately-incorrect-password'})
+          assert status==401,'invalid password accepted'
+          status,body=call('/login','POST',{'password':os.environ['EDITOR_BOOTSTRAP_PASSWORD']})
+          assert status==200 and body.get('authenticated') is True,'valid login failed'
+          print('EDITOR_LOGIN PASS')
+          status,body=call('/me')
+          assert status==200 and body.get('authenticated') is True,'session verification failed'
+          print('EDITOR_SESSION PASS')
+          status,body=call('/logout','POST',{})
+          assert status==200,'logout failed'
+          status,_=call('/me')
+          assert status==401,'logout did not invalidate session'
+          print('EDITOR_LOGOUT PASS')
+          PY
