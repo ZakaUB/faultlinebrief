@@ -82,7 +82,7 @@ jobs:
             try: body=json.loads(raw)
             except json.JSONDecodeError: body={'non_json_body':raw[:150].decode('utf-8','replace')}
             return response.status,body
-          status,_=upload_image(image,'text/plain')
+          status,raw=upload_image(image,'text/plain')
           assert status==415,f'unsupported media type accepted: status={status}, response={raw}'
           status,_=call('/editor/images/'+'0'*32)
           assert status==404,'nonexistent image unexpectedly found'
