@@ -90,7 +90,7 @@ jobs:
           assert status==201 and body.get('bytes')==len(image),'R2 image upload failed'
           image_id=body['id']
           print('EDITOR_R2_IMAGE_UPLOAD PASS id='+image_id)
-          req=urllib.request.Request(base+'/editor/images/'+image_id)
+          req=urllib.request.Request(base+'/editor/images/'+image_id,headers={'User-Agent':'FaultlineBrief-Editor-Staging-CI','Origin':base})
           with opener.open(req,timeout=35) as response:
             assert response.status==200 and response.headers.get('Content-Type')=='image/png' and response.read()==image,'R2 image retrieval failed'
           print('EDITOR_R2_IMAGE_RETRIEVAL PASS')
