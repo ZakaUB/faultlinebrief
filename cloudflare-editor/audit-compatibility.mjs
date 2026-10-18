@@ -56,7 +56,7 @@ const created=await fetch(editor+'/editor/articles',{method:'POST',headers,body:
 const c=await created.json();check('ISOLATED_DRAFT_CREATE',created.status===201,c.error||'');
 if(created.ok){
 const id=c.article.id;const before=(await db.query('SELECT * FROM public.articles WHERE id=$1',[id])).rows[0];
-const update=await fetch(editor+'/editor/articles/'+id,{method:'PATCH',headers,body:JSON.stringify({action:'edit',headline:'Isolated compatibility test draft updated',deck:'Updated isolated compatibility test draft without modifying unrelated fields.',article_text:'First paragraph of the compatibility test.\\n\\nSecond paragraph of the compatibility test.',seo_title:'Staging compatibility test SEO',seo_description:'Staging test metadata description.'})});
+const update=await fetch(editor+'/editor/articles/'+id,{method:'PATCH',headers,body:JSON.stringify({action:'edit',headline:'Isolated compatibility test draft updated',deck:'Updated isolated compatibility test draft without modifying unrelated fields.',article_text:'First paragraph of the compatibility test.\n\nSecond paragraph of the compatibility test.',seo_title:'Staging compatibility test SEO',seo_description:'Staging test metadata description.'})});
 const uj=await update.json();check('STAGING_EDITOR_SAVE',update.ok,uj.error||'');
 const after=(await db.query('SELECT * FROM public.articles WHERE id=$1',[id])).rows[0];
 const allowed=new Set(['headline','deck','body','seo_title','seo_description','updated_at']);
