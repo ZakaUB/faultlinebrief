@@ -92,7 +92,7 @@ export default {
       try {
         await client.connect()
         await client.query('BEGIN READ ONLY')
-        const result = await client.query('SELECT id,headline,slug,deck,status,published_at,updated_at,created_at,seo_title,seo_description,featured_image_id,homepage_lead,editorial_placement FROM public.articles WHERE id=$1 LIMIT 1', [Number(url.pathname.split('/').pop())])
+        const result = await client.query('SELECT id,headline,slug,deck,body,status,published_at,updated_at,created_at,seo_title,seo_description,featured_image_id,homepage_lead,editorial_placement FROM public.articles WHERE id=$1 LIMIT 1', [Number(url.pathname.split('/').pop())])
         return result.rowCount ? json({ ok: true, article: result.rows[0] }) : json({ ok: false, error: 'article-not-found' }, 404)
       } catch { return json({ ok: false, error: 'staging-metadata-unavailable' }, 503) }
       finally { await client.query('ROLLBACK').catch(() => {}); await client.end().catch(() => {}) }
@@ -124,6 +124,11 @@ export default {
       const headline = body?.headline
       const deck = body?.deck
       if (typeof headline !== 'string' || headline.length < 8 || headline.length > 200 || typeof deck !== 'string' || deck.length < 8 || deck.length > 500) return json({ ok: false, error: 'invalid-fields' }, 400)
+      const seoTitle = body?.seo_title == null ? '' : body.seo_title
+      const seoDescription = body?.seo_description == null ? '' : body.seo_description
+      const articleText = body?.article_text == null ? '' : body.article_text
+      if (typeof seoTitle !== 'string' || seoTitle.length > 180 || typeof seoDescription !== 'string' || seoDescription.length > 320 || typeof articleText !== 'string' || articleText.length > 12000) return json({ ok: false, error: 'invalid-editorial-fields' }, 400)
+      const lexical = { root: { type: 'root', format: '', indent: 0, version: 1, direction: 'ltr', children: (articleText.trim() || 'Isolated Cloudflare staging editorial workflow test. Not a real news report.').split(/\\n\\s*\\n/).map(t => ({ type: 'paragraph', format: '', indent: 0, version: 1, direction: 'ltr', children: [{ type: 'text', text: t, detail: 0, format: 0, mode: 'normal', style: '', version: 1 }] })) } }
       const { Client } = await import('pg')
       const client = new Client({ connectionString: env.DATABASE_URL, connectionTimeoutMillis: 8000 })
       try {
@@ -134,16 +139,15 @@ export default {
           if (typeof body.slug !== 'string' || !/^cf-staging-test-[a-z0-9-]{8,70}$/.test(body.slug)) return json({ ok: false, error: 'staging-test-slug-required' }, 400)
           const media = await client.query('SELECT id FROM public.media ORDER BY id LIMIT 1')
           if (!media.rowCount) return json({ ok: false, error: 'staging-media-required' }, 409)
-          const lexical = { root: { type: 'root', format: '', indent: 0, version: 1, direction: 'ltr', children: [{ type: 'paragraph', format: '', indent: 0, version: 1, direction: 'ltr', children: [{ type: 'text', text: 'Isolated Cloudflare staging editorial workflow test. Not a real news report.', detail: 0, format: 0, mode: 'normal', style: '', version: 1 }] }] } }
-          result = await client.query("INSERT INTO public.articles (headline,slug,deck,body,featured_image_id,status,homepage_lead,editorial_placement) VALUES ($1,$2,$3,$4::jsonb,$5,'draft',false,'news') RETURNING id,slug,headline,deck,status,published_at", [headline,body.slug,deck,JSON.stringify(lexical),media.rows[0].id])
+          result = await client.query("INSERT INTO public.articles (headline,slug,deck,body,featured_image_id,status,homepage_lead,editorial_placement,seo_title,seo_description) VALUES ($1,$2,$3,$4::jsonb,$5,'draft',false,'news',$6,$7) RETURNING id,slug,headline,deck,status,published_at", [headline,body.slug,deck,JSON.stringify(lexical),media.rows[0].id,seoTitle||null,seoDescription||null])
         } else {
           const id = Number(url.pathname.split('/').pop())
           const existing = await client.query("SELECT id,status FROM public.articles WHERE id=$1 AND slug LIKE 'cf-staging-test-%' FOR UPDATE",[id])
           if (!existing.rowCount) return json({ ok: false, error: 'staging-test-article-not-found' }, 404)
           if (body.action !== 'edit' && body.action !== 'publish') return json({ ok: false, error: 'invalid-action' }, 400)
           result = body.action === 'publish'
-            ? await client.query("UPDATE public.articles SET headline=$2,deck=$3,status='published',published_at=COALESCE(published_at,now()),updated_at=now() WHERE id=$1 RETURNING id,slug,headline,deck,status,published_at",[id,headline,deck])
-            : await client.query("UPDATE public.articles SET headline=$2,deck=$3,updated_at=now() WHERE id=$1 RETURNING id,slug,headline,deck,status,published_at",[id,headline,deck])
+            ? await client.query("UPDATE public.articles SET headline=$2,deck=$3,body=CASE WHEN $4::text='' THEN body ELSE $4::jsonb END,seo_title=CASE WHEN $5::text='' THEN seo_title ELSE $5 END,seo_description=CASE WHEN $6::text='' THEN seo_description ELSE $6 END,status='published',published_at=COALESCE(published_at,now()),updated_at=now() WHERE id=$1 RETURNING id,slug,headline,deck,status,published_at",[id,headline,deck,articleText.trim()?JSON.stringify(lexical):'',seoTitle,seoDescription])
+            : await client.query("UPDATE public.articles SET headline=$2,deck=$3,body=CASE WHEN $4::text='' THEN body ELSE $4::jsonb END,seo_title=CASE WHEN $5::text='' THEN seo_title ELSE $5 END,seo_description=CASE WHEN $6::text='' THEN seo_description ELSE $6 END,updated_at=now() WHERE id=$1 RETURNING id,slug,headline,deck,status,published_at",[id,headline,deck])
         }
         await client.query('COMMIT')
         return json({ ok: true, article: result.rows[0] }, request.method === 'POST' ? 201 : 200)
