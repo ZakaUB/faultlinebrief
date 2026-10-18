@@ -43,6 +43,42 @@ export default {
       if (!object) return json({ ok: false, error: 'image-not-found' }, 404)
       return new Response(object.body, { status: 200, headers: { ...headers, 'Content-Type': object.httpMetadata?.contentType || 'application/octet-stream', 'Content-Length': String(object.size) } })
     }
+    // Stage 5: isolated, authenticated staging website preview and sitemap previews.
+    // Never expose these routes to crawlers or serve real editorial articles.
+    if (request.method === 'GET' && (url.pathname.startsWith('/preview/articles/') || url.pathname === '/preview/sitemap.xml' || url.pathname === '/preview/news-sitemap.xml')) {
+      if (!await authenticated()) return json({ ok: false, error: 'unauthorized' }, 401)
+      if (!env.DATABASE_URL || !new URL(env.DATABASE_URL).hostname.startsWith('ep-red-dream-b42nh8xe')) return json({ ok: false, error: 'staging-database-required' }, 503)
+      const escape = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+      const { Client } = await import('pg')
+      const client = new Client({ connectionString: env.DATABASE_URL, connectionTimeoutMillis: 8000 })
+      try {
+        await client.connect()
+        await client.query('BEGIN READ ONLY')
+        if (url.pathname.startsWith('/preview/articles/')) {
+          const slug = decodeURIComponent(url.pathname.slice('/preview/articles/'.length))
+          if (!/^cf-staging-test-[a-z0-9-]{8,70}$/.test(slug)) return json({ ok: false, error: 'staging-preview-only' }, 404)
+          const result = await client.query("SELECT headline,slug,deck,body,published_at,updated_at,status FROM public.articles WHERE slug=$1 AND status='published' LIMIT 1", [slug])
+          if (!result.rowCount) return json({ ok: false, error: 'article-not-found' }, 404)
+          const article = result.rows[0]
+          const paragraphs = (article.body?.root?.children || []).filter(n => n.type === 'paragraph').map(n => '<p>' + escape((n.children || []).map(c => c.text || '').join('')) + '</p>').join('')
+          const html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + escape(article.headline) + ' | Faultline Brief staging</title></head><body style="max-width:780px;margin:3rem auto;padding:1rem;font:18px/1.6 system-ui"><header>FAULTLINE BRIEF — STAGING PREVIEW</header><main><article><h1>' + escape(article.headline) + '</h1><p>' + escape(article.deck) + '</p><time>' + escape(article.published_at?.toISOString?.() || article.published_at) + '</time>' + paragraphs + '</article></main></body></html>'
+          return new Response(html, { headers: { ...headers, 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'noindex, nofollow' } })
+        }
+        const result = await client.query("SELECT slug,headline,published_at,updated_at FROM public.articles WHERE status='published' AND slug LIKE 'cf-staging-test-%' ORDER BY published_at DESC LIMIT 1001")
+        const now = Date.now()
+        const news = url.pathname === '/preview/news-sitemap.xml'
+        const articles = news ? result.rows.filter(a => a.published_at && new Date(a.published_at).getTime() >= now - 48 * 3600000 && new Date(a.published_at).getTime() <= now) : result.rows
+        if (articles.length > 1000) return json({ ok: false, error: 'staging-sitemap-limit-exceeded' }, 503)
+        const entries = articles.map(a => {
+          const loc = escape(url.origin + '/preview/articles/' + encodeURIComponent(a.slug))
+          if (!news) return '<url><loc>' + loc + '</loc><lastmod>' + escape(new Date(a.updated_at || a.published_at).toISOString()) + '</lastmod></url>'
+          return '<url><loc>' + loc + '</loc><news:news><news:publication><news:name>Faultline Brief</news:name><news:language>en</news:language></news:publication><news:publication_date>' + escape(new Date(a.published_at).toISOString()) + '</news:publication_date><news:title>' + escape(a.headline) + '</news:title></news:news></url>'
+        })
+        const xml = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"' + (news ? ' xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"' : '') + '>' + entries.join('') + '</urlset>'
+        return new Response(xml, { headers: { ...headers, 'Content-Type': 'application/xml; charset=utf-8', 'X-Robots-Tag': 'noindex, nofollow' } })
+      } catch { return json({ ok: false, error: 'staging-preview-unavailable' }, 503) }
+      finally { await client.query('ROLLBACK').catch(() => {}); await client.end().catch(() => {}) }
+    }
     if (url.pathname === '/articles' && request.method === 'GET' || url.pathname === '/categories' && request.method === 'GET') {
       if (!await authenticated()) return json({ ok: false, error: 'unauthorized' }, 401)
       if (!env.DATABASE_URL || !new URL(env.DATABASE_URL).hostname.startsWith('ep-red-dream-b42nh8xe')) return json({ ok: false, error: 'staging-database-required' }, 503)
