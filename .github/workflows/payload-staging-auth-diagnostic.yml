@@ -1,0 +1,54 @@
+name: Payload staging auth metadata diagnostic (read-only)
+on:
+  push:
+    branches: [cloudflare-staging-migration]
+    paths: ['.github/workflows/payload-staging-auth-diagnostic.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect-staging-auth:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 8
+    env:
+      DATABASE_URL: ${{ secrets.CLOUDFLARE_STAGING_DATABASE_URL }}
+    steps:
+      - name: Verify staging-only database destination
+        shell: bash
+        run: |
+          test -n "$DATABASE_URL"
+          node - <<'NODE'
+          const u = new URL(process.env.DATABASE_URL)
+          if (!['postgres:','postgresql:'].includes(u.protocol) || !u.hostname.startsWith('ep-red-dream-b42nh8xe')) {
+            throw new Error('Refusing non-staging database')
+          }
+          console.log('Isolated Neon staging endpoint verified')
+          NODE
+      - name: Read safe Payload authentication metadata
+        shell: bash
+        run: |
+          mkdir -p /tmp/faultline-staging-auth-check
+          cd /tmp/faultline-staging-auth-check
+          npm init -y >/dev/null
+          npm install --silent --no-audit --no-fund pg@8
+          node --input-type=module <<'NODE'
+          import pg from 'pg'
+          const client = new pg.Client({connectionString:process.env.DATABASE_URL,connectionTimeoutMillis:12000})
+          try {
+            await client.connect()
+            await client.query('BEGIN READ ONLY')
+            const schema = await client.query("SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'users'")
+            const columns = new Set(schema.rows.map(r => r.column_name))
+            console.log('USERS_TABLE_EXISTS', columns.size > 0)
+            console.log('AUTH_COLUMNS_PRESENT', ['email','hash','salt','password','_verified','login_attempts','lock_until'].filter(c=>columns.has(c)).join(',') || 'none')
+            if (columns.has('email')) {
+              const count = await client.query('SELECT count(*)::int AS n FROM public.users')
+              console.log('STAGING_USER_COUNT',count.rows[0].n)
+            }
+            // Do not query, print or export user identities, password hashes, salts or tokens.
+            await client.query('ROLLBACK')
+          } finally {
+            await client.end().catch(()=>{})
+          }
+          NODE
