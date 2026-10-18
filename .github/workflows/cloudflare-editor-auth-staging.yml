@@ -55,7 +55,7 @@ jobs:
             req=urllib.request.Request(base+path,data=data,method=method,headers={'Content-Type':'application/json','User-Agent':'FaultlineBrief-Editor-Staging-CI'})
             try: resp=opener.open(req,timeout=35)
             except urllib.error.HTTPError as e: resp=e
-            return resp.status,json.loads(resp.read(4096))
+            return resp.status,json.loads(resp.read())
           status,body=call('/health')
           assert status==200 and body.get('ok') is True,'health failed'
           status,_=call('/me')
