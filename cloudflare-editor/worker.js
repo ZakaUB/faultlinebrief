@@ -1,3 +1,4 @@
+import { adminHtml } from './admin-page.js'
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
@@ -16,6 +17,9 @@ export default {
       if (!object) return false
       const expires = Number(await object.text())
       return Number.isFinite(expires) && expires > Date.now()
+    }
+    if ((url.pathname === '/' || url.pathname === '/admin') && request.method === 'GET') {
+      return new Response(adminHtml, { headers: { ...headers, 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'noindex, nofollow', 'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'" } })
     }
     // Stage 4: private, authenticated image upload and retrieval in isolated staging R2.
     const imagePath = /^\/editor\/images\/([a-f0-9]{32})$/.exec(url.pathname)
