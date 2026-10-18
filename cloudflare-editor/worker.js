@@ -93,7 +93,9 @@ export default {
         await client.connect()
         await client.query('BEGIN READ ONLY')
         const result = await client.query('SELECT id,headline,slug,deck,body,status,published_at,updated_at,created_at,seo_title,seo_description,featured_image_id,homepage_lead,editorial_placement FROM public.articles WHERE id=$1 LIMIT 1', [Number(url.pathname.split('/').pop())])
-        return result.rowCount ? json({ ok: true, article: result.rows[0] }) : json({ ok: false, error: 'article-not-found' }, 404)
+        if (!result.rowCount) return json({ ok: false, error: 'article-not-found' }, 404)
+        const sources = await client.query('SELECT name,url FROM public.articles_sources WHERE _parent_id=$1 ORDER BY _order,id',[result.rows[0].id])
+        return json({ ok: true, article: { ...result.rows[0], sources: sources.rows } })
       } catch { return json({ ok: false, error: 'staging-metadata-unavailable' }, 503) }
       finally { await client.query('ROLLBACK').catch(() => {}); await client.end().catch(() => {}) }
     }
@@ -164,6 +166,10 @@ export default {
       const seoDescription = body?.seo_description == null ? '' : body.seo_description
       const articleText = body?.article_text == null ? '' : body.article_text
       if (typeof seoTitle !== 'string' || seoTitle.length > 180 || typeof seoDescription !== 'string' || seoDescription.length > 320 || typeof articleText !== 'string' || articleText.length > 12000) return json({ ok: false, error: 'invalid-editorial-fields' }, 400)
+      const sources = body?.sources
+      if (sources !== undefined && (!Array.isArray(sources) || sources.length > 30 || sources.some(x => !x || typeof x.name !== 'string' || !x.name.trim() || x.name.length > 180 || typeof (x.url ?? '') !== 'string' || (x.url && (x.url.length > 2000 || !/^https?:\\/\\//i.test(x.url))))) return json({ ok: false, error: 'invalid-article-sources' }, 400)
+      const imageId = body?.featured_image_id
+      if (imageId !== undefined && (!Number.isSafeInteger(imageId) || imageId < 1)) return json({ ok: false, error: 'invalid-featured-image' }, 400)
       const lexical = { root: { type: 'root', format: '', indent: 0, version: 1, direction: 'ltr', children: (articleText.trim() || 'Isolated Cloudflare staging editorial workflow test. Not a real news report.').split(/\r?\n\s*\r?\n/).map(t => ({ type: 'paragraph', format: '', indent: 0, version: 1, direction: 'ltr', children: [{ type: 'text', text: t, detail: 0, format: 0, mode: 'normal', style: '', version: 1 }] })) } }
       const { Client } = await import('pg')
       const client = new Client({ connectionString: env.DATABASE_URL, connectionTimeoutMillis: 8000 })
@@ -173,7 +179,7 @@ export default {
         let result
         if (request.method === 'POST') {
           if (typeof body.slug !== 'string' || !/^cf-staging-test-[a-z0-9-]{8,70}$/.test(body.slug)) return json({ ok: false, error: 'staging-test-slug-required' }, 400)
-          const media = await client.query('SELECT id FROM public.media ORDER BY id LIMIT 1')
+          const media = await client.query('SELECT id FROM public.media WHERE id=COALESCE($1::integer,(SELECT id FROM public.media ORDER BY id LIMIT 1))',[imageId ?? null])
           if (!media.rowCount) return json({ ok: false, error: 'staging-media-required' }, 409)
           result = await client.query("INSERT INTO public.articles (headline,slug,deck,body,featured_image_id,status,homepage_lead,editorial_placement,seo_title,seo_description) VALUES ($1,$2,$3,$4::jsonb,$5,'draft',false,'news',$6,$7) RETURNING id,slug,headline,deck,status,published_at", [headline,body.slug,deck,JSON.stringify(lexical),media.rows[0].id,seoTitle||null,seoDescription||null])
         } else {
@@ -184,6 +190,15 @@ export default {
           result = body.action === 'publish'
             ? await client.query("UPDATE public.articles SET headline=$2,deck=$3,body=CASE WHEN $4::text='' THEN body ELSE $4::jsonb END,seo_title=CASE WHEN $5::text='' THEN seo_title ELSE $5 END,seo_description=CASE WHEN $6::text='' THEN seo_description ELSE $6 END,status='published',published_at=COALESCE(published_at,now()),updated_at=now() WHERE id=$1 RETURNING id,slug,headline,deck,status,published_at",[id,headline,deck,articleText.trim()?JSON.stringify(lexical):'',seoTitle,seoDescription])
             : await client.query("UPDATE public.articles SET headline=$2,deck=$3,body=CASE WHEN $4::text='' THEN body ELSE $4::jsonb END,seo_title=CASE WHEN $5::text='' THEN seo_title ELSE $5 END,seo_description=CASE WHEN $6::text='' THEN seo_description ELSE $6 END,updated_at=now() WHERE id=$1 RETURNING id,slug,headline,deck,status,published_at",[id,headline,deck,articleText.trim()?JSON.stringify(lexical):'',seoTitle,seoDescription])
+        }
+        if (imageId !== undefined && request.method !== 'POST') {
+          const media = await client.query('SELECT id FROM public.media WHERE id=$1',[imageId])
+          if (!media.rowCount) { await client.query('ROLLBACK'); return json({ ok: false, error: 'featured-image-not-found' }, 400) }
+          await client.query('UPDATE public.articles SET featured_image_id=$2 WHERE id=$1',[result.rows[0].id,imageId])
+        }
+        if (sources !== undefined) {
+          await client.query('DELETE FROM public.articles_sources WHERE _parent_id=$1',[result.rows[0].id])
+          for (let i=0;i<sources.length;i++) await client.query('INSERT INTO public.articles_sources (_order,_parent_id,id,name,url) VALUES ($1,$2,$3,$4,$5)',[i+1,result.rows[0].id,crypto.randomUUID(),sources[i].name.trim(),sources[i].url?.trim()||null])
         }
         await client.query('COMMIT')
         return json({ ok: true, article: result.rows[0] }, request.method === 'POST' ? 201 : 200)
