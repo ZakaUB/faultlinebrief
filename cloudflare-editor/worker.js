@@ -249,6 +249,14 @@ export default {
           if (!media.rowCount) { await client.query('ROLLBACK'); return json({ ok: false, error: 'featured-image-not-found' }, 400) }
           await client.query('UPDATE public.articles SET featured_image_id=$2 WHERE id=$1',[result.rows[0].id,imageId])
         }
+        if (result.rows[0].status === 'published') {
+          const selected = await client.query('SELECT m.id,m._objectkey FROM public.media m JOIN public.articles a ON a.featured_image_id=m.id WHERE a.id=$1', [result.rows[0].id])
+          const chosen = selected.rows[0]
+          if (chosen && typeof chosen._objectkey === 'string' && /^editor-media\/staging\/[a-f0-9]{32}$/.test(chosen._objectkey)) {
+            const publicUrl = url.origin + '/public/staging-media/' + chosen._objectkey.split('/').pop()
+            await client.query('UPDATE public.media SET url=$2 WHERE id=$1', [chosen.id,publicUrl])
+          }
+        }
         if (sources !== undefined) {
           await client.query('DELETE FROM public.articles_sources WHERE _parent_id=$1',[result.rows[0].id])
           for (let i=0;i<sources.length;i++) await client.query('INSERT INTO public.articles_sources (_order,_parent_id,id,name,url) VALUES ($1,$2,$3,$4,$5)',[i+1,result.rows[0].id,crypto.randomUUID(),sources[i].name.trim(),sources[i].url?.trim()||null])
