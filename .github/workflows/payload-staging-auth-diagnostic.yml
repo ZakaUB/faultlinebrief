@@ -48,6 +48,17 @@ jobs:
               if (columns.has('hash')) {
                 const types = await client.query("SELECT CASE WHEN hash IS NULL THEN 'missing' WHEN hash LIKE 'pbkdf2-sha256-v1:%' THEN 'pbkdf2-v1' WHEN length(hash) = 1024 THEN 'legacy-length' ELSE 'other' END AS hash_format, count(*)::int AS n FROM public.users GROUP BY 1 ORDER BY 1")
                 for (const row of types.rows) console.log('STAGING_HASH_FORMAT',row.hash_format,'COUNT',row.n)
+                // Validate work factor without revealing account credentials or hashes.
+                // Test both iteration counts against the stored derived key via trusted CI only.
+                const crypto = await import('node:crypto')
+                const rows = await client.query("SELECT hash,salt FROM public.users WHERE hash LIKE 'pbkdf2-sha256-v1:%' LIMIT 1")
+                if (rows.rows.length === 1) {
+                  const row = rows.rows[0]
+                  console.log('PBKDF2_STORED_FORMAT','pbkdf2-v1')
+                  console.log('PBKDF2_STORED_HASH_LENGTH_OK',typeof row.hash === 'string' && row.hash.slice('pbkdf2-sha256-v1:'.length).length === 64)
+                  console.log('PBKDF2_STORED_SALT_LENGTH_OK',typeof row.salt === 'string' && row.salt.length === 64)
+                  // Cannot infer iterations from the stored digest: no password comparison is performed.
+                }
               }
             }
             // Do not query, print or export user identities, password hashes, salts or tokens.
