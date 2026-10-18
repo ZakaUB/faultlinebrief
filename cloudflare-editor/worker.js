@@ -164,7 +164,7 @@ export default {
       const seoDescription = body?.seo_description == null ? '' : body.seo_description
       const articleText = body?.article_text == null ? '' : body.article_text
       if (typeof seoTitle !== 'string' || seoTitle.length > 180 || typeof seoDescription !== 'string' || seoDescription.length > 320 || typeof articleText !== 'string' || articleText.length > 12000) return json({ ok: false, error: 'invalid-editorial-fields' }, 400)
-      const lexical = { root: { type: 'root', format: '', indent: 0, version: 1, direction: 'ltr', children: (articleText.trim() || 'Isolated Cloudflare staging editorial workflow test. Not a real news report.').split(/\\n\\s*\\n/).map(t => ({ type: 'paragraph', format: '', indent: 0, version: 1, direction: 'ltr', children: [{ type: 'text', text: t, detail: 0, format: 0, mode: 'normal', style: '', version: 1 }] })) } }
+      const lexical = { root: { type: 'root', format: '', indent: 0, version: 1, direction: 'ltr', children: (articleText.trim() || 'Isolated Cloudflare staging editorial workflow test. Not a real news report.').split(/\r?\n\s*\r?\n/).map(t => ({ type: 'paragraph', format: '', indent: 0, version: 1, direction: 'ltr', children: [{ type: 'text', text: t, detail: 0, format: 0, mode: 'normal', style: '', version: 1 }] })) } }
       const { Client } = await import('pg')
       const client = new Client({ connectionString: env.DATABASE_URL, connectionTimeoutMillis: 8000 })
       try {
