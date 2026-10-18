@@ -97,6 +97,22 @@ export default {
       } catch { return json({ ok: false, error: 'staging-metadata-unavailable' }, 503) }
       finally { await client.query('ROLLBACK').catch(() => {}); await client.end().catch(() => {}) }
     }
+    // Staging collections are read-only; never return authentication hashes or API keys.
+    if (request.method === 'GET' && (url.pathname === '/editor/users' || url.pathname === '/editor/media-library')) {
+      if (!await authenticated()) return json({ ok: false, error: 'unauthorized' }, 401)
+      if (!env.DATABASE_URL || !new URL(env.DATABASE_URL).hostname.startsWith('ep-red-dream-b42nh8xe')) return json({ ok: false, error: 'staging-database-required' }, 503)
+      const { Client } = await import('pg')
+      const client = new Client({ connectionString: env.DATABASE_URL, connectionTimeoutMillis: 8000 })
+      try {
+        await client.connect()
+        await client.query('BEGIN READ ONLY')
+        const result = url.pathname === '/editor/users'
+          ? await client.query('SELECT id,email,created_at,updated_at FROM public.users ORDER BY id LIMIT 100')
+          : await client.query('SELECT id,alt,url,filename,mime_type,width,height FROM public.media ORDER BY id DESC LIMIT 100')
+        return json({ ok: true, items: result.rows, count: result.rowCount })
+      } catch { return json({ ok: false, error: 'staging-collection-unavailable' }, 503) }
+      finally { await client.query('ROLLBACK').catch(() => {}); await client.end().catch(() => {}) }
+    }
     if (url.pathname === '/articles' && request.method === 'GET' || url.pathname === '/categories' && request.method === 'GET') {
       if (!await authenticated()) return json({ ok: false, error: 'unauthorized' }, 401)
       if (!env.DATABASE_URL || !new URL(env.DATABASE_URL).hostname.startsWith('ep-red-dream-b42nh8xe')) return json({ ok: false, error: 'staging-database-required' }, 503)
