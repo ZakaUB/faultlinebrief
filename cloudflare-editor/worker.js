@@ -97,6 +97,26 @@ export default {
       } catch { return json({ ok: false, error: 'staging-metadata-unavailable' }, 503) }
       finally { await client.query('ROLLBACK').catch(() => {}); await client.end().catch(() => {}) }
     }
+    // Read-only compatibility report for an existing published article. Never copy, mutate, or publish.
+    if (url.pathname === '/editor/compatibility-report' && request.method === 'GET') {
+      if (!await authenticated()) return json({ ok: false, error: 'unauthorized' }, 401)
+      if (!env.DATABASE_URL || !new URL(env.DATABASE_URL).hostname.startsWith('ep-red-dream-b42nh8xe')) return json({ ok: false, error: 'staging-database-required' }, 503)
+      const { Client } = await import('pg')
+      const client = new Client({ connectionString: env.DATABASE_URL, connectionTimeoutMillis: 8000 })
+      try {
+        await client.connect()
+        await client.query('BEGIN READ ONLY')
+        const result = await client.query(`SELECT a.id,a.slug,a.headline,a.deck,a.status,a.published_at,a.seo_title,a.seo_description,a.featured_image_id,a.editorial_placement,a.homepage_lead,m.filename AS image_filename,m.url AS image_url,m.alt AS image_alt,a.body,(SELECT COALESCE(json_agg(json_build_object('name',c.name,'slug',c.slug)),'[]'::json) FROM public.articles_rels r JOIN public.categories c ON c.id=r.categories_id WHERE r.parent_id=a.id) AS categories FROM public.articles a LEFT JOIN public.media m ON m.id=a.featured_image_id WHERE a.id=30 AND a.status='published' LIMIT 1`)
+        if (!result.rowCount) return json({ ok: false, error: 'reference-article-not-found' }, 404)
+        const a = result.rows[0]
+        const blocks = a.body?.root?.children || []
+        const count = blocks.length
+        const fields = ['slug','headline','deck','status','published_at','seo_title','seo_description','featured_image_id','image_filename','image_url','image_alt','editorial_placement','categories']
+        const checks = Object.fromEntries(fields.map(k => [k,{ present: a[k] != null && a[k] !== '', value: a[k] }]))
+        return json({ ok: true, reference: 'staging-neon-article-30', checks, body_blocks: count, lexical_root: a.body?.root?.type || null, readonly: true, public_site_compared: false, note: 'Staging baseline only; live website parity must be checked separately.' })
+      } catch { return json({ ok: false, error: 'compatibility-report-unavailable' }, 503) }
+      finally { await client.query('ROLLBACK').catch(() => {}); await client.end().catch(() => {}) }
+    }
     // Staging collections are read-only; never return authentication hashes or API keys.
     if (request.method === 'GET' && (url.pathname === '/editor/users' || url.pathname === '/editor/media-library')) {
       if (!await authenticated()) return json({ ok: false, error: 'unauthorized' }, 401)
