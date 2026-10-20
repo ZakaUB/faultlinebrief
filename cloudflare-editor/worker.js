@@ -237,12 +237,26 @@ export default {
           result = await client.query("INSERT INTO public.articles (headline,slug,deck,body,featured_image_id,status,homepage_lead,editorial_placement,seo_title,seo_description) VALUES ($1,$2,$3,$4::jsonb,$5,'draft',false,'news',$6,$7) RETURNING id,slug,headline,deck,status,published_at", [headline,body.slug,deck,JSON.stringify(lexical),media.rows[0].id,seoTitle||null,seoDescription||null])
         } else {
           const id = Number(url.pathname.split('/').pop())
-          const existing = await client.query("SELECT id,status FROM public.articles WHERE id=$1 AND slug LIKE 'cf-staging-test-%' FOR UPDATE",[id])
+          const existing = await client.query("SELECT id,status,body FROM public.articles WHERE id=$1 AND slug LIKE 'cf-staging-test-%' FOR UPDATE",[id])
           if (!existing.rowCount) return json({ ok: false, error: 'staging-test-article-not-found' }, 404)
+          // Never flatten existing Lexical formatting through the plain-text editor.
+          // Unchanged text preserves the original JSON; changed rich text is rejected
+          // until a structure-aware editor is available.
+          const originalNodes = existing.rows[0].body?.root?.children || []
+          const flatten = node => node.type === 'linebreak' ? '\\n' : typeof node.text === 'string' ? node.text : (node.children || []).map(flatten).join('')
+          const originalText = originalNodes.map(flatten).join('\\n\\n').replace(/\\r\\n/g, '\\n').trim()
+          const incomingText = articleText.replace(/\\r\\n/g, '\\n').trim()
+          const hasRichText = originalNodes.some(node => node.type !== 'paragraph' || (node.children || []).some(child => child.type !== 'text' || child.format || child.children?.length))
+          if (hasRichText && incomingText && incomingText !== originalText) {
+            await client.query('ROLLBACK')
+            return json({ ok: false, error: 'rich-text-edit-requires-structured-editor' }, 409)
+          }
+          const preserveExistingBody = hasRichText && incomingText === originalText
+
           if (body.action !== 'edit' && body.action !== 'publish') return json({ ok: false, error: 'invalid-action' }, 400)
           result = body.action === 'publish'
-            ? await client.query("UPDATE public.articles SET headline=$2,deck=$3,body=CASE WHEN $4::text='' THEN body ELSE $4::jsonb END,seo_title=CASE WHEN $5::text='' THEN seo_title ELSE $5 END,seo_description=CASE WHEN $6::text='' THEN seo_description ELSE $6 END,status='published',published_at=COALESCE(published_at,now()),updated_at=now() WHERE id=$1 RETURNING id,slug,headline,deck,status,published_at",[id,headline,deck,articleText.trim()?JSON.stringify(lexical):'',seoTitle,seoDescription])
-            : await client.query("UPDATE public.articles SET headline=$2,deck=$3,body=CASE WHEN $4::text='' THEN body ELSE $4::jsonb END,seo_title=CASE WHEN $5::text='' THEN seo_title ELSE $5 END,seo_description=CASE WHEN $6::text='' THEN seo_description ELSE $6 END,updated_at=now() WHERE id=$1 RETURNING id,slug,headline,deck,status,published_at",[id,headline,deck,articleText.trim()?JSON.stringify(lexical):'',seoTitle,seoDescription])
+            ? await client.query("UPDATE public.articles SET headline=$2,deck=$3,body=CASE WHEN $4::text='' THEN body ELSE $4::jsonb END,seo_title=CASE WHEN $5::text='' THEN seo_title ELSE $5 END,seo_description=CASE WHEN $6::text='' THEN seo_description ELSE $6 END,status='published',published_at=COALESCE(published_at,now()),updated_at=now() WHERE id=$1 RETURNING id,slug,headline,deck,status,published_at",[id,headline,deck,articleText.trim()&&!preserveExistingBody?JSON.stringify(lexical):'',seoTitle,seoDescription])
+            : await client.query("UPDATE public.articles SET headline=$2,deck=$3,body=CASE WHEN $4::text='' THEN body ELSE $4::jsonb END,seo_title=CASE WHEN $5::text='' THEN seo_title ELSE $5 END,seo_description=CASE WHEN $6::text='' THEN seo_description ELSE $6 END,updated_at=now() WHERE id=$1 RETURNING id,slug,headline,deck,status,published_at",[id,headline,deck,articleText.trim()&&!preserveExistingBody?JSON.stringify(lexical):'',seoTitle,seoDescription])
         }
         if (imageId !== undefined && request.method !== 'POST') {
           const media = await client.query('SELECT id FROM public.media WHERE id=$1',[imageId])
