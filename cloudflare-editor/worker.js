@@ -243,9 +243,9 @@ export default {
           // Unchanged text preserves the original JSON; changed rich text is rejected
           // until a structure-aware editor is available.
           const originalNodes = existing.rows[0].body?.root?.children || []
-          const flatten = node => node.type === 'linebreak' ? '\\n' : typeof node.text === 'string' ? node.text : (node.children || []).map(flatten).join('')
-          const originalText = originalNodes.map(flatten).join('\\n\\n').replace(/\\r\\n/g, '\\n').trim()
-          const incomingText = articleText.replace(/\\r\\n/g, '\\n').trim()
+          const flatten = node => node.type === 'linebreak' ? '\n' : typeof node.text === 'string' ? node.text : (node.children || []).map(flatten).join('')
+          const originalText = originalNodes.map(flatten).join('\n\n').replace(/\r\n/g, '\n').trim()
+          const incomingText = articleText.replace(/\r\n/g, '\n').trim()
           const hasRichText = originalNodes.some(node => node.type !== 'paragraph' || (node.children || []).some(child => child.type !== 'text' || child.format || child.children?.length))
           if (hasRichText && incomingText && incomingText !== originalText) {
             await client.query('ROLLBACK')
