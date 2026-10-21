@@ -1,5 +1,5 @@
 name: Deploy isolated D1 editor read-only staging
-# Retry after correcting route syntax
+# Retry after removing duplicated invalid trailing block
 on:
   push:
     branches: [emergency-neon-to-cloudflare-20261021]
