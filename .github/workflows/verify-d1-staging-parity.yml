@@ -1,0 +1,94 @@
+name: Verify isolated D1 staging article parity
+on:
+  push:
+    branches: [emergency-neon-to-cloudflare-20261021]
+    paths: [.github/workflows/verify-d1-staging-parity.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: cloudflare-staging
+    env:
+      DATABASE_URL: ${{ secrets.CLOUDFLARE_STAGING_DATABASE_URL }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+    steps:
+      - name: Install PostgreSQL driver
+        run: python3 -m pip install --quiet --user 'psycopg[binary]>=3.2,<4'
+      - name: Verify staging sources and compare every article
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,urllib.parse,urllib.request,datetime,decimal,hashlib
+          import psycopg
+          from psycopg.rows import dict_row
+          host=urllib.parse.urlparse(os.environ['DATABASE_URL']).hostname or ''
+          if not host.startswith('ep-red-dream-b42nh8xe'): raise SystemExit('Refusing non-staging Neon source')
+          dbid='d296847d-9bf7-490d-bc95-48345022a938'
+          url=f"https://api.cloudflare.com/client/v4/accounts/{os.environ['CLOUDFLARE_ACCOUNT_ID']}/d1/database/{dbid}/query"
+          def query(sql):
+            request=urllib.request.Request(url,data=json.dumps({'sql':sql}).encode(),headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_API_TOKEN'],'Content-Type':'application/json'},method='POST')
+            with urllib.request.urlopen(request,timeout=60) as response: data=json.load(response)
+            if not data.get('success') or any(not x.get('success',True) for x in data.get('result',[])): raise RuntimeError('D1 query failed')
+            return [r for item in data.get('result',[]) for r in item.get('results',[])]
+          conn=psycopg.connect(os.environ['DATABASE_URL'],row_factory=dict_row,connect_timeout=15)
+          conn.read_only=True
+          with conn:
+            with conn.cursor() as cur:
+              records={}
+              for name in ('articles','categories','media','articles_rels','articles_sources'):
+                cur.execute('SELECT * FROM public.'+name)
+                records[name]=[dict(x) for x in cur.fetchall()]
+          articles={str(a['id']):a for a in records['articles']}
+          media={str(m['id']):m for m in records['media']}
+          cats={str(c['id']):c for c in records['categories']}
+          d1_articles={}
+          for offset in range(0,len(articles),20):
+            for a in query(f'SELECT * FROM migration_articles ORDER BY id LIMIT 20 OFFSET {offset}'):
+              d1_articles[str(a['id'])]=a
+          d1_media={}
+          for m in query('SELECT * FROM migration_media'): d1_media[str(m['id'])]=json.loads(m['raw_json'])
+          d1_categories={}
+          for c in query('SELECT * FROM migration_categories'): d1_categories[str(c['id'])]=json.loads(c['raw_json'])
+          if set(articles)!=set(d1_articles) or set(media)!=set(d1_media) or set(cats)!=set(d1_categories): raise SystemExit('ID parity failure')
+          def norm(v):
+            if isinstance(v,(datetime.datetime,datetime.date)): return v.isoformat()
+            if isinstance(v,decimal.Decimal): return str(v)
+            if isinstance(v,dict): return {k:norm(x) for k,x in v.items()}
+            if isinstance(v,list): return [norm(x) for x in v]
+            return v
+          def canon(v): return json.dumps(norm(v),sort_keys=True,ensure_ascii=False,separators=(',',':'))
+          for id,source in articles.items():
+            target=d1_articles[id]
+            for k,v in [('slug',source['slug']),('title',source['headline']),('status',source['status'])]:
+              if target[k]!=v: raise SystemExit('Article '+id+' mismatch '+k)
+            if canon(json.loads(target['content_json']))!=canon(source['body']): raise SystemExit('Article '+id+' rich-text mismatch')
+            if target['published_at']!=(source['published_at'].isoformat() if source['published_at'] else ''): raise SystemExit('Article '+id+' published date mismatch')
+            if target['updated_at']!=source['updated_at'].isoformat(): raise SystemExit('Article '+id+' updated date mismatch')
+            meta=json.loads(target['metadata_json'])
+            if canon(meta['source_article'])!=canon(source): raise SystemExit('Article '+id+' source record mismatch')
+            for k in ('seo_title','seo_description','deck','homepage_lead','editorial_placement'):
+              if meta[k]!=source[k]: raise SystemExit('Article '+id+' metadata mismatch '+k)
+            rel=sorted((r for r in records['articles_rels'] if str(r['parent_id'])==id),key=lambda x:(x['order'] or 0,x['id']))
+            sources=sorted((s for s in records['articles_sources'] if str(s['_parent_id'])==id),key=lambda x:x['_order'])
+            if canon(meta['category_relationships'])!=canon(rel): raise SystemExit('Article '+id+' categories mismatch')
+            if canon(json.loads(target['source_json']))!=canon(sources): raise SystemExit('Article '+id+' sources mismatch')
+            if canon(json.loads(target['image_json']))!=canon(media[str(source['featured_image_id'])]): raise SystemExit('Article '+id+' image metadata mismatch')
+          for id,source in media.items():
+            if canon(source)!=canon(d1_media[id]): raise SystemExit('Media '+id+' mismatch')
+          for id,source in cats.items():
+            if canon(source)!=canon(d1_categories[id]): raise SystemExit('Category '+id+' mismatch')
+          counts={k:len(v) for k,v in records.items()}
+          print('PASS staging field-level parity',json.dumps(counts,sort_keys=True))
+          print('Verified article body, slugs, dates, SEO, sources, category links and image metadata')
+          print('NOTE: Image binary storage, CMS compatibility, public rendering, canonical URLs and sitemap behavior NOT YET VERIFIED')
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+            f.write('### D1 staging field-level parity verified\n')
+            for k,v in counts.items(): f.write('- '+k+': '+str(v)+'\n')
+            f.write('Compared full source article, body, dates, SEO, sources, category relations, and media metadata.\n')
+            f.write('Not tested: R2 image binary availability, CMS, public page rendering, canonical/OG/JSON-LD, sitemap, production cutover.\n')
+          PY
