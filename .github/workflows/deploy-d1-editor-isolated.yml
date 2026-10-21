@@ -1,5 +1,5 @@
 name: Deploy isolated D1 editor read-only staging
-# Retry after removing duplicated invalid trailing block
+# Retry after restoring required editor UI module
 on:
   push:
     branches: [emergency-neon-to-cloudflare-20261021]
