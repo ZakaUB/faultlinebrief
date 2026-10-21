@@ -56,9 +56,9 @@ jobs:
           import json
           v=json.load(open('/tmp/d1-before.json'))
           rows=[row for p in (v if isinstance(v,list) else [v]) for row in p.get('results',[])]
-          if len(rows)!=1 or any(int(rows[0].get(k,-1))!=0 for k in ('articles','categories','media')):
-            raise SystemExit('D1 read model is not empty: refusing overwrite')
-          print('Verified empty staging read model')
+          if len(rows)!=1 or any(int(rows[0].get(k,-1))>expected for k,expected in (('articles',79),('categories',3),('media',43))):
+            raise SystemExit('Unexpected D1 staging counts: refusing import')
+          print('Verified isolated staging read model counts',rows[0])
           PY
       - name: Read-only export and deterministic SQL conversion
         shell: bash
@@ -115,22 +115,47 @@ jobs:
           open('/tmp/staging-expected.json','w').write(json.dumps(counts))
           print('Prepared isolated staging import counts',json.dumps(counts,sort_keys=True),'integrity',digest)
           PY
-      - name: Import isolated D1 in small verified batches
+      - name: Resume import through parameterized D1 API
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
+          import sqlite3,os,json,urllib.request,urllib.error,time
           from pathlib import Path
-          lines=[x for x in Path('/tmp/staging-import.sql').read_text(encoding='utf-8').splitlines() if x.startswith('INSERT INTO ')]
-          batches=[lines[i:i+10] for i in range(0,len(lines),10)]
-          for i,chunk in enumerate(batches):
-            Path(f'/tmp/d1-batch-{i:03d}.sql').write_text('\n'.join(chunk)+'\n',encoding='utf-8')
-          print('Prepared',len(batches),'batches of at most 10 statements')
+          con=sqlite3.connect(':memory:')
+          con.executescript(Path('migration-emergency/d1-staging-schema.sql').read_text())
+          con.executescript(Path('/tmp/staging-import.sql').read_text())
+          con.row_factory=sqlite3.Row
+          base='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/d1/database/d296847d-9bf7-490d-bc95-48345022a938/query'
+          def query(sql,params=()):
+            payload=json.dumps({'sql':sql,'params':list(params)},ensure_ascii=False).encode()
+            req=urllib.request.Request(base,data=payload,headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_API_TOKEN'],'Content-Type':'application/json'},method='POST')
+            for attempt in range(4):
+              try:
+                with urllib.request.urlopen(req,timeout=45) as resp: result=json.load(resp)
+                if not result.get('success') or any(not x.get('success',True) for x in result.get('result',[])):
+                  raise RuntimeError('D1 query returned failure: '+str(result.get('errors',[]))[:300])
+                return [row for item in result.get('result',[]) for row in item.get('results',[])]
+              except urllib.error.HTTPError as e:
+                if e.code in (429,500,502,503,504) and attempt<3:
+                  time.sleep(2**attempt);continue
+                raise RuntimeError('D1 API HTTP '+str(e.code)+' '+e.read(300).decode(errors='replace'))
+          for table,cols in [('migration_media',['id','raw_json']),('migration_categories',['id','slug','name','raw_json']),('migration_articles',['id','slug','title','status','published_at','updated_at','content_json','metadata_json','source_json','image_json'])]:
+            existing={str(r['id']) for r in query('SELECT id FROM '+table)}
+            local=[dict(row) for row in con.execute('SELECT * FROM '+table)]
+            localids={str(row['id']) for row in local}
+            if not existing.issubset(localids): raise SystemExit('Unexpected staging records in '+table)
+            sql='INSERT INTO '+table+'('+','.join(cols)+') VALUES ('+','.join('?' for _ in cols)+')'
+            for row in local:
+              if str(row['id']) in existing: continue
+              query(sql,[row[col] for col in cols])
+            actual={str(r['id']) for r in query('SELECT id FROM '+table)}
+            if actual!=localids: raise SystemExit('Incomplete staging import for '+table)
+            print('Verified staging',table,len(actual))
+          for row in con.execute('SELECT key,value FROM migration_manifest'):
+            query('INSERT OR REPLACE INTO migration_manifest(key,value) VALUES (?,?)',[row['key'],row['value']])
+          print('Parameterized D1 resume completed')
           PY
-          for batch in /tmp/d1-batch-*.sql; do
-            echo "Applying staging batch ${batch##*/}"
-            npx wrangler d1 execute faultlinebrief-d1-staging --remote --file "$batch"
-          done
       - name: Compare D1 record counts and manifest with Neon source
         shell: bash
         run: |
