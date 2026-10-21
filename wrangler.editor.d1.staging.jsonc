@@ -1,0 +1,21 @@
+{
+  "name": "faultlinebrief-editor-d1-isolated",
+  "main": "cloudflare-editor/worker.js",
+  "compatibility_date": "2026-10-15",
+  "workers_dev": true,
+  "routes": [],
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "faultlinebrief-staging-media",
+      "preview_bucket_name": "faultlinebrief-staging-media"
+    }
+  ],
+  "d1_databases": [{ "binding": "D1", "database_name": "faultlinebrief-d1-staging", "database_id": "d296847d-9bf7-490d-bc95-48345022a938" }],
+  "observability": {
+    "enabled": true
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
+}
