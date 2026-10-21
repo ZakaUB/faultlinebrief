@@ -94,7 +94,7 @@ jobs:
             raise SystemExit('Broken article category relationship')
           if any(str(s['_parent_id']) not in article_ids for s in rows['articles_sources']):
             raise SystemExit('Broken article source relationship')
-          lines=['-- ISOLATED D1 STAGING IMPORT; NEVER RUN ON PRODUCTION','BEGIN TRANSACTION;']
+          lines=['-- ISOLATED D1 STAGING IMPORT; NEVER RUN ON PRODUCTION']
           for m in sorted(media,key=lambda x:x['id']):
             lines.append('INSERT INTO migration_media(id,raw_json) VALUES ('+','.join(map(q,[m['id'],js(m)]))+');')
           for c in sorted(categories,key=lambda x:x['id']):
@@ -110,7 +110,7 @@ jobs:
           digest=hashlib.sha256(js({'counts':counts,'article_ids':sorted(article_ids),'category_ids':sorted(category_ids),'media_ids':sorted(media_ids)}).encode()).hexdigest()
           for k,v in {**counts,'source_integrity_sha256':digest}.items():
             lines.append('INSERT INTO migration_manifest(key,value) VALUES ('+q(k)+','+q(v)+');')
-          lines.append('COMMIT;')
+          
           open('/tmp/staging-import.sql','w',encoding='utf-8').write('\n'.join(lines)+'\n')
           open('/tmp/staging-expected.json','w').write(json.dumps(counts))
           print('Prepared isolated staging import counts',json.dumps(counts,sort_keys=True),'integrity',digest)
