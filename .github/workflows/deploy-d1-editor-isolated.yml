@@ -1,0 +1,69 @@
+name: Deploy isolated D1 editor read-only staging
+on:
+  push:
+    branches: [emergency-neon-to-cloudflare-20261021]
+    paths: [.github/workflows/deploy-d1-editor-isolated.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+      EDITOR_BOOTSTRAP_PASSWORD: ${{ secrets.CLOUDFLARE_STAGING_ACCESS_PASSWORD }}
+      EDITOR_SESSION_SECRET: ${{ secrets.CLOUDFLARE_STAGING_PAYLOAD_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate isolated deployment and credentials
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const c=JSON.parse(fs.readFileSync('wrangler.editor.d1.staging.jsonc','utf8'))
+          if(c.name!=='faultlinebrief-editor-d1-isolated'||c.workers_dev!==true||c.routes?.length!==0)throw Error('unsafe Worker destination')
+          if(c.d1_databases?.length!==1||c.d1_databases[0].database_id!=='d296847d-9bf7-490d-bc95-48345022a938'||c.d1_databases[0].database_name!=='faultlinebrief-d1-staging')throw Error('unsafe D1 target')
+          if(c.r2_buckets?.length!==1||c.r2_buckets[0].bucket_name!=='faultlinebrief-staging-media')throw Error('unsafe R2 target')
+          if((process.env.EDITOR_BOOTSTRAP_PASSWORD||'').length<24||(process.env.EDITOR_SESSION_SECRET||'').length<32||!process.env.CLOUDFLARE_API_TOKEN||!process.env.CLOUDFLARE_ACCOUNT_ID)throw Error('missing staging credentials')
+          console.log('PASS isolated Worker, D1, R2 and credentials')
+          NODE
+      - name: Check Worker syntax
+        run: node --check cloudflare-editor/worker.js && node --check cloudflare-editor/d1-staging-adapter.js
+      - name: Install Worker tooling
+        run: npm install --no-save --no-package-lock pg@8
+      - name: Deploy distinct D1 staging Worker
+        run: npx --yes wrangler@4.151.1 deploy --config wrangler.editor.d1.staging.jsonc
+      - name: Set only staging authentication secrets
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          fs.writeFileSync('/tmp/fb-d1-editor-auth.json',JSON.stringify({EDITOR_BOOTSTRAP_PASSWORD:process.env.EDITOR_BOOTSTRAP_PASSWORD,EDITOR_SESSION_SECRET:process.env.EDITOR_SESSION_SECRET}),{mode:0o600})
+          NODE
+          npx --yes wrangler@4.151.1 secret bulk /tmp/fb-d1-editor-auth.json --config wrangler.editor.d1.staging.jsonc
+          rm -f /tmp/fb-d1-editor-auth.json
+      - name: Verify deployed isolated Worker and authenticated D1 reads
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request,urllib.error,http.cookiejar
+          base='https://faultlinebrief-editor-d1-isolated.zakria25.workers.dev'
+          opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+          def call(path,method='GET',payload=None):
+            data=json.dumps(payload).encode() if payload is not None else None
+            req=urllib.request.Request(base+path,data=data,method=method,headers={'Content-Type':'application/json','Origin':base,'User-Agent':'FaultlineBrief-D1-Isolated-CI'})
+            try: response=opener.open(req,timeout=40)
+            except urllib.error.HTTPError as e: response=e
+            return response.status,json.loads(response.read())
+          assert call('/me')[0]==401,'anonymous session access not blocked'
+          status,body=call('/login','POST',{'password':os.environ['EDITOR_BOOTSTRAP_PASSWORD']})
+          assert status==200 and body.get('authenticated') is True,('login failed',status)
+          assert call('/me')[0]==200,'session failed'
+          for path,expected in [('/articles',25),('/categories',3),('/editor/media-library',43)]:
+            status,body=call(path)
+            assert status==200 and len(body.get('items',[]))==expected,(path,status,body.get('error'))
+            print('PASS',path,'count',expected)
+          status,_=call('/editor/articles','POST',{'headline':'blocked'})
+          assert status==405,('write unexpectedly allowed',status)
+          print('PASS D1 editor staging auth, reads, and write lock')
+          PY
