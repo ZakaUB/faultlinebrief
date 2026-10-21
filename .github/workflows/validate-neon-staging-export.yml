@@ -1,0 +1,62 @@
+name: Validate Neon staging export for D1
+on:
+  push:
+    branches: [emergency-neon-to-cloudflare-20261021]
+    paths: [.github/workflows/validate-neon-staging-export.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.CLOUDFLARE_STAGING_DATABASE_URL }}
+    steps:
+      - name: Validate staging-only connection
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$DATABASE_URL"
+          python3 - <<'PY'
+          import os,urllib.parse
+          u=urllib.parse.urlparse(os.environ['DATABASE_URL'])
+          if u.scheme not in ('postgres','postgresql') or not u.hostname.startswith('ep-red-dream-b42nh8xe'):
+              raise SystemExit('Refusing non-staging Neon hostname')
+          print('Isolated staging Neon hostname verified')
+          PY
+      - name: Install PostgreSQL client
+        run: python3 -m pip install --quiet --user 'psycopg[binary]>=3.2,<4'
+      - name: Read-only staging export integrity preflight
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os,json,hashlib
+          import psycopg
+          from psycopg.rows import dict_row
+          conn=psycopg.connect(os.environ['DATABASE_URL'],row_factory=dict_row,connect_timeout=15,options='-c default_transaction_read_only=on -c statement_timeout=30000')
+          with conn:
+            with conn.cursor() as cur:
+              counts={}
+              for table in ('articles','categories','media','articles_rels','articles_sources'):
+                cur.execute('SELECT COUNT(*) AS n FROM public.'+table)
+                counts[table]=cur.fetchone()['n']
+              cur.execute('SELECT COUNT(*) AS n FROM public.articles WHERE slug IS NULL OR slug = %s',('',))
+              missing_slugs=cur.fetchone()['n']
+              cur.execute('SELECT COUNT(*) AS n FROM (SELECT slug FROM public.articles GROUP BY slug HAVING COUNT(*)>1) q')
+              duplicate_slugs=cur.fetchone()['n']
+              cur.execute('SELECT COUNT(*) AS n FROM public.articles a LEFT JOIN public.media m ON a.featured_image_id=m.id WHERE m.id IS NULL')
+              missing_images=cur.fetchone()['n']
+          report={'counts':counts,'missing_article_slugs':missing_slugs,'duplicate_article_slugs':duplicate_slugs,'missing_featured_images':missing_images,'source':'isolated Neon staging'}
+          print('STAGING_PREFLIGHT',json.dumps(report,sort_keys=True))
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+            f.write('### Read-only Neon staging preflight\n')
+            for key,value in counts.items(): f.write('- '+key+': '+str(value)+'\n')
+            for key in ('missing_article_slugs','duplicate_article_slugs','missing_featured_images'):
+              f.write('- '+key+': '+str(report[key])+'\n')
+            f.write('No source data changed; no production database touched.\n')
+          if missing_slugs or duplicate_slugs or missing_images:
+            raise SystemExit('Source integrity checks require review before import')
+          if not counts['articles']: raise SystemExit('No articles in staging; refusing empty migration')
+          PY
