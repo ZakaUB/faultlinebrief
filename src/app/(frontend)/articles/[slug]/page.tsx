@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache'
 import SiteNav from '@/app/(frontend)/SiteNav'
 import React from 'react'
 import RelatedCoverage from './RelatedCoverage'
@@ -9,6 +10,15 @@ import { getPayload } from 'payload'
 import config from '@/payload.config'
 import type { Metadata } from 'next'
 const siteUrl = 'https://faultlinebrief.com'
+
+// Cache the published article document, not the page response, for 60 seconds.
+// Metadata and the article page reuse the same result at depth 2.
+const getPublishedArticle = unstable_cache(async (slug: string) => {
+ const payload = await getPayload({config})
+ const result = await payload.find({collection:'articles' as any,where:{and:[{slug:{equals:slug}},{status:{equals:'published'}}]},limit:1,depth:2})
+ return result.docs[0] || null
+}, ['faultlinebrief-published-article-v1'], { revalidate: 60, tags: ['faultlinebrief-articles'] })
+
 function imageUrl(media: unknown): string | undefined {
  if (!media || typeof media !== 'object') return undefined
  const item = media as { url?: unknown; filename?: unknown }
@@ -27,9 +37,7 @@ function imageUrl(media: unknown): string | undefined {
 }
 export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
  const {slug}=await params
- const payload=await getPayload({config})
- const result=await payload.find({collection:'articles' as any,where:{and:[{slug:{equals:slug}},{status:{equals:'published'}}]},limit:1,depth:1})
- const article=result.docs[0] as any
+ const article=await getPublishedArticle(slug) as any
  if(!article) return {title:'Article not found | Faultline Brief',robots:{index:false}}
  const title=article.seo?.title||article.headline
  const description=article.seo?.description||article.deck
@@ -98,9 +106,7 @@ function renderNodes(nodes: LexicalNode[] = []): React.ReactNode {
 }
 export default async function ArticlePage({params}:{params:Promise<{slug:string}>}) {
  const {slug}=await params
- const payload=await getPayload({config})
- const result=await payload.find({collection:'articles' as any,where:{and:[{slug:{equals:slug}},{status:{equals:'published'}}]},limit:1,depth:2})
- const article=result.docs[0] as any
+ const article=await getPublishedArticle(slug) as any
  if(!article) notFound()
  const media=article.featuredImage && typeof article.featuredImage==='object'?article.featuredImage:null
  const image=imageUrl(media)
