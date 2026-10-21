@@ -35,8 +35,9 @@ jobs:
           import os,json,hashlib
           import psycopg
           from psycopg.rows import dict_row
-          conn=psycopg.connect(os.environ['DATABASE_URL'],row_factory=dict_row,connect_timeout=15,options='-c default_transaction_read_only=on -c statement_timeout=30000')
+          conn=psycopg.connect(os.environ['DATABASE_URL'],row_factory=dict_row,connect_timeout=15)
           with conn:
+            conn.read_only = True
             with conn.cursor() as cur:
               counts={}
               for table in ('articles','categories','media','articles_rels','articles_sources'):
