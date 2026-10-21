@@ -1,0 +1,47 @@
+name: Diagnose isolated D1 partial import
+on:
+  push:
+    branches: [emergency-neon-to-cloudflare-20261021]
+    paths: [.github/workflows/diagnose-d1-partial-import.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: cloudflare-staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+    steps:
+      - name: Install Wrangler
+        run: npm install --no-save --ignore-scripts wrangler@4
+      - name: Verify isolated D1 UUID
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 list --json > /tmp/d1-list.json
+          python3 - <<'PY'
+          import json
+          dbs=json.load(open('/tmp/d1-list.json'))
+          matches=[d for d in dbs if d.get('name')=='faultlinebrief-d1-staging']
+          if len(matches)!=1 or matches[0].get('uuid',matches[0].get('id'))!='d296847d-9bf7-490d-bc95-48345022a938':
+            raise SystemExit('Unexpected D1 target; aborting')
+          print('Verified isolated staging database UUID')
+          PY
+      - name: Read current staging table counts without changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute faultlinebrief-d1-staging --remote --command "SELECT 'articles' AS name, COUNT(*) AS n FROM migration_articles UNION ALL SELECT 'categories', COUNT(*) FROM migration_categories UNION ALL SELECT 'media', COUNT(*) FROM migration_media UNION ALL SELECT 'manifest', COUNT(*) FROM migration_manifest" --json > /tmp/d1-counts.json
+          python3 - <<'PY'
+          import json,os
+          v=json.load(open('/tmp/d1-counts.json'))
+          rows=[r for part in (v if isinstance(v,list) else [v]) for r in part.get('results',[])]
+          print('STAGING_PARTIAL_COUNTS',json.dumps(rows,sort_keys=True))
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+            f.write('### Read-only D1 staging partial-import diagnostic\n')
+            for r in rows: f.write('- '+str(r['name'])+': '+str(r['n'])+'\n')
+            f.write('No tables cleared, no imports attempted, production untouched.\n')
+          PY
