@@ -24,7 +24,7 @@ export default {
     }
     // D1 staging mode: preserve the existing CMS interface and authentication.
     // Only read endpoints are enabled until D1-safe editorial writes are implemented.
-    if (env.D1 && (url.pathname === '/articles' || url.pathname === '/categories' || url.pathname === '/editor/media-library' || new RegExp('^/editor/articles/[0-9]+.test(url.pathname))) {
+    if (env.D1 && (url.pathname === '/articles' || url.pathname === '/categories' || url.pathname === '/editor/media-library' || url.pathname.startsWith('/editor/articles/'))) {
       if (!await authenticated()) return json({ ok:false,error:'unauthorized' },401)
       if (request.method !== 'GET') return json({ ok:false,error:'d1-write-not-enabled' },405)
       try {
@@ -36,7 +36,7 @@ export default {
         return article?json({ok:true,article}):json({ok:false,error:'article-not-found'},404)
       } catch { return json({ok:false,error:'staging-d1-read-failed'},503) }
     }
-    if (env.D1 && (url.pathname === '/editor/articles' && request.method === 'POST' || /^\\/editor\\/articles\\/\\d+$/.test(url.pathname) && request.method === 'PATCH')) {
+    if (env.D1 && ((url.pathname === '/editor/articles' && request.method === 'POST') || (url.pathname.startsWith('/editor/articles/') && request.method === 'PATCH'))) {
       if (!await authenticated()) return json({ok:false,error:'unauthorized'},401)
       return json({ok:false,error:'d1-write-not-enabled'},405)
     }
@@ -335,7 +335,7 @@ export default {
         return article?json({ok:true,article}):json({ok:false,error:'article-not-found'},404)
       } catch { return json({ok:false,error:'staging-d1-read-failed'},503) }
     }
-    if (env.D1 && (url.pathname === '/editor/articles' && request.method === 'POST' || new RegExp('^/editor/articles/[0-9]+.test(url.pathname) && request.method === 'PATCH')) {
+    if (env.D1 && ((url.pathname === '/editor/articles' && request.method === 'POST') || (url.pathname.startsWith('/editor/articles/') && request.method === 'PATCH'))) {
       if (!await authenticated()) return json({ok:false,error:'unauthorized'},401)
       return json({ok:false,error:'d1-write-not-enabled'},405)
     }
