@@ -124,7 +124,7 @@ jobs:
           lines=[x for x in Path('/tmp/staging-import.sql').read_text(encoding='utf-8').splitlines() if x.startswith('INSERT INTO ')]
           batches=[lines[i:i+10] for i in range(0,len(lines),10)]
           for i,chunk in enumerate(batches):
-            Path(f'/tmp/d1-batch-{i:03d}.sql').write_text('\\n'.join(chunk)+'\\n',encoding='utf-8')
+            Path(f'/tmp/d1-batch-{i:03d}.sql').write_text('\n'.join(chunk)+'\n',encoding='utf-8')
           print('Prepared',len(batches),'batches of at most 10 statements')
           PY
           for batch in /tmp/d1-batch-*.sql; do
