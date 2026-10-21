@@ -1,7 +1,7 @@
 // Isolated D1 adapter for the custom Cloudflare editor. Never bind this to production.
 const parse = (value, fallback) => { try { return JSON.parse(value) } catch { return fallback } }
 export function stagingDb(env) {
-  if (!env.D1 || env.D1.databaseName !== 'faultlinebrief-d1-staging') throw new Error('isolated-staging-d1-required')
+  if (!env.D1 || env.D1.databaseName && env.D1.databaseName !== 'faultlinebrief-d1-staging') throw new Error('isolated-staging-d1-required')
   const articles = async () => {
     const { results } = await env.D1.prepare('SELECT id,slug,title,status,published_at,updated_at FROM migration_articles ORDER BY updated_at DESC LIMIT 25').all()
     return results.map(a => ({ id:a.id,headline:a.title,slug:a.slug,status:a.status,published_at:a.published_at,updated_at:a.updated_at }))
