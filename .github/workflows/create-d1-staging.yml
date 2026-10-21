@@ -1,0 +1,62 @@
+name: Create isolated Faultline Brief D1 staging
+on:
+  push:
+    branches: [emergency-neon-to-cloudflare-20261021]
+    paths: [.github/workflows/create-d1-staging.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  create-staging-d1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Validate credentials are available
+        shell: bash
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Missing CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID. No changes made."
+            exit 1
+          fi
+      - name: Install Wrangler
+        run: npm install --no-save --ignore-scripts wrangler@4
+      - name: Check for staging database without changing existing resources
+        id: inspect
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 list --json > /tmp/d1-list.json
+          python3 - <<'PY'
+          import json,os
+          data=json.load(open('/tmp/d1-list.json'))
+          if not isinstance(data,list):
+              raise SystemExit("Unexpected Wrangler database list; refusing to create")
+          matches=[d for d in data if d.get("name")=="faultlinebrief-d1-staging"]
+          if len(matches)>1: raise SystemExit("Duplicate staging database names; refusing")
+          with open(os.environ["GITHUB_OUTPUT"],"a") as f:
+              f.write("exists="+str(bool(matches)).lower()+"\n")
+              if matches: f.write("database_id="+str(matches[0].get("uuid",matches[0].get("id","")))+"\n")
+          PY
+      - name: Create staging database only if absent
+        if: steps.inspect.outputs.exists == 'false'
+        run: npx wrangler d1 create faultlinebrief-d1-staging
+      - name: Confirm staging database
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 list --json > /tmp/d1-after.json
+          python3 - <<'PY'
+          import json,os
+          data=json.load(open('/tmp/d1-after.json'))
+          matches=[d for d in data if d.get("name")=="faultlinebrief-d1-staging"]
+          if len(matches)!=1: raise SystemExit("Staging database not uniquely found")
+          d=matches[0]
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as f:
+              f.write("### Isolated D1 staging database\n")
+              f.write("- Name: `faultlinebrief-d1-staging`\n")
+              f.write("- ID: `"+str(d.get("uuid",d.get("id","unknown")))+"`\n")
+              f.write("- Production databases, DNS, Vercel, and Neon: unchanged\n")
+          PY
