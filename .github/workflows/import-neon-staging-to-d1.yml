@@ -1,0 +1,137 @@
+name: Import verified Neon staging into isolated D1
+on:
+  push:
+    branches: [emergency-neon-to-cloudflare-20261021]
+    paths: [.github/workflows/import-neon-staging-to-d1.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  staging-import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: cloudflare-staging
+    env:
+      DATABASE_URL: ${{ secrets.CLOUDFLARE_STAGING_DATABASE_URL }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify staging credentials and source hostname
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$DATABASE_URL"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          python3 - <<'PY'
+          import os,urllib.parse
+          u=urllib.parse.urlparse(os.environ['DATABASE_URL'])
+          if u.scheme not in ('postgres','postgresql') or not u.hostname or not u.hostname.startswith('ep-red-dream-b42nh8xe'):
+            raise SystemExit('Refusing non-staging Neon connection')
+          print('Verified isolated Neon staging source')
+          PY
+      - name: Install clients
+        run: |
+          python3 -m pip install --quiet --user 'psycopg[binary]>=3.2,<4'
+          npm install --no-save --ignore-scripts wrangler@4
+      - name: Verify exact D1 target and empty read model
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 list --json > /tmp/d1-list.json
+          python3 - <<'PY'
+          import json
+          dbs=json.load(open('/tmp/d1-list.json'))
+          match=[d for d in dbs if d.get('name')=='faultlinebrief-d1-staging']
+          if len(match)!=1: raise SystemExit('Target D1 staging name is not unique')
+          dbid=match[0].get('uuid',match[0].get('id'))
+          if not dbid or dbid=='dfd85d0b-4f79-4f20-8b91-810ce7a4dc59': raise SystemExit('Unsafe D1 target')
+          print('Verified isolated D1 target UUID',dbid)
+          PY
+          npx wrangler d1 execute faultlinebrief-d1-staging --remote --command "SELECT (SELECT COUNT(*) FROM migration_articles) AS articles, (SELECT COUNT(*) FROM migration_categories) AS categories, (SELECT COUNT(*) FROM migration_media) AS media" --json > /tmp/d1-before.json
+          python3 - <<'PY'
+          import json
+          v=json.load(open('/tmp/d1-before.json'))
+          rows=[row for p in (v if isinstance(v,list) else [v]) for row in p.get('results',[])]
+          if len(rows)!=1 or any(int(rows[0].get(k,-1))!=0 for k in ('articles','categories','media')):
+            raise SystemExit('D1 read model is not empty: refusing overwrite')
+          print('Verified empty staging read model')
+          PY
+      - name: Read-only export and deterministic SQL conversion
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,hashlib,datetime,decimal
+          import psycopg
+          from psycopg.rows import dict_row
+          def normalize(v):
+            if isinstance(v,(datetime.date,datetime.datetime)): return v.isoformat()
+            if isinstance(v,decimal.Decimal): return str(v)
+            raise TypeError(type(v).__name__)
+          def js(v): return json.dumps(v,ensure_ascii=False,sort_keys=True,separators=(',',':'),default=normalize)
+          def q(v): return "'"+str(v).replace("'","''")+"'"
+          conn=psycopg.connect(os.environ['DATABASE_URL'],row_factory=dict_row,connect_timeout=15)
+          conn.read_only=True
+          with conn:
+            with conn.cursor() as cur:
+              rows={}
+              for table in ('articles','categories','media','articles_rels','articles_sources'):
+                cur.execute('SELECT * FROM public.'+table)
+                rows[table]=[dict(x) for x in cur.fetchall()]
+          articles=rows['articles']; categories=rows['categories']; media=rows['media']
+          ids=lambda rr:{str(r['id']) for r in rr}
+          if not articles or len(ids(articles))!=len(articles) or len(ids(categories))!=len(categories) or len(ids(media))!=len(media):
+            raise SystemExit('Empty source or duplicate IDs')
+          if len({a['slug'] for a in articles})!=len(articles): raise SystemExit('Duplicate article slugs')
+          if len({c['slug'] for c in categories})!=len(categories): raise SystemExit('Duplicate category slugs')
+          media_ids=ids(media); article_ids=ids(articles); category_ids=ids(categories)
+          if any(str(a['featured_image_id']) not in media_ids for a in articles): raise SystemExit('Missing featured media')
+          if any(str(r['parent_id']) not in article_ids or (r['categories_id'] is not None and str(r['categories_id']) not in category_ids) for r in rows['articles_rels']):
+            raise SystemExit('Broken article category relationship')
+          if any(str(s['_parent_id']) not in article_ids for s in rows['articles_sources']):
+            raise SystemExit('Broken article source relationship')
+          lines=['-- ISOLATED D1 STAGING IMPORT; NEVER RUN ON PRODUCTION','BEGIN TRANSACTION;']
+          for m in sorted(media,key=lambda x:x['id']):
+            lines.append('INSERT INTO migration_media(id,raw_json) VALUES ('+','.join(map(q,[m['id'],js(m)]))+');')
+          for c in sorted(categories,key=lambda x:x['id']):
+            lines.append('INSERT INTO migration_categories(id,slug,name,raw_json) VALUES ('+','.join(map(q,[c['id'],c['slug'],c['name'],js(c)]))+');')
+          for a in sorted(articles,key=lambda x:x['id']):
+            rel=sorted((r for r in rows['articles_rels'] if r['parent_id']==a['id']),key=lambda x:(x['order'] or 0,x['id']))
+            src=sorted((s for s in rows['articles_sources'] if s['_parent_id']==a['id']),key=lambda x:x['_order'])
+            m=next(m for m in media if m['id']==a['featured_image_id'])
+            metadata={'seo_title':a['seo_title'],'seo_description':a['seo_description'],'deck':a['deck'],'homepage_lead':a['homepage_lead'],'editorial_placement':a['editorial_placement'],'created_at':a['created_at'],'category_relationships':rel,'source_article':a}
+            vals=[a['id'],a['slug'],a['headline'],a['status'],normalize(a['published_at']) if a['published_at'] else '',normalize(a['updated_at']),js(a['body']),js(metadata),js(src),js(m)]
+            lines.append('INSERT INTO migration_articles(id,slug,title,status,published_at,updated_at,content_json,metadata_json,source_json,image_json) VALUES ('+','.join(map(q,vals))+');')
+          counts={k:len(v) for k,v in rows.items()}
+          digest=hashlib.sha256(js({'counts':counts,'article_ids':sorted(article_ids),'category_ids':sorted(category_ids),'media_ids':sorted(media_ids)}).encode()).hexdigest()
+          for k,v in {**counts,'source_integrity_sha256':digest}.items():
+            lines.append('INSERT INTO migration_manifest(key,value) VALUES ('+q(k)+','+q(v)+');')
+          lines.append('COMMIT;')
+          open('/tmp/staging-import.sql','w',encoding='utf-8').write('\n'.join(lines)+'\n')
+          open('/tmp/staging-expected.json','w').write(json.dumps(counts))
+          print('Prepared isolated staging import counts',json.dumps(counts,sort_keys=True),'integrity',digest)
+          PY
+      - name: Import into isolated D1 staging only
+        run: npx wrangler d1 execute faultlinebrief-d1-staging --remote --file /tmp/staging-import.sql
+      - name: Compare D1 record counts and manifest with Neon source
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute faultlinebrief-d1-staging --remote --command "SELECT 'articles' AS name, COUNT(*) AS n FROM migration_articles UNION ALL SELECT 'categories', COUNT(*) FROM migration_categories UNION ALL SELECT 'media', COUNT(*) FROM migration_media UNION ALL SELECT key, CAST(value AS INTEGER) FROM migration_manifest WHERE key IN ('articles_rels','articles_sources')" --json > /tmp/d1-after.json
+          python3 - <<'PY'
+          import json,os
+          expected=json.load(open('/tmp/staging-expected.json'))
+          data=json.load(open('/tmp/d1-after.json'))
+          rows=[r for p in (data if isinstance(data,list) else [data]) for r in p.get('results',[])]
+          actual={r['name']:int(r['n']) for r in rows}
+          if actual!=expected: raise SystemExit('D1 verification mismatch: '+str({'expected':expected,'actual':actual}))
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+            f.write('### Isolated Neon staging to D1 import verified\n')
+            for k,v in sorted(actual.items()): f.write('- '+k+': '+str(v)+'\n')
+            f.write('Production Neon, Vercel, Cloudflare Workers and DNS unchanged.\n')
+          print('PASS verified D1 staging counts',json.dumps(actual,sort_keys=True))
+          PY
