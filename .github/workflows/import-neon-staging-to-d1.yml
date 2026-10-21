@@ -115,8 +115,22 @@ jobs:
           open('/tmp/staging-expected.json','w').write(json.dumps(counts))
           print('Prepared isolated staging import counts',json.dumps(counts,sort_keys=True),'integrity',digest)
           PY
-      - name: Import into isolated D1 staging only
-        run: npx wrangler d1 execute faultlinebrief-d1-staging --remote --file /tmp/staging-import.sql
+      - name: Import isolated D1 in small verified batches
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          lines=[x for x in Path('/tmp/staging-import.sql').read_text(encoding='utf-8').splitlines() if x.startswith('INSERT INTO ')]
+          batches=[lines[i:i+10] for i in range(0,len(lines),10)]
+          for i,chunk in enumerate(batches):
+            Path(f'/tmp/d1-batch-{i:03d}.sql').write_text('\\n'.join(chunk)+'\\n',encoding='utf-8')
+          print('Prepared',len(batches),'batches of at most 10 statements')
+          PY
+          for batch in /tmp/d1-batch-*.sql; do
+            echo "Applying staging batch ${batch##*/}"
+            npx wrangler d1 execute faultlinebrief-d1-staging --remote --file "$batch"
+          done
       - name: Compare D1 record counts and manifest with Neon source
         shell: bash
         run: |
