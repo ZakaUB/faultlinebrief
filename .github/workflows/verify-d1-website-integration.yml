@@ -1,0 +1,48 @@
+name: Verify D1 website integration
+on:
+  push:
+    branches: [emergency-neon-to-cloudflare-20261021]
+    paths: [.github/workflows/verify-d1-website-integration.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    env:
+      DATABASE_URL: ${{ secrets.NEON_PRODUCTION_READONLY_DATABASE_URL }}
+      PAYLOAD_SECRET: migration-validation-only-not-production
+      FAULTLINE_D1_READS: 'true'
+      FAULTLINE_D1_API_URL: https://faultlinebrief-public-d1-preview.zakria25.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: TypeScript compile verification
+        run: pnpm exec tsc --noEmit
+      - name: ESLint changed integration files
+        run: pnpm exec eslint 'src/app/(frontend)/newsroom.ts' 'src/app/(frontend)/articles/[slug]/page.tsx' 'src/app/(frontend)/sitemap.ts'
+      - name: Verify D1 API endpoints and article shape
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request
+          base='https://faultlinebrief-public-d1-preview.zakria25.workers.dev'
+          def get(path):
+            req=urllib.request.Request(base+path,headers={'User-Agent':'Mozilla/5.0'})
+            with urllib.request.urlopen(req,timeout=30) as r:return json.load(r)
+          items=get('/v1/articles?limit=100')['items']
+          assert len(items)==40
+          assert all(isinstance(x.get('slug'),str) and x.get('headline') for x in items)
+          for x in items:
+            doc=get('/v1/articles/'+x['slug'])
+            assert doc['slug']==x['slug']
+            assert doc.get('body') is not None
+          print('PASS: all 40 D1 article detail endpoints and body fields')
+          PY
