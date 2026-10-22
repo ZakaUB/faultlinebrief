@@ -44,5 +44,68 @@ jobs:
           if any(str(r['categories_id']) not in categories for r in relations if r['categories_id'] is not None):raise SystemExit('Missing source categories')
           print('PASS safe backfill preflight; published:',len(articles),'missing:',len(missing))
           print('Missing slugs:',json.dumps(sorted(a['slug'] for a in missing)))
-          print('No writes performed')
+          print('Preflight performed no writes')
+          PY
+      - name: Import missing published records into isolated D1
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,datetime,decimal,urllib.request,urllib.error,time
+          import psycopg
+          from psycopg.rows import dict_row
+          def norm(v):
+            if isinstance(v,(datetime.datetime,datetime.date)):return v.isoformat()
+            if isinstance(v,decimal.Decimal):return str(v)
+            if isinstance(v,dict):return {k:norm(x) for k,x in v.items()}
+            if isinstance(v,list):return [norm(x) for x in v]
+            return v
+          def js(v):return json.dumps(norm(v),ensure_ascii=False,sort_keys=True,separators=(',',':'))
+          with psycopg.connect(os.environ['PRODUCTION_DATABASE_URL'],row_factory=dict_row) as conn:
+            conn.execute('SET TRANSACTION READ ONLY')
+            rows={t:[dict(x) for x in conn.execute('SELECT * FROM public.'+t)] for t in ('articles','media','categories','articles_rels','articles_sources')}
+          published=[a for a in rows['articles'] if a['status']=='published']
+          if len(published)<40:raise SystemExit('Production source incomplete')
+          base='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/d1/database/d296847d-9bf7-490d-bc95-48345022a938/query'
+          def query(sql,params=()):
+            data=json.dumps({'sql':sql,'params':list(params)},ensure_ascii=False).encode()
+            for attempt in range(4):
+              req=urllib.request.Request(base,data=data,headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_API_TOKEN'],'Content-Type':'application/json'},method='POST')
+              try:
+                with urllib.request.urlopen(req,timeout=45) as resp:result=json.load(resp)
+                if not result.get('success') or any(not x.get('success',True) for x in result.get('result',[])):raise RuntimeError('D1 query failed')
+                return [r for item in result.get('result',[]) for r in item.get('results',[])]
+              except urllib.error.HTTPError as e:
+                if e.code in (429,500,502,503,504) and attempt<3:time.sleep(2**attempt);continue
+                raise
+          existing=query('SELECT id,slug FROM migration_articles')
+          slugs={x['slug']:str(x['id']) for x in existing}
+          ids={str(x['id']):x['slug'] for x in existing}
+          for a in published:
+            if a['slug'] in slugs and slugs[a['slug']]!=str(a['id']):raise SystemExit('Article ID conflict')
+            if str(a['id']) in ids and ids[str(a['id'])]!=a['slug']:raise SystemExit('Article slug conflict')
+          missing=[a for a in published if a['slug'] not in slugs]
+          media={str(m['id']):m for m in rows['media']}
+          categories={str(c['id']):c for c in rows['categories']}
+          relations=[r for r in rows['articles_rels'] if any(a['id']==r['parent_id'] for a in missing)]
+          media_ids={str(a['featured_image_id']) for a in missing}
+          cat_ids={str(r['categories_id']) for r in relations if r['categories_id'] is not None}
+          if not media_ids.issubset(media) or not cat_ids.issubset(categories):raise SystemExit('Missing production references')
+          existing_media={str(x['id']) for x in query('SELECT id FROM migration_media')}
+          existing_cats={str(x['id']) for x in query('SELECT id FROM migration_categories')}
+          for id in sorted(media_ids-existing_media):
+            query('INSERT INTO migration_media(id,raw_json) VALUES (?,?)',[id,js(media[id])])
+          for id in sorted(cat_ids-existing_cats):
+            c=categories[id]
+            query('INSERT INTO migration_categories(id,slug,name,raw_json) VALUES (?,?,?,?)',[id,c['slug'],c['name'],js(c)])
+          for a in sorted(missing,key=lambda x:x['slug']):
+            rel=sorted((r for r in relations if r['parent_id']==a['id']),key=lambda x:(x['order'] or 0,x['id']))
+            src=sorted((x for x in rows['articles_sources'] if x['_parent_id']==a['id']),key=lambda x:x['_order'])
+            meta={'seo_title':a['seo_title'],'seo_description':a['seo_description'],'deck':a['deck'],'homepage_lead':a['homepage_lead'],'editorial_placement':a['editorial_placement'],'created_at':a['created_at'],'category_relationships':rel,'source_article':a}
+            vals=[str(a['id']),a['slug'],a['headline'],a['status'],norm(a['published_at']) if a['published_at'] else '',norm(a['updated_at']),js(a['body']),js(meta),js(src),js(media[str(a['featured_image_id'])])]
+            query('INSERT INTO migration_articles(id,slug,title,status,published_at,updated_at,content_json,metadata_json,source_json,image_json) VALUES (?,?,?,?,?,?,?,?,?,?)',vals)
+            print('Imported:',a['slug'])
+          remaining={a['slug'] for a in published}-{x['slug'] for x in query('SELECT slug FROM migration_articles')}
+          if remaining:raise SystemExit('Coverage incomplete: '+str(sorted(remaining)))
+          print('PASS published slug coverage:',len(published),'newly inserted:',len(missing))
           PY
