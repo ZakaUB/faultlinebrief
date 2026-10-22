@@ -83,7 +83,16 @@ jobs:
           ids={str(x['id']):x['slug'] for x in existing}
           for a in published:
             if a['slug'] in slugs and slugs[a['slug']]!=str(a['id']):raise SystemExit('Article ID conflict')
-            if str(a['id']) in ids and ids[str(a['id'])]!=a['slug']:raise SystemExit('Article slug conflict')
+          # Staging-only rows may reuse production IDs. Preserve them unchanged.
+          # Namespace colliding incoming production IDs only in the isolated D1 read model.
+          def isolated_id(a):
+            value=str(a['id'])
+            if value in ids and ids[value]!=a['slug']:
+              return 'production:'+value
+            return value
+          for a in published:
+            if a['slug'] not in slugs and isolated_id(a) in ids:
+              raise SystemExit('Namespaced ID conflict')
           missing=[a for a in published if a['slug'] not in slugs]
           media={str(m['id']):m for m in rows['media']}
           categories={str(c['id']):c for c in rows['categories']}
@@ -102,7 +111,8 @@ jobs:
             rel=sorted((r for r in relations if r['parent_id']==a['id']),key=lambda x:(x['order'] or 0,x['id']))
             src=sorted((x for x in rows['articles_sources'] if x['_parent_id']==a['id']),key=lambda x:x['_order'])
             meta={'seo_title':a['seo_title'],'seo_description':a['seo_description'],'deck':a['deck'],'homepage_lead':a['homepage_lead'],'editorial_placement':a['editorial_placement'],'created_at':a['created_at'],'category_relationships':rel,'source_article':a}
-            vals=[str(a['id']),a['slug'],a['headline'],a['status'],norm(a['published_at']) if a['published_at'] else '',norm(a['updated_at']),js(a['body']),js(meta),js(src),js(media[str(a['featured_image_id'])])]
+            meta['original_production_article_id']=str(a['id'])
+            vals=[isolated_id(a),a['slug'],a['headline'],a['status'],norm(a['published_at']) if a['published_at'] else '',norm(a['updated_at']),js(a['body']),js(meta),js(src),js(media[str(a['featured_image_id'])])]
             query('INSERT INTO migration_articles(id,slug,title,status,published_at,updated_at,content_json,metadata_json,source_json,image_json) VALUES (?,?,?,?,?,?,?,?,?,?)',vals)
             print('Imported:',a['slug'])
           remaining={a['slug'] for a in published}-{x['slug'] for x in query('SELECT slug FROM migration_articles')}
