@@ -1,0 +1,68 @@
+name: Verify isolated Cloudflare R2 object inventory
+on:
+  workflow_dispatch:
+  push:
+    branches: [emergency-neon-to-cloudflare-20261021]
+    paths: [.github/workflows/verify-staging-r2-readonly.yml]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 8
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+    steps:
+      - name: Read-only isolated R2 inventory and object metadata
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request,urllib.error,urllib.parse
+          token=os.environ.get('CLOUDFLARE_API_TOKEN','')
+          account=os.environ.get('CLOUDFLARE_ACCOUNT_ID','')
+          assert token and account,'Missing staging API credentials'
+          base=f'https://api.cloudflare.com/client/v4/accounts/{account}'
+          headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'}
+          def call(path,method='GET',data=None):
+            req=urllib.request.Request(base+path,headers=headers,method=method,data=json.dumps(data).encode() if data else None)
+            with urllib.request.urlopen(req,timeout=30) as r: j=json.load(r)
+            assert j.get('success'),j.get('errors')
+            return j.get('result')
+          bucket='faultlinebrief-staging-media'
+          details=call('/r2/buckets/'+bucket)
+          print('PASS isolated staging bucket accessible:',bucket)
+          db='d296847d-9bf7-490d-bc95-48345022a938'
+          result=call('/d1/database/'+db+'/query','POST',{'sql':'SELECT id,raw_json FROM migration_media ORDER BY id'})
+          rows=[x for part in result for x in part.get('results',[])]
+          assert len(rows)==43,('D1 media count changed',len(rows))
+          media=[json.loads(r['raw_json']) for r in rows]
+          objectkeys=[(str(m.get('id')),m.get('_objectkey')) for m in media if m.get('_objectkey')]
+          print('D1 media metadata:',len(media),'explicit object keys:',len(objectkeys))
+          # Cloudflare's R2 bucket API supports metadata/listing depending on token permissions.
+          # Never assume the D1 metadata implies object bytes exist.
+          path='/r2/buckets/'+bucket+'/objects'
+          try:
+            listing=call(path)
+          except urllib.error.HTTPError as e:
+            print('MONITORING GAP: R2 object listing API unavailable; HTTP',e.code)
+            print('No assertion that media binaries exist in R2.')
+            raise SystemExit(2)
+          if not isinstance(listing,dict):
+            print('MONITORING GAP: unexpected R2 object listing response; cannot establish binary parity')
+            raise SystemExit(2)
+          objects=listing.get('objects')
+          if not isinstance(objects,list):
+            print('MONITORING GAP: listing lacks object records; cannot establish binary parity')
+            raise SystemExit(2)
+          keys={o.get('key') for o in objects}
+          missing=[(mid,key) for mid,key in objectkeys if key not in keys]
+          print('R2 objects visible:',len(keys),'referenced keys found:',len(objectkeys)-len(missing),'missing:',len(missing))
+          if missing: print('MISSING R2 keys:',json.dumps(missing[:15]))
+          assert not missing,'Staging R2 missing referenced objects'
+          if not objectkeys:
+            print('MONITORING GAP: none of 43 D1 media rows specify R2 object keys; no binary parity proven')
+            raise SystemExit(2)
+          print('PASS referenced R2 keys present (object content hashes not checked)')
+          PY
