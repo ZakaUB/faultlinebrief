@@ -38,7 +38,32 @@ export default {
     }
     if (env.D1 && ((url.pathname === '/editor/articles' && request.method === 'POST') || (url.pathname.startsWith('/editor/articles/') && request.method === 'PATCH'))) {
       if (!await authenticated()) return json({ok:false,error:'unauthorized'},401)
-      return json({ok:false,error:'d1-write-not-enabled'},405)
+      // Strictly limit D1 writes to disposable test articles; imported records remain immutable.
+      try {
+        const input=await request.json()
+        if (!input || typeof input!=='object') return json({ok:false,error:'invalid-json'},400)
+        const slug=String(input.slug||'')
+        if (!/^cf-staging-test-[a-z0-9-]{1,80}$/.test(slug)) return json({ok:false,error:'staging-test-slug-required'},405)
+        const title=String(input.headline||input.title||'').trim()
+        if (!title || title.length>220) return json({ok:false,error:'invalid-headline'},400)
+        const status=input.status==='published'?'published':'draft'
+        const body=input.body && typeof input.body==='object'?input.body:{root:{type:'root',children:[]}}
+        const sources=Array.isArray(input.sources)?input.sources:[]
+        const featured=input.featuredImage && typeof input.featuredImage==='object'?input.featuredImage:{}
+        const metadata={source_article:{headline:title,deck:String(input.deck||''),seo_title:String(input.seo_title||''),seo_description:String(input.seo_description||'')}}
+        const now=new Date().toISOString()
+        const id=url.pathname.startsWith('/editor/articles/')?url.pathname.split('/').pop():'cf-'+crypto.randomUUID()
+        if(request.method==='PATCH') {
+          const existing=await env.D1.prepare('SELECT id,slug FROM migration_articles WHERE id=?').bind(id).first()
+          if (!existing || existing.slug!==slug || !existing.slug.startsWith('cf-staging-test-')) return json({ok:false,error:'staging-test-article-not-found'},404)
+          await env.D1.prepare('UPDATE migration_articles SET title=?,status=?,published_at=CASE WHEN ?=\'published\' THEN COALESCE(published_at,?) ELSE NULL END,updated_at=?,content_json=?,metadata_json=?,source_json=?,image_json=? WHERE id=? AND slug=?')
+            .bind(title,status,status,now,now,JSON.stringify(body),JSON.stringify(metadata),JSON.stringify(sources),JSON.stringify(featured),id,slug).run()
+        } else {
+          await env.D1.prepare('INSERT INTO migration_articles (id,slug,title,status,published_at,updated_at,content_json,metadata_json,source_json,image_json) VALUES (?,?,?,?,?,?,?,?,?,?)')
+            .bind(id,slug,title,status,status==='published'?now:null,now,JSON.stringify(body),JSON.stringify(metadata),JSON.stringify(sources),JSON.stringify(featured)).run()
+        }
+        return json({ok:true,article:{id,slug,headline:title,status}},request.method==='POST'?201:200)
+      } catch {return json({ok:false,error:'staging-d1-write-failed'},400)}
     }
     // Isolated D1-only public delivery rehearsal; never indexed or routed to production.
     if (env.D1 && request.method === 'GET' && url.pathname.startsWith('/d1-preview/articles/')) {
