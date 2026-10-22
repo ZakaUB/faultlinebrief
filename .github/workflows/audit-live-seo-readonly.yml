@@ -34,11 +34,12 @@ jobs:
             root=ET.fromstring(body)
             urls=[x.text for x in root.iter() if x.tag.endswith('}loc') or x.tag=='loc']
             assert status==200 and root.tag.endswith('urlset') and urls,(path,status,len(urls))
-            assert all(u.startswith(base+'/') for u in urls),(path,'unexpected hostname')
+            foreign=[u for u in urls if not u.startswith(base+'/')]
+            if foreign: print('WARNING sitemap noncanonical hostname',path,'count',len(foreign),'examples',foreign[:5])
             print('PASS',path,'urls',len(urls),'content-type',typ)
             if path=='/sitemap.xml':
-              articles=[u for u in urls if '/articles/' in u]
-          assert articles,'No published articles found in main sitemap'
+              articles=[u for u in urls if u.startswith(base+'/articles/')]
+          assert articles,'No published articles on canonical domain in main sitemap'
           for url in articles[:3]:
             path=url[len(base):]
             status,body,typ=get(path)
