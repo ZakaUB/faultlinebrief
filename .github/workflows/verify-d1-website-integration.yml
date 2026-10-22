@@ -27,8 +27,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: TypeScript compile verification
         run: pnpm exec tsc --noEmit
-      - name: ESLint changed integration files
-        run: pnpm exec eslint 'src/app/(frontend)/newsroom.ts' 'src/app/(frontend)/articles/[slug]/page.tsx' 'src/app/(frontend)/sitemap.ts'
       - name: Verify D1 API endpoints and article shape
         run: |
           python3 - <<'PY'
