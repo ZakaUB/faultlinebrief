@@ -20,14 +20,21 @@ jobs:
       - name: Smoke-test public article API
         run: |
           python3 - <<'PY'
-          import json,urllib.request
+          import json,urllib.request,time,urllib.error
           base='https://faultlinebrief-public-d1-preview.zakria25.workers.dev'
-          with urllib.request.urlopen(base+'/health',timeout=30) as r:health=json.load(r)
-          with urllib.request.urlopen(base+'/v1/articles?limit=100',timeout=30) as r:data=json.load(r)
+          def get(path):
+            for attempt in range(5):
+              try:
+                with urllib.request.urlopen(urllib.request.Request(base+path,headers={'User-Agent':'Mozilla/5.0 (compatible; FaultlineBriefMigrationCheck/1.0)'}),timeout=30) as r:return json.load(r)
+              except urllib.error.HTTPError as e:
+                if e.code in (403,429,502,503) and attempt<4:time.sleep(3*(attempt+1));continue
+                raise
+          health=get('/health')
+          data=get('/v1/articles?limit=100')
           assert health.get('ok') is True
           assert len(data.get('items',[]))==40, 'Expected 40 imported articles'
           slug=data['items'][0]['slug']
-          with urllib.request.urlopen(base+'/v1/articles/'+slug,timeout=30) as r:article=json.load(r)
+          article=get('/v1/articles/'+slug)
           assert article.get('slug')==slug
           print('PASS: health, 40 published articles, article detail')
           PY
