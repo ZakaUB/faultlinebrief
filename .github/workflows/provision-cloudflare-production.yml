@@ -1,0 +1,39 @@
+name: Provision isolated production D1
+on:
+  workflow_dispatch:
+  push:
+    branches: [emergency-neon-to-cloudflare-20261021]
+    paths: [.github/workflows/provision-cloudflare-production.yml]
+permissions:
+  contents: read
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    steps:
+      - name: Create or locate production D1 without touching staging
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+        run: |
+          python3 - <<'PY'
+          import json,os,urllib.request,urllib.error
+          base='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CF_ACCOUNT']+'/d1/database'
+          headers={'Authorization':'Bearer '+os.environ['CF_TOKEN'],'Content-Type':'application/json'}
+          def call(url,method='GET',payload=None):
+              req=urllib.request.Request(url,headers=headers,method=method,data=json.dumps(payload).encode() if payload is not None else None)
+              with urllib.request.urlopen(req,timeout=45) as resp:return json.load(resp)
+          name='faultlinebrief-d1-production'
+          data=call(base+'?per_page=100')
+          if not data.get('success'):raise SystemExit('Unable to list D1 databases')
+          found=[d for d in data.get('result',[]) if d.get('name')==name]
+          if found:db=found[0];print('Production D1 already exists:',db['uuid'])
+          else:
+              result=call(base,'POST',{'name':name})
+              if not result.get('success'):raise SystemExit('Production D1 create failed')
+              db=result['result'];print('Created production D1:',db['uuid'])
+          if db.get('name')!=name:raise SystemExit('Unexpected D1 name')
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
+              out.write('Production D1: '+name+' ('+db['uuid']+')\\n')
+              out.write('No schema, records, DNS, Workers, Vercel, or Neon changed.\\n')
+          PY
