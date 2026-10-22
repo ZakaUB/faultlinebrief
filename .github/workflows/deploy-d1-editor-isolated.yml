@@ -35,7 +35,7 @@ jobs:
       - name: Install Worker tooling
         run: npm install --no-save --no-package-lock pg@8
       - name: Deploy distinct D1 staging Worker
-        run: npx --yes wrangler@4.151.1 deploy --config wrangler.editor.d1.staging.jsonc
+        run: npx --yes wrangler@4.151.1 deploy --config wrangler.editor.d1.staging.jsonc --legacy-env true
       - name: Set only staging authentication secrets
         run: |
           node --input-type=module <<'NODE'
