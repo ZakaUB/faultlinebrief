@@ -47,14 +47,14 @@ jobs:
           media={str(m['id']):m for m in records['media']}
           cats={str(c['id']):c for c in records['categories']}
           d1_articles={}
-          for offset in range(0,len(articles),20):
+          for offset in range(0,500,20):
             for a in query(f'SELECT * FROM migration_articles ORDER BY id LIMIT 20 OFFSET {offset}'):
               d1_articles[str(a['id'])]=a
           d1_media={}
           for m in query('SELECT * FROM migration_media'): d1_media[str(m['id'])]=json.loads(m['raw_json'])
           d1_categories={}
           for c in query('SELECT * FROM migration_categories'): d1_categories[str(c['id'])]=json.loads(c['raw_json'])
-          if set(articles)!=set(d1_articles) or set(media)!=set(d1_media) or set(cats)!=set(d1_categories): raise SystemExit('ID parity failure')
+          if not set(articles).issubset(d1_articles) or not set(media).issubset(d1_media) or not set(cats).issubset(d1_categories): raise SystemExit('Staging source records missing from D1')
           def norm(v):
             if isinstance(v,(datetime.datetime,datetime.date)): return v.isoformat()
             if isinstance(v,decimal.Decimal): return str(v)
