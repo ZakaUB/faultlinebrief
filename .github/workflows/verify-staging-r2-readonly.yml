@@ -49,12 +49,11 @@ jobs:
             print('MONITORING GAP: R2 object listing API unavailable; HTTP',e.code)
             print('No assertion that media binaries exist in R2.')
             raise SystemExit(2)
-          if not isinstance(listing,dict):
-            print('MONITORING GAP: unexpected R2 object listing response; cannot establish binary parity')
-            raise SystemExit(2)
-          objects=listing.get('objects')
+          if isinstance(listing,list): objects=listing
+          elif isinstance(listing,dict): objects=listing.get('objects') or listing.get('items') or listing.get('result')
+          else: objects=None
           if not isinstance(objects,list):
-            print('MONITORING GAP: listing lacks object records; cannot establish binary parity')
+            print('MONITORING GAP: listing lacks object records; response type',type(listing).__name__,'keys',list(listing)[:15] if isinstance(listing,dict) else 'none')
             raise SystemExit(2)
           keys={o.get('key') for o in objects}
           missing=[(mid,key) for mid,key in objectkeys if key not in keys]
