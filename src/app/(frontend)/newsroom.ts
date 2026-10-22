@@ -31,6 +31,18 @@ export function imageFor(story: Story): string | null {
 }
 
 async function queryStoriesByPlacement(placement: 'news' | 'editorial', limit: number): Promise<Story[]> {
+  if (process.env.FAULTLINE_D1_READS === 'true') {
+    const endpoint = process.env.FAULTLINE_D1_API_URL
+    if (!endpoint) throw new Error('FAULTLINE_D1_API_URL must be set for D1 reads')
+    const response = await fetch(endpoint.replace(/\/$/, '') + '/v1/articles?limit=100', { next: { revalidate: 60 } })
+    if (!response.ok) throw new Error('D1 article list request failed: ' + response.status)
+    const data = await response.json() as { items: Array<Partial<Story>> }
+    return data.items.filter(item => placement === 'news'
+      ? item.editorialPlacement === 'news'
+      : item.editorialPlacement !== 'news').slice(0, limit).map(item => ({
+        ...item, id: item.slug!, slug: item.slug!, headline: item.headline!,
+      })) as Story[]
+  }
   const payload = await getPayload({ config })
   const result = await payload.find({
     collection: 'articles' as any,
