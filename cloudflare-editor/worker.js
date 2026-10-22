@@ -40,6 +40,39 @@ export default {
       if (!await authenticated()) return json({ok:false,error:'unauthorized'},401)
       return json({ok:false,error:'d1-write-not-enabled'},405)
     }
+    // Isolated D1-only public delivery rehearsal; never indexed or routed to production.
+    if (env.D1 && request.method === 'GET' && url.pathname.startsWith('/d1-preview/articles/')) {
+      if (!await authenticated()) return json({ok:false,error:'unauthorized'},401)
+      const slug = decodeURIComponent(url.pathname.slice('/d1-preview/articles/'.length))
+      if (!/^[a-z0-9-]{1,160}$/.test(slug)) return json({ok:false,error:'invalid-slug'},400)
+      try {
+        const a = await env.D1.prepare('SELECT * FROM migration_articles WHERE slug=? AND status=? LIMIT 1').bind(slug,'published').first()
+        if (!a) return json({ok:false,error:'not-found'},404)
+        const parse = (v,f) => { try { return JSON.parse(v) } catch { return f } }
+        const meta=parse(a.metadata_json,{})
+        const source=meta.source_article || {}
+        const body=parse(a.content_json,{})
+        const image=parse(a.image_json,{})
+        const sources=parse(a.source_json,[])
+        const esc=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+        const title=source.seo_title || source.seo?.title || a.title
+        const description=source.seo_description || source.seo?.description || source.deck || ''
+        const canonical='https://faultlinebrief.com/articles/'+encodeURIComponent(slug)
+        const nodes=(body.root?.children||[])
+        const renderText=n=>(n.children||[]).map(c=>esc(c.text||'')).join('')
+        const paragraphs=nodes.map(n=>{
+          const tag=n.type==='heading' && ['h2','h3','h4','h5','h6'].includes(n.tag)?n.tag:'p'
+          return '<'+tag+'>'+renderText(n)+'</'+tag+'>'
+        }).join('')
+        const imageRaw=image.url || (image.filename?'/api/media/file/'+encodeURIComponent(image.filename):'')
+        const imageUrl=imageRaw?new URL(imageRaw,'https://faultlinebrief.com').href:''
+        const imageHtml=imageUrl?'<figure><img src="'+esc(imageUrl)+'" alt="'+esc(image.alt||a.title)+'"></figure>':''
+        const sourceHtml=Array.isArray(sources)?sources.map(x=>'<li>'+esc(x.name||'')+'</li>').join(''):''
+        const structured=JSON.stringify({'@context':'https://schema.org','@type':'NewsArticle',headline:a.title,datePublished:a.published_at,dateModified:a.updated_at||a.published_at,mainEntityOfPage:canonical,image:imageUrl?[imageUrl]:undefined,description})
+        const html='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><title>'+esc(title)+'</title><meta name="description" content="'+esc(description)+'"><link rel="canonical" href="'+esc(canonical)+'"><meta property="og:type" content="article"><meta property="og:title" content="'+esc(title)+'"><meta property="og:url" content="'+esc(canonical)+'"><meta property="og:description" content="'+esc(description)+'">'+(imageUrl?'<meta property="og:image" content="'+esc(imageUrl)+'">':'')+'<script type="application/ld+json">'+structured.replace(/</g,'\\u003c')+'</script></head><body><main><article><h1>'+esc(a.title)+'</h1><p>'+esc(source.deck||'')+'</p>'+imageHtml+paragraphs+(sourceHtml?'<section><h2>Sources</h2><ul>'+sourceHtml+'</ul></section>':'')+'</article></main></body></html>'
+        return new Response(html,{headers:{...headers,'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex, nofollow'}})
+      } catch { return json({ok:false,error:'d1-preview-unavailable'},503) }
+    }
     // Stage 4: private, authenticated image upload and retrieval in isolated staging R2.
     const imagePath = /^\/editor\/images\/([a-f0-9]{32})$/.exec(url.pathname)
     if (url.pathname === '/editor/images' && request.method === 'POST') {
