@@ -34,8 +34,23 @@ jobs:
         run: node --check cloudflare-editor/worker.js && node --check cloudflare-editor/d1-staging-adapter.js
       - name: Install Worker tooling
         run: npm install --no-save --no-package-lock pg@8
+      - name: Verify existing isolated Worker API access
+        run: |
+          python3 - <<'PY'
+          import os, urllib.request, urllib.error, json
+          account=os.environ['CLOUDFLARE_ACCOUNT_ID']
+          base='https://api.cloudflare.com/client/v4/accounts/'+account+'/workers/workers/faultlinebrief-editor-d1-isolated'
+          request=urllib.request.Request(base,headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_API_TOKEN']})
+          try:
+            with urllib.request.urlopen(request,timeout=20) as response:
+              print('Worker API status:',response.status)
+          except urllib.error.HTTPError as e:
+            print('Worker API status:',e.code)
+            print('Worker API error:',e.read().decode()[:1200])
+            raise
+          PY
       - name: Deploy distinct D1 staging Worker
-        run: npx --yes wrangler@4.151.1 deploy --config wrangler.editor.d1.staging.jsonc --legacy-env true
+        run: npx --yes wrangler@4.151.1 deploy --config wrangler.editor.d1.staging.jsonc
       - name: Set only staging authentication secrets
         run: |
           node --input-type=module <<'NODE'
