@@ -71,7 +71,9 @@ jobs:
             try: response=opener.open(req,timeout=40)
             except urllib.error.HTTPError as e: response=e
             return response.status,json.loads(response.read())
-          assert call('/me')[0]==401,'anonymous session access not blocked'
+          anonymous_status,anonymous_body=call('/me')
+          print('Anonymous /me status:',anonymous_status,'body:',anonymous_body)
+          assert anonymous_status==401,('anonymous session access not blocked',anonymous_status,anonymous_body)
           status,body=call('/login','POST',{'password':os.environ['EDITOR_BOOTSTRAP_PASSWORD']})
           assert status==200 and body.get('authenticated') is True,('login failed',status)
           assert call('/me')[0]==200,'session failed'
