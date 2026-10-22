@@ -14,6 +14,20 @@ const siteUrl = 'https://faultlinebrief.com'
 // Cache the published article document, not the page response, for 60 seconds.
 // Metadata and the article page reuse the same result at depth 2.
 const getPublishedArticle = unstable_cache(async (slug: string) => {
+ if (process.env.FAULTLINE_D1_READS === 'true') {
+  const endpoint = process.env.FAULTLINE_D1_API_URL
+  if (!endpoint) throw new Error('FAULTLINE_D1_API_URL must be set for D1 reads')
+  const response = await fetch(endpoint.replace(/\/$/, '') + '/v1/articles/' + encodeURIComponent(slug), { next: { revalidate: 60 } })
+  if (response.status === 404) return null
+  if (!response.ok) throw new Error('D1 article detail request failed: ' + response.status)
+  const item = await response.json() as Record<string, unknown>
+  return {
+   ...item, id: item.slug, status: 'published',
+   seo: { title: item.seoTitle, description: item.seoDescription },
+   content: item.body,
+   categories: item.categoryRelationships,
+  }
+ }
  const payload = await getPayload({config})
  const result = await payload.find({collection:'articles' as any,where:{and:[{slug:{equals:slug}},{status:{equals:'published'}}]},limit:1,depth:2})
  return result.docs[0] || null
