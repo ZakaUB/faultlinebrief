@@ -42,7 +42,7 @@ jobs:
           print('D1 media metadata:',len(media),'explicit object keys:',len(objectkeys))
           # Cloudflare's R2 bucket API supports metadata/listing depending on token permissions.
           # Never assume the D1 metadata implies object bytes exist.
-          path='/r2/buckets/'+bucket+'/objects'
+          path='/r2/buckets/'+bucket+'/objects?'+urllib.parse.urlencode({'prefix':'editor-media/staging/','per_page':1000})
           try:
             listing=call(path)
           except urllib.error.HTTPError as e:
@@ -60,10 +60,10 @@ jobs:
           print('R2 listing pagination fields:',{k:str(v)[:100] for k,v in listing.items() if k in ('cursor','truncated','has_more','continuation_token','next_cursor')} if isinstance(listing,dict) else {})
           keys={o.get('key') or o.get('name') for o in objects if isinstance(o,dict)}
           missing=[(mid,key) for mid,key in objectkeys if key not in keys]
-          print('R2 objects visible:',len(keys),'referenced keys found:',len(objectkeys)-len(missing),'missing:',len(missing))
+          print('R2 media-prefix objects visible:',len(keys),'referenced keys found:',len(objectkeys)-len(missing),'missing:',len(missing))
           if missing: print('MISSING R2 keys:',json.dumps(missing[:15]))
           if missing:
-            print('MONITORING GAP: listing may be partial/paginated or keys genuinely absent; no deletion or restoration attempted')
+            print('MONITORING GAP: media-prefix listing does not include all referenced objects; inspect pagination or direct object HEAD next')
             raise SystemExit(2)
           if not objectkeys:
             print('MONITORING GAP: none of 43 D1 media rows specify R2 object keys; no binary parity proven')
