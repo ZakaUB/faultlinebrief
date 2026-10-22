@@ -99,5 +99,22 @@ jobs:
           print('PASS authenticated D1 preview article',slug,'canonical, OG, NewsArticle, noindex')
           status,_=call('/editor/articles','POST',{'headline':'blocked'})
           assert status==405,('write unexpectedly allowed',status)
-          print('PASS D1 editor staging auth, reads, and write lock')
+          # Exercise disposable D1 article lifecycle without touching imported content.
+          import uuid
+          slug='cf-staging-test-ci-'+uuid.uuid4().hex[:12]
+          payload={'slug':slug,'headline':'D1 staging draft verification','status':'draft','deck':'Staging only','body':{'root':{'type':'root','children':[{'type':'paragraph','children':[{'text':'D1 lifecycle test'}]}]}},'sources':[{'name':'CI test'}]}
+          status,result=call('/editor/articles','POST',payload)
+          assert status==201 and result.get('article',{}).get('id'),('D1 draft create failed',status,result)
+          article_id=result['article']['id']
+          assert call('/editor/articles/'+article_id)[0]==200,'D1 draft read failed'
+          payload['status']='published'
+          status,result=call('/editor/articles/'+article_id,'PATCH',payload)
+          assert status==200 and result.get('article',{}).get('status')=='published',('D1 publish failed',status,result)
+          with opener.open(base+'/d1-preview/articles/'+slug,timeout=40) as response:
+            html=response.read().decode()
+            assert response.status==200 and 'D1 staging draft verification' in html,'Published D1 article missing'
+          status,denied=call('/editor/articles','POST',{'slug':'not-a-test','headline':'must fail'})
+          assert status==405,('Imported article write guard failed',status,denied)
+          print('PASS D1 draft/create/read/publish/preview lifecycle and imported-content write guard:',slug)
+
           PY
