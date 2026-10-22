@@ -1,0 +1,41 @@
+name: Diagnose public D1 preview 403
+on:
+  push:
+    branches: [emergency-neon-to-cloudflare-20261021]
+    paths: [.github/workflows/diagnose-public-preview.yml]
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    steps:
+      - name: Inspect public endpoint and Cloudflare workers.dev configuration
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+        run: |
+          python3 - <<'PY'
+          import os,urllib.request,urllib.error,json
+          url='https://faultlinebrief-public-d1-preview.zakria25.workers.dev/health'
+          for name,endpoint,headers in [
+            ('public-health',url,{'User-Agent':'Mozilla/5.0 (compatible; FaultlineBriefMigrationCheck/1.0)'}),
+            ('workers-subdomain','https://api.cloudflare.com/client/v4/accounts/'+os.environ['CF_ACCOUNT']+'/workers/subdomain',{'Authorization':'Bearer '+os.environ['CF_TOKEN']}),
+            ('worker-settings','https://api.cloudflare.com/client/v4/accounts/'+os.environ['CF_ACCOUNT']+'/workers/scripts/faultlinebrief-public-d1-preview/settings',{'Authorization':'Bearer '+os.environ['CF_TOKEN']}),
+          ]:
+            print('CHECK:',name)
+            try:
+              req=urllib.request.Request(endpoint,headers=headers)
+              with urllib.request.urlopen(req,timeout=25) as resp:
+                body=resp.read(1500).decode('utf-8','replace')
+                print('HTTP:',resp.status,'CONTENT-TYPE:',resp.headers.get('content-type'),'SERVER:',resp.headers.get('server'))
+                if name=='public-health':print('BODY:',body[:300])
+                else:
+                  data=json.loads(body)
+                  if name=='workers-subdomain':print('SUBDOMAIN:',data.get('result',{}).get('subdomain'),'SUCCESS:',data.get('success'))
+                  else:print('WORKERS_DEV:',data.get('result',{}).get('workers_dev'),'SUCCESS:',data.get('success'))
+            except urllib.error.HTTPError as e:
+              print('HTTP:',e.code,'SERVER:',e.headers.get('server'),'CONTENT-TYPE:',e.headers.get('content-type'))
+              print('BODY:',e.read(400).decode('utf-8','replace'))
+            except Exception as e:print('ERROR:',type(e).__name__,str(e)[:150])
+          PY
