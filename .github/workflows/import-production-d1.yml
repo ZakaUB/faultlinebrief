@@ -1,0 +1,18 @@
+name: Import published Neon articles to production D1
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    env:
+      PRODUCTION_DATABASE_URL: ${{ secrets.NEON_PRODUCTION_READONLY_DATABASE_URL }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m pip install --quiet 'psycopg[binary]>=3.2,<4'
+      - name: Import published production content to isolated production D1
+        run: python3 migration-emergency/import-production-d1.py
