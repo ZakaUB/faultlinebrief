@@ -92,3 +92,58 @@ jobs:
             f.write('Compared full source article, body, dates, SEO, sources, category relations, and media metadata.\n')
             f.write('Not tested: R2 image binary availability, CMS, public page rendering, canonical/OG/JSON-LD, sitemap, production cutover.\n')
           PY
+      - name: Verify all published production article fields in isolated D1
+        shell: bash
+        env:
+          PRODUCTION_DATABASE_URL: ${{ secrets.NEON_PRODUCTION_READONLY_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,urllib.parse,urllib.request,datetime,decimal
+          import psycopg
+          from psycopg.rows import dict_row
+          source=os.environ.get('PRODUCTION_DATABASE_URL','')
+          if not (urllib.parse.urlparse(source).hostname or '').endswith('.neon.tech'):raise SystemExit('Invalid Neon source')
+          with psycopg.connect(source,row_factory=dict_row,connect_timeout=15) as conn:
+            conn.execute('SET TRANSACTION READ ONLY')
+            rows={name:[dict(r) for r in conn.execute('SELECT * FROM public.'+name)] for name in ('articles','media','categories','articles_rels','articles_sources')}
+          articles=[a for a in rows['articles'] if a['status']=='published']
+          if len(articles)<40:raise SystemExit('Unexpected production published count')
+          media={str(m['id']):m for m in rows['media']}
+          endpoint='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/d1/database/d296847d-9bf7-490d-bc95-48345022a938/query'
+          def query(sql):
+            req=urllib.request.Request(endpoint,data=json.dumps({'sql':sql}).encode(),headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_API_TOKEN'],'Content-Type':'application/json'},method='POST')
+            with urllib.request.urlopen(req,timeout=60) as response:data=json.load(response)
+            if not data.get('success') or any(not x.get('success',True) for x in data.get('result',[])):raise SystemExit('D1 query failed')
+            return [r for item in data.get('result',[]) for r in item.get('results',[])]
+          target={}
+          for offset in range(0,500,50):
+            batch=query('SELECT * FROM migration_articles ORDER BY slug LIMIT 50 OFFSET '+str(offset))
+            for row in batch:target[row['slug']]=row
+            if len(batch)<50:break
+          def norm(v):
+            if isinstance(v,(datetime.datetime,datetime.date)):return v.isoformat()
+            if isinstance(v,decimal.Decimal):return str(v)
+            if isinstance(v,dict):return {k:norm(x) for k,x in v.items()}
+            if isinstance(v,list):return [norm(x) for x in v]
+            return v
+          def canon(v):return json.dumps(norm(v),ensure_ascii=False,sort_keys=True,separators=(',',':'))
+          for a in articles:
+            slug=a['slug']
+            if slug not in target:raise SystemExit('Missing production slug: '+slug)
+            t=target[slug]
+            for field,expected in (('slug',slug),('title',a['headline']),('status',a['status']),('published_at',norm(a['published_at']) if a['published_at'] else ''),('updated_at',norm(a['updated_at']))):
+              if t[field]!=expected:raise SystemExit('Mismatch '+slug+' '+field)
+            if canon(json.loads(t['content_json']))!=canon(a['body']):raise SystemExit('Rich text mismatch '+slug)
+            meta=json.loads(t['metadata_json'])
+            if canon(meta.get('source_article'))!=canon(a):raise SystemExit('Full article mismatch '+slug)
+            for field in ('seo_title','seo_description','deck','homepage_lead','editorial_placement'):
+              if meta.get(field)!=a[field]:raise SystemExit('SEO or editorial mismatch '+slug+' '+field)
+            rel=sorted((r for r in rows['articles_rels'] if r['parent_id']==a['id']),key=lambda r:(r['order'] or 0,r['id']))
+            sources=sorted((r for r in rows['articles_sources'] if r['_parent_id']==a['id']),key=lambda r:r['_order'])
+            if canon(meta.get('category_relationships'))!=canon(rel):raise SystemExit('Category mismatch '+slug)
+            if canon(json.loads(t['source_json']))!=canon(sources):raise SystemExit('Sources mismatch '+slug)
+            if canon(json.loads(t['image_json']))!=canon(media[str(a['featured_image_id'])]):raise SystemExit('Image metadata mismatch '+slug)
+          print('PASS production published field parity',len(articles),'articles')
+          print('NOTE R2 image binaries, public rendering, canonical and sitemap still require checks')
+          PY
