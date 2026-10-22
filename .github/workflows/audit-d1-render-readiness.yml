@@ -1,0 +1,54 @@
+name: Audit Cloudflare D1 rendering readiness
+on:
+  workflow_dispatch:
+  push:
+    branches: [emergency-neon-to-cloudflare-20261021]
+    paths: [.github/workflows/audit-d1-render-readiness.yml]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit staging D1 schema and Worker SEO capabilities
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request,pathlib
+          token=os.environ['CLOUDFLARE_API_TOKEN'];account=os.environ['CLOUDFLARE_ACCOUNT_ID']
+          db='d296847d-9bf7-490d-bc95-48345022a938'
+          endpoint=f'https://api.cloudflare.com/client/v4/accounts/{account}/d1/database/{db}/query'
+          def sql(q):
+            req=urllib.request.Request(endpoint,data=json.dumps({'sql':q}).encode(),headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'},method='POST')
+            with urllib.request.urlopen(req,timeout=30) as r: data=json.load(r)
+            assert data.get('success'),data.get('errors')
+            return [x for p in data.get('result',[]) for x in p.get('results',[])]
+          rows=sql('SELECT id,slug,title,status,metadata_json,content_json,image_json,source_json FROM migration_articles ORDER BY id')
+          assert len(rows)==79,('D1 row count',len(rows))
+          published=[a for a in rows if a['status']=='published']
+          errors=[];seo=0;rich=0
+          for a in published:
+            meta=json.loads(a['metadata_json']);body=json.loads(a['content_json']);image=json.loads(a['image_json']);sources=json.loads(a['source_json'])
+            if not a['slug'] or not a['title']:errors.append((a['id'],'missing slug/title'))
+            if meta.get('source_article'):seo+=1
+            if isinstance(body,dict) and body.get('root'):rich+=1
+            if not isinstance(sources,list):errors.append((a['id'],'sources not list'))
+          worker=pathlib.Path('cloudflare-editor/worker.js').read_text()
+          adapter=pathlib.Path('cloudflare-editor/d1-staging-adapter.js').read_text()
+          d1_public_routes='/articles/' in worker and 'migration_articles' in worker
+          d1_editor_writes='d1-write-not-enabled' not in worker
+          print('D1 articles',len(rows),'published',len(published),'metadata source snapshots',seo,'rich-text documents',rich)
+          print('D1 public article renderer implemented:',d1_public_routes)
+          print('D1 editorial writes enabled:',d1_editor_writes)
+          print('NOTE: Existing preview routes use staging Neon and are not D1 public rendering parity.')
+          assert not errors,errors[:10]
+          if not d1_public_routes or not d1_editor_writes:
+            print('BLOCKED: D1 public rendering and/or editorial publishing not ready. Production cutover prohibited.')
+          print('PASS staging D1 readiness diagnostic completed; no production changes')
+          PY
