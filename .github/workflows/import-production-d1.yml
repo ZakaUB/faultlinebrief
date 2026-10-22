@@ -1,6 +1,9 @@
 name: Import published Neon articles to production D1
 on:
   workflow_dispatch:
+  push:
+    branches: [emergency-neon-to-cloudflare-20261021]
+    paths: [.github/workflows/import-production-d1.yml]
 permissions:
   contents: read
 jobs:
