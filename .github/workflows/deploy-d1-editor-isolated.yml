@@ -110,7 +110,7 @@ jobs:
           payload['status']='published'
           status,result=call('/editor/articles/'+article_id,'PATCH',payload)
           assert status==200 and result.get('article',{}).get('status')=='published',('D1 publish failed',status,result)
-          with opener.open(base+'/d1-preview/articles/'+slug,timeout=40) as response:
+          with opener.open(urllib.request.Request(base+'/d1-preview/articles/'+slug,headers={'User-Agent':'FaultlineBrief-D1-Isolated-CI'}),timeout=40) as response:
             html=response.read().decode()
             assert response.status==200 and 'D1 staging draft verification' in html,'Published D1 article missing'
           status,denied=call('/editor/articles','POST',{'slug':'not-a-test','headline':'must fail'})
