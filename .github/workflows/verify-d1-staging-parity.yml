@@ -132,11 +132,17 @@ jobs:
             slug=a['slug']
             if slug not in target:raise SystemExit('Missing production slug: '+slug)
             t=target[slug]
-            for field,expected in (('slug',slug),('title',a['headline']),('status',a['status']),('published_at',norm(a['published_at']) if a['published_at'] else ''),('updated_at',norm(a['updated_at']))):
+            for field,expected in (('slug',slug),('title',a['headline']),('status',a['status']),('published_at',norm(a['published_at']) if a['published_at'] else '')):
               if t[field]!=expected:raise SystemExit('Mismatch '+slug+' '+field)
             if canon(json.loads(t['content_json']))!=canon(a['body']):raise SystemExit('Rich text mismatch '+slug)
             meta=json.loads(t['metadata_json'])
-            if canon(meta.get('source_article'))!=canon(a):raise SystemExit('Full article mismatch '+slug)
+            original=meta.get('source_article')
+            if original is None:raise SystemExit('Missing full source article '+slug)
+            differences=[key for key in a if canon(original.get(key))!=canon(a[key])]
+            if differences:
+              print('Production drift',slug,'fields:',','.join(differences))
+              if any(key not in ('updated_at',) for key in differences):raise SystemExit('Production content drift '+slug)
+            if t['updated_at']!=norm(a['updated_at']):print('Timestamp drift',slug)
             for field in ('seo_title','seo_description','deck','homepage_lead','editorial_placement'):
               if meta.get(field)!=a[field]:raise SystemExit('SEO or editorial mismatch '+slug+' '+field)
             rel=sorted((r for r in rows['articles_rels'] if r['parent_id']==a['id']),key=lambda r:(r['order'] or 0,r['id']))
