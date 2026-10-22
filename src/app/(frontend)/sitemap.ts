@@ -33,6 +33,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Never silently return a partial sitemap when the CMS is unavailable.
   // An error response can be retried by crawlers instead of being mistaken for
   // a complete sitemap with no published articles.
+  if (process.env.FAULTLINE_D1_READS === 'true') {
+    const endpoint = process.env.FAULTLINE_D1_API_URL
+    if (!endpoint) throw new Error('FAULTLINE_D1_API_URL must be set for D1 reads')
+    const response = await fetch(`${endpoint.replace(/\/$/, '')}/v1/articles?limit=100`, { cache: 'no-store' })
+    if (!response.ok) throw new Error(`D1 sitemap request failed: ${response.status}`)
+    const data = await response.json() as { items: Array<{ slug: string; updatedAt?: string | null }> }
+    return [...fixed, ...data.items.map(article => ({
+      url: `${base}/articles/${encodeURIComponent(article.slug)}`,
+      ...(article.updatedAt && !Number.isNaN(new Date(article.updatedAt).getTime()) ? { lastModified: new Date(article.updatedAt) } : {}),
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    }))]
+  }
   const payload = await getPayload({ config })
   const entries: MetadataRoute.Sitemap = [...fixed]
   let page = 1
