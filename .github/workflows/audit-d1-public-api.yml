@@ -1,0 +1,35 @@
+name: Audit D1 public API parity
+on:
+  push:
+    branches: [emergency-neon-to-cloudflare-20261021]
+    paths: [.github/workflows/audit-d1-public-api.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    env:
+      NEON_DATABASE_URL: ${{ secrets.NEON_PRODUCTION_READONLY_DATABASE_URL }}
+    steps:
+      - name: Compare published slugs between Neon and Cloudflare D1
+        run: |
+          python3 -m pip install -q psycopg[binary]
+          python3 - <<'PY'
+          import os,json,urllib.request,psycopg
+          url='https://faultlinebrief-public-d1-preview.zakria25.workers.dev/v1/articles?limit=100'
+          req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0 (compatible; FaultlineBriefMigrationAudit/1.0)'})
+          with urllib.request.urlopen(req,timeout=30) as r:items=json.load(r)['items']
+          d1={item['slug'] for item in items}
+          with psycopg.connect(os.environ['NEON_DATABASE_URL'],connect_timeout=20) as conn:
+            with conn.cursor() as cur:
+              cur.execute("SELECT slug FROM articles WHERE status='published'")
+              neon={row[0] for row in cur.fetchall()}
+          print('D1 count:',len(d1),'Neon count:',len(neon))
+          print('Missing in D1:',sorted(neon-d1)[:20])
+          print('Extra in D1:',sorted(d1-neon)[:20])
+          assert len(items)==len(d1),'Duplicate slugs in D1 listing'
+          assert d1==neon,'Published slugs differ; do not cut over'
+          print('PASS: published article slug parity')
+          PY
