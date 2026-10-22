@@ -24,7 +24,7 @@ export default {
     }
     // D1 staging mode: preserve the existing CMS interface and authentication.
     // Only read endpoints are enabled until D1-safe editorial writes are implemented.
-    if (env.D1 && (url.pathname === '/articles' || url.pathname === '/categories' || url.pathname === '/editor/media-library' || url.pathname.startsWith('/editor/articles/'))) {
+    if (env.D1 && (url.pathname === '/articles' || url.pathname === '/categories' || url.pathname === '/editor/media-library' || url.pathname.startsWith('/editor/articles/') && request.method === 'GET')) {
       if (!await authenticated()) return json({ ok:false,error:'unauthorized' },401)
       if (request.method !== 'GET') return json({ ok:false,error:'d1-write-not-enabled' },405)
       try {
