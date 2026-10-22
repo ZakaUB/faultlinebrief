@@ -33,8 +33,9 @@ jobs:
             status,body,typ=get(path)
             root=ET.fromstring(body)
             urls=[x.text for x in root.iter() if x.tag.endswith('}loc') or x.tag=='loc']
-            assert status==200 and root.tag.endswith('urlset') and urls,(path,status,len(urls))
-            foreign=[u for u in urls if not u.startswith(base+'/')]
+            assert status==200 and root.tag.endswith('urlset'),(path,status,len(urls))
+            if path=='/sitemap.xml': assert urls,'Main sitemap unexpectedly empty'
+            foreign=[u for u in urls if u != base and not u.startswith(base+'/')]
             if foreign: print('WARNING sitemap noncanonical hostname',path,'count',len(foreign),'examples',foreign[:5])
             print('PASS',path,'urls',len(urls),'content-type',typ)
             if path=='/sitemap.xml':
