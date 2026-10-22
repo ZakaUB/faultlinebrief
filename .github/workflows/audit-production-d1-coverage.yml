@@ -1,5 +1,8 @@
 name: Audit production article coverage in isolated D1
 on:
+  push:
+    branches: [emergency-neon-to-cloudflare-20261021]
+    paths: [.github/workflows/audit-production-d1-coverage.yml]
   workflow_dispatch:
 permissions:
   contents: read
