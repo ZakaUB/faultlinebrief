@@ -1,0 +1,48 @@
+name: Production D1 backfill preflight
+on:
+  push:
+    branches: [emergency-neon-to-cloudflare-20261021]
+    paths: [.github/workflows/production-d1-backfill-preflight.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    env:
+      PRODUCTION_DATABASE_URL: ${{ secrets.NEON_PRODUCTION_READONLY_DATABASE_URL }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+    steps:
+      - run: python3 -m pip install --quiet --user 'psycopg[binary]>=3.2,<4'
+      - name: Read-only production to D1 content preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,urllib.parse,urllib.request
+          import psycopg
+          from psycopg.rows import dict_row
+          u=urllib.parse.urlparse(os.environ['PRODUCTION_DATABASE_URL'])
+          if not (u.hostname or '').endswith('.neon.tech'):raise SystemExit('Invalid source')
+          with psycopg.connect(os.environ['PRODUCTION_DATABASE_URL'],row_factory=dict_row) as conn:
+            conn.execute('SET TRANSACTION READ ONLY')
+            articles=[dict(x) for x in conn.execute("SELECT id,slug,headline,status,featured_image_id FROM public.articles WHERE status='published'")]
+            media={str(x['id']) for x in conn.execute('SELECT id FROM public.media')}
+            relations=[dict(x) for x in conn.execute('SELECT parent_id,categories_id FROM public.articles_rels')]
+            categories={str(x['id']) for x in conn.execute('SELECT id FROM public.categories')}
+          if len(articles)<40:raise SystemExit('Unexpected production article count')
+          endpoint='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/d1/database/d296847d-9bf7-490d-bc95-48345022a938/query'
+          req=urllib.request.Request(endpoint,data=json.dumps({'sql':'SELECT id,slug FROM migration_articles'}).encode(),headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_API_TOKEN'],'Content-Type':'application/json'},method='POST')
+          with urllib.request.urlopen(req,timeout=40) as response: result=json.load(response)
+          if not result.get('success'):raise SystemExit('D1 query failed')
+          d1={r['slug']:str(r['id']) for item in result['result'] for r in item.get('results',[])}
+          missing=[a for a in articles if a['slug'] not in d1]
+          if any(a['slug'] in d1 and d1[a['slug']]!=str(a['id']) for a in articles):raise SystemExit('Conflicting article IDs')
+          if any(str(a['featured_image_id']) not in media for a in missing):raise SystemExit('Missing source media')
+          if any(str(r['categories_id']) not in categories for r in relations if r['categories_id'] is not None):raise SystemExit('Missing source categories')
+          print('PASS safe backfill preflight; published:',len(articles),'missing:',len(missing))
+          print('Missing slugs:',json.dumps(sorted(a['slug'] for a in missing)))
+          print('No writes performed')
+          PY
