@@ -55,11 +55,16 @@ jobs:
           if not isinstance(objects,list):
             print('MONITORING GAP: listing lacks object records; response type',type(listing).__name__,'keys',list(listing)[:15] if isinstance(listing,dict) else 'none')
             raise SystemExit(2)
-          keys={o.get('key') for o in objects}
+          print('R2 listing sample fields:',[list(o.keys())[:8] for o in objects[:2] if isinstance(o,dict)])
+          print('R2 listing sample names:',[str(o.get('key') or o.get('name') or '')[:100] for o in objects[:5] if isinstance(o,dict)])
+          print('R2 listing pagination fields:',{k:str(v)[:100] for k,v in listing.items() if k in ('cursor','truncated','has_more','continuation_token','next_cursor')} if isinstance(listing,dict) else {})
+          keys={o.get('key') or o.get('name') for o in objects if isinstance(o,dict)}
           missing=[(mid,key) for mid,key in objectkeys if key not in keys]
           print('R2 objects visible:',len(keys),'referenced keys found:',len(objectkeys)-len(missing),'missing:',len(missing))
           if missing: print('MISSING R2 keys:',json.dumps(missing[:15]))
-          assert not missing,'Staging R2 missing referenced objects'
+          if missing:
+            print('MONITORING GAP: listing may be partial/paginated or keys genuinely absent; no deletion or restoration attempted')
+            raise SystemExit(2)
           if not objectkeys:
             print('MONITORING GAP: none of 43 D1 media rows specify R2 object keys; no binary parity proven')
             raise SystemExit(2)
