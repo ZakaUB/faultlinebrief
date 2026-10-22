@@ -81,6 +81,22 @@ jobs:
             status,body=call(path)
             assert status==200 and len(body.get('items',[]))==expected,(path,status,body.get('error'))
             print('PASS',path,'count',expected)
+          # Verify the newly deployed D1-backed HTML renderer using an actual published slug.
+          d1='d296847d-9bf7-490d-bc95-48345022a938'
+          endpoint='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/d1/database/'+d1+'/query'
+          sql_req=urllib.request.Request(endpoint,data=json.dumps({'sql':"SELECT slug FROM migration_articles WHERE status='published' ORDER BY slug LIMIT 1"}).encode(),method='POST',headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_API_TOKEN'],'Content-Type':'application/json'})
+          with urllib.request.urlopen(sql_req,timeout=25) as response: d1result=json.load(response)
+          assert d1result.get('success'),'D1 slug lookup failed'
+          slug=d1result['result'][0]['results'][0]['slug']
+          preview_req=urllib.request.Request(base+'/d1-preview/articles/'+slug,headers={'User-Agent':'FaultlineBrief-D1-Isolated-CI'})
+          with opener.open(preview_req,timeout=40) as response:
+            preview=response.read().decode('utf-8','replace')
+            assert response.status==200,'D1 preview not HTTP 200'
+            assert response.headers.get('X-Robots-Tag')=='noindex, nofollow','Preview indexability risk'
+          assert '<h1>' in preview and '<meta property="og:title"' in preview,'D1 article markup missing'
+          assert '<link rel="canonical" href="https://faultlinebrief.com/articles/'+slug+'"' in preview,'D1 canonical mismatch'
+          assert 'application/ld+json' in preview and 'NewsArticle' in preview,'NewsArticle structured data missing'
+          print('PASS authenticated D1 preview article',slug,'canonical, OG, NewsArticle, noindex')
           status,_=call('/editor/articles','POST',{'headline':'blocked'})
           assert status==405,('write unexpectedly allowed',status)
           print('PASS D1 editor staging auth, reads, and write lock')
