@@ -36,3 +36,14 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
         run: npx --yes wrangler@4 deploy --config wrangler.website.d1.isolated.json
+
+      - name: Verify isolated website HTTP routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://faultlinebrief-website-d1-isolated.zakria25.workers.dev"
+          for route in / /latest-news /sitemap.xml /news-sitemap.xml; do
+            echo "Checking $route"
+            curl --fail-with-body --location --silent --show-error --max-time 35 --retry 2 --output /tmp/faultline-response --write-out "HTTP %{http_code}; bytes %{size_download}; content-type %{content_type}\\n" "$base$route"
+            test -s /tmp/faultline-response
+          done
