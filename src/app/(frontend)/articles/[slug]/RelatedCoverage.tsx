@@ -21,8 +21,9 @@ export default async function RelatedCoverage({ currentSlug, currentCategories }
   }
   const ids = new Set((currentCategories || []).map(String))
   const matchCount = (item: RelatedArticle) => (item.categories || []).filter(category => ids.has(String(typeof category === 'object' ? category?.id : category))).length
-  articles.sort((a, b) => matchCount(b) - matchCount(a))
-  const related = articles.slice(0, 3)
+  // Only recommend stories sharing an actual category; otherwise omit this section.
+  const related = articles.filter(item => matchCount(item) > 0)
+    .sort((a, b) => matchCount(b) - matchCount(a)).slice(0, 3)
   if (!related.length) return null
   return (
     <section className="related-coverage" aria-labelledby="related-coverage-heading">
