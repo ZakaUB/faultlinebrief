@@ -179,6 +179,18 @@ export default {
       } catch { return json({ok:false,error:'staging-media-unavailable'},503) }
     }
 
+    const publicImageMatch = /^\\/public\\/media\\/([a-f0-9]{32})$/.exec(url.pathname)
+    if (publicImageMatch && request.method === 'GET' && env.EDITOR_PRODUCTION_MODE === 'live') {
+      const mediaId='cf-media-'+publicImageMatch[1]
+      const article=await env.D1.prepare("SELECT id FROM migration_articles WHERE status='published' AND image_json LIKE ? LIMIT 1").bind('%'+mediaId+'%').first()
+      if (!article) return json({ok:false,error:'image-not-published'},404)
+      const row=await env.D1.prepare('SELECT raw_json FROM migration_media WHERE id=?').bind(mediaId).first()
+      if (!row) return json({ok:false,error:'image-not-found'},404)
+      const record=JSON.parse(row.raw_json)
+      const object=await env.R2.get(record.objectKey)
+      if (!object) return json({ok:false,error:'image-not-found'},404)
+      return new Response(object.body,{headers:{'Content-Type':object.httpMetadata?.contentType||record.mimeType||'application/octet-stream','Cache-Control':'public, max-age=300','X-Content-Type-Options':'nosniff'}})
+    }
     // Stage 5: isolated, authenticated staging website preview and sitemap previews.
     // Never expose these routes to crawlers or serve real editorial articles.
     if (request.method === 'GET' && (url.pathname.startsWith('/preview/articles/') || url.pathname === '/preview/sitemap.xml' || url.pathname === '/preview/news-sitemap.xml')) {
