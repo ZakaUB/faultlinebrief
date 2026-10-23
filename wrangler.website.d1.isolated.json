@@ -27,5 +27,11 @@
   "vars": {
     "FAULTLINE_D1_READS": "true",
     "FAULTLINE_D1_API_URL": "https://faultlinebrief-public-d1-preview.zakria25.workers.dev"
-  }
+  },
+  "r2_buckets": [
+    {
+      "binding": "MEDIA_BUCKET",
+      "bucket_name": "faultlinebriefq-media"
+    }
+  ]
 }
