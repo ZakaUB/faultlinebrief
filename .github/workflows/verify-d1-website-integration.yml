@@ -27,6 +27,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: TypeScript compile verification
         run: pnpm exec tsc --noEmit
+      - name: Build D1-backed Next.js website
+        run: pnpm run build
       - name: Verify D1 API endpoints and article shape
         run: |
           python3 - <<'PY'
