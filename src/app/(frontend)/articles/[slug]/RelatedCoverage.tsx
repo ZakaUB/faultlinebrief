@@ -1,35 +1,33 @@
 import Link from 'next/link'
-import { getPayload } from 'payload'
-import config from '@/payload.config'
+
+type RelatedArticle = {
+  slug: string
+  headline: string
+  categories?: Array<string | number | { id?: string | number }>
+}
 
 export default async function RelatedCoverage({ currentSlug, currentCategories }: { currentSlug: string; currentCategories?: Array<string | number> }) {
-  const payload = await getPayload({ config })
-  const result = await payload.find({
-    collection: 'articles' as any,
-    where: { and: [{ status: { equals: 'published' } }, { slug: { not_equals: currentSlug } }] },
-    sort: '-publishedAt',
-    limit: 30,
-    depth: 0,
-  })
-  const articles = (result.docs as any[]).filter(item => item.slug && item.headline)
-  articles.sort((a, b) => {
-    const categoryIds = (item: any) => (Array.isArray(item.categories) ? item.categories : []).map((c: any) => typeof c === 'object' ? c?.id : c)
-    const ac = categoryIds(a).some((id: any) => currentCategories?.some(category => String(category) === String(id)))
-    const bc = categoryIds(b).some((id: any) => currentCategories?.includes(id))
-    return Number(bc) - Number(ac)
-  })
+  if (process.env.FAULTLINE_D1_READS !== 'true') return null
+  const endpoint = process.env.FAULTLINE_D1_API_URL
+  if (!endpoint) return null
+  let articles: RelatedArticle[] = []
+  try {
+    const response = await fetch(endpoint.replace(/\/$/, '') + '/v1/articles?limit=100', { next: { revalidate: 60 } })
+    if (!response.ok) return null
+    const data = await response.json() as { items?: RelatedArticle[] }
+    articles = (data.items || []).filter(item => item.slug && item.headline && item.slug !== currentSlug)
+  } catch {
+    return null
+  }
+  const ids = new Set((currentCategories || []).map(String))
+  const matchCount = (item: RelatedArticle) => (item.categories || []).filter(category => ids.has(String(typeof category === 'object' ? category?.id : category))).length
+  articles.sort((a, b) => matchCount(b) - matchCount(a))
   const related = articles.slice(0, 3)
   if (!related.length) return null
   return (
     <section className="related-coverage" aria-labelledby="related-coverage-heading">
       <h2 id="related-coverage-heading">Related Coverage</h2>
-      <ul>
-        {related.map(item => (
-          <li key={item.slug}>
-            <Link href={`/articles/${encodeURIComponent(item.slug)}`}>{item.headline}</Link>
-          </li>
-        ))}
-      </ul>
+      <ul>{related.map(item => <li key={item.slug}><Link href={`/articles/${encodeURIComponent(item.slug)}`}>{item.headline}</Link></li>)}</ul>
     </section>
   )
 }
