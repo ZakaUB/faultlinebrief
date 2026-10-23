@@ -58,3 +58,73 @@ jobs:
                 print('PASS public image',p,'bytes sampled',len(blob))
           print('PASS live read-only SEO baseline. No Cloudflare rendering parity claimed.')
           PY
+
+      - name: Audit navigation, article links, robots, image metadata and source URLs
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import urllib.request,urllib.error,xml.etree.ElementTree as ET,re,concurrent.futures
+          from html.parser import HTMLParser
+          base='https://faultlinebrief.com'
+          def fetch(url):
+            req=urllib.request.Request(url,headers={'User-Agent':'FaultlineBrief-ReadOnly-QualityAudit/1.0'})
+            try:
+              with urllib.request.urlopen(req,timeout=25) as r:return r.status,r.headers.get('Content-Type',''),r.read(3000000)
+            except urllib.error.HTTPError as e:return e.code,e.headers.get('Content-Type',''),e.read(1000)
+            except Exception as e:return 0,'',str(e).encode()
+          class Page(HTMLParser):
+            def __init__(self):super().__init__();self.links=[];self.images=[];self.canonical=[];self.h1=0;self.title='';self.intitle=False;self.description=[]
+            def handle_starttag(self,t,a):
+              d=dict(a)
+              if t=='a' and d.get('href'):self.links.append(d['href'])
+              if t=='img':self.images.append((d.get('src',''),d.get('alt','')))
+              if t=='link' and d.get('rel')=='canonical':self.canonical.append(d.get('href'))
+              if t=='meta' and d.get('name')=='description':self.description.append(d.get('content'))
+              if t=='h1':self.h1+=1
+              if t=='title':self.intitle=True
+            def handle_endtag(self,t):
+              if t=='title':self.intitle=False
+            def handle_data(self,s):
+              if self.intitle:self.title+=s
+          status,_,sitemap=fetch(base+'/sitemap.xml')
+          assert status==200
+          root=ET.fromstring(sitemap)
+          urls=[x.text for x in root.iter() if x.tag.endswith('}loc') or x.tag=='loc']
+          urls=list(dict.fromkeys(urls))
+          print('SITEMAP_URLS',len(urls))
+          issues=[];source_hosts=set();checked_images=set();internal_links=set()
+          def audit(url):
+            status,ctype,body=fetch(url)
+            if status!=200:return (url,['HTTP '+str(status)],[],[],[])
+            p=Page();p.feed(body.decode('utf-8','replace'))
+            errors=[]
+            if p.h1!=1:errors.append('H1_COUNT='+str(p.h1))
+            if not p.title.strip():errors.append('NO_TITLE')
+            if not p.description:errors.append('NO_META_DESCRIPTION')
+            if p.canonical!=[url]:errors.append('CANONICAL='+str(p.canonical))
+            for src,alt in p.images:
+              if not alt.strip():errors.append('IMAGE_MISSING_ALT')
+            internal=[base+x for x in p.links if x.startswith('/') and not x.startswith('//')]
+            return url,errors,internal,p.images,[x for x in p.links if x.startswith('http')]
+          with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
+            for url,errors,internal,images,external in pool.map(audit,urls):
+              if errors:issues.append((url,errors))
+              internal_links.update(internal)
+              for src,alt in images:
+                if src.startswith('https://faultlinebrief') or src.startswith('/'):checked_images.add(src if src.startswith('http') else base+src)
+              for link in external:
+                if 'reuters.com' in link:source_hosts.add(link)
+          print('PAGES_CHECKED',len(urls),'PAGE_ISSUES',len(issues))
+          for item in issues[:35]:print('ISSUE',item)
+          print('INTERNAL_LINKS',len(internal_links),'IMAGE_URLS',len(checked_images),'REUTERS_LINKS',len(source_hosts))
+          for link in list(sorted(internal_links))[:100]:
+            code,_,_=fetch(link)
+            if code>=400 or code==0:print('BROKEN_INTERNAL',code,link)
+          for link in list(sorted(checked_images))[:30]:
+            code,typ,_=fetch(link)
+            if code!=200 or not typ.startswith('image/'):print('BROKEN_IMAGE',code,typ,link)
+          for path in ['/robots.txt','/news-sitemap.xml']:
+            code,typ,body=fetch(base+path)
+            print('ENDPOINT',path,code,typ,'bytes',len(body))
+          print('READ_ONLY_AUDIT_COMPLETE')
+          PY
