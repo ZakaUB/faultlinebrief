@@ -1,0 +1,36 @@
+name: Deploy isolated D1 website
+on:
+  push:
+    branches: [emergency-neon-to-cloudflare-20261021]
+    paths: [.github/workflows/deploy-d1-website-isolated.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    env:
+      DATABASE_URL: ${{ secrets.NEON_PRODUCTION_READONLY_DATABASE_URL }}
+      PAYLOAD_SECRET: migration-build-only-not-production
+      FAULTLINE_D1_READS: 'true'
+      FAULTLINE_D1_API_URL: https://faultlinebrief-public-d1-preview.zakria25.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build Next.js
+        run: pnpm run build
+      - name: Convert Next.js to Cloudflare Worker
+        run: pnpm dlx @opennextjs/cloudflare@1.15.1 build
+      - name: Deploy isolated Cloudflare website
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+        run: npx --yes wrangler@4 deploy --config wrangler.website.d1.isolated.json
