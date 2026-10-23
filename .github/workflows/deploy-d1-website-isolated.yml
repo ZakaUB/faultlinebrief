@@ -2,7 +2,7 @@ name: Deploy isolated D1 website
 on:
   push:
     branches: [emergency-neon-to-cloudflare-20261021]
-    paths: [.github/workflows/deploy-d1-website-isolated.yml, open-next.config.ts]
+    paths: [.github/workflows/deploy-d1-website-isolated.yml, open-next.config.ts, wrangler.website.d1.isolated.json]
   workflow_dispatch:
 permissions:
   contents: read
