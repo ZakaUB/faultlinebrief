@@ -36,6 +36,7 @@ export async function GET(): Promise<Response> {
   }
 
   const items = articles
+    .slice(0, MAX_ARTICLES)
     .filter((article) => article.slug && article.headline && article.publishedAt)
     .map((article) => {
       const publicationDate = new Date(article.publishedAt!)
