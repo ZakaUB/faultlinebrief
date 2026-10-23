@@ -2,7 +2,7 @@ name: Connect existing CMS Worker to production D1
 on:
   push:
     branches: [emergency-neon-to-cloudflare-20261021]
-    paths: [.github/workflows/deploy-d1-editor-production.yml]
+    paths: [.github/workflows/deploy-d1-editor-production.yml, cloudflare-editor/worker.js, cloudflare-editor/admin-page.js]
   workflow_dispatch:
 permissions:
   contents: read
