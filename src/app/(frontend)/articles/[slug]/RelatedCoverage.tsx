@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { getAllD1Articles } from '@/app/(frontend)/newsroom'
 
 type RelatedArticle = {
   slug: string
@@ -12,17 +13,15 @@ export default async function RelatedCoverage({ currentSlug, currentCategories }
   if (!endpoint) return null
   let articles: RelatedArticle[] = []
   try {
-    const response = await fetch(endpoint.replace(/\/$/, '') + '/v1/articles?limit=100', { next: { revalidate: 60 } })
-    if (!response.ok) return null
-    const data = await response.json() as { items?: RelatedArticle[] }
-    articles = (data.items || []).filter(item => item.slug && item.headline && item.slug !== currentSlug)
+    articles = (await getAllD1Articles<RelatedArticle>()).filter(item => item.slug && item.headline && item.slug !== currentSlug)
   } catch {
     return null
   }
   const ids = new Set((currentCategories || []).map(String))
   const matchCount = (item: RelatedArticle) => (item.categories || []).filter(category => ids.has(String(typeof category === 'object' ? category?.id : category))).length
-  articles.sort((a, b) => matchCount(b) - matchCount(a))
-  const related = articles.slice(0, 3)
+  // Only recommend stories sharing an actual category; otherwise omit this section.
+  const related = articles.filter(item => matchCount(item) > 0)
+    .sort((a, b) => matchCount(b) - matchCount(a)).slice(0, 3)
   if (!related.length) return null
   return (
     <section className="related-coverage" aria-labelledby="related-coverage-heading">

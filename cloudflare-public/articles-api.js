@@ -14,16 +14,17 @@ export default {
     if (url.pathname === '/health') return response({ ok: true })
     if (url.pathname === '/v1/articles') {
       const limit = Math.max(1, Math.min(100, Number(url.searchParams.get('limit')) || 40))
+      const offset = Math.max(0, Math.min(1000000, Math.floor(Number(url.searchParams.get('offset')) || 0)))
       const { results } = await env.PRODUCTION_D1.prepare(
-        "SELECT slug,title,published_at,updated_at,metadata_json,image_json FROM migration_articles WHERE status='published' ORDER BY published_at DESC LIMIT ?"
-      ).bind(limit).all()
+        "SELECT slug,title,published_at,updated_at,metadata_json,image_json FROM migration_articles WHERE status='published' ORDER BY published_at DESC, slug ASC LIMIT ? OFFSET ?"
+      ).bind(limit, offset).all()
       const categories=await env.PRODUCTION_D1.prepare('SELECT id,slug,name FROM migration_categories').all()
       const byId=new Map(categories.results.map(category=>[String(category.id),category]))
       const expand=relations=>(Array.isArray(relations)?relations:[]).map(item=>{
         const id=typeof item==='object'&&item!==null?(item.categories_id??item.id):item
         return byId.get(String(id))||item
       })
-      return response({ items: results.map(row => {
+      return response({ offset, limit, hasMore: results.length === limit, items: results.map(row => {
         const meta = parse(row.metadata_json, {})
         return { slug: row.slug, headline: row.title, publishedAt: row.published_at, updatedAt: row.updated_at,
           deck: meta.deck ?? null, editorialPlacement: meta.editorial_placement ?? null,

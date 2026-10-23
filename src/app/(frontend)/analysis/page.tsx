@@ -18,7 +18,7 @@ export default async function AnalysisArchivePage() {
   let stories: Story[] = []
   let failed = false
   try {
-    stories = await getEditorialStories(500)
+    stories = await getEditorialStories(50000)
   } catch (error) {
     failed = true
     console.error('[Faultline Brief] Analysis archive query failed:', error)

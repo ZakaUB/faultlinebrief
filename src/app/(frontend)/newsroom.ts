@@ -30,14 +30,26 @@ export function imageFor(story: Story): string | null {
     : url
 }
 
+// Read all published D1 pages, not just the first 100 articles.
+export async function getAllD1Articles<T = Partial<Story>>(): Promise<T[]> {
+  const endpoint = process.env.FAULTLINE_D1_API_URL
+  if (!endpoint) throw new Error('FAULTLINE_D1_API_URL must be set for D1 reads')
+  const articles: T[] = []
+  for (let offset = 0; offset < 50000; offset += 100) {
+    const response = await fetch(endpoint.replace(/\/$/, '') + '/v1/articles?limit=100&offset=' + offset, { next: { revalidate: 60 } })
+    if (!response.ok) throw new Error('D1 article list request failed: ' + response.status)
+    const data = await response.json() as { items: T[] }
+    if (!Array.isArray(data.items)) throw new Error('Invalid D1 article list response')
+    articles.push(...data.items)
+    if (data.items.length < 100) return articles
+  }
+  throw new Error('D1 article listing exceeds 50,000; extend pagination')
+}
+
 async function queryStoriesByPlacement(placement: 'news' | 'editorial', limit: number): Promise<Story[]> {
   if (process.env.FAULTLINE_D1_READS === 'true') {
-    const endpoint = process.env.FAULTLINE_D1_API_URL
-    if (!endpoint) throw new Error('FAULTLINE_D1_API_URL must be set for D1 reads')
-    const response = await fetch(endpoint.replace(/\/$/, '') + '/v1/articles?limit=100', { next: { revalidate: 60 } })
-    if (!response.ok) throw new Error('D1 article list request failed: ' + response.status)
-    const data = await response.json() as { items: Array<Partial<Story>> }
-    return data.items.filter(item => placement === 'news'
+    const items = await getAllD1Articles<Partial<Story>>()
+    return items.filter(item => placement === 'news'
       ? item.editorialPlacement === 'news'
       : item.editorialPlacement !== 'news').slice(0, limit).map(item => ({
         ...item, id: item.slug!, slug: item.slug!, headline: item.headline!,

@@ -1,5 +1,6 @@
 import { getPayload } from 'payload'
 import config from '@/payload.config'
+import { getAllD1Articles } from '@/app/(frontend)/newsroom'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -18,12 +19,7 @@ export async function GET(): Promise<Response> {
   const cutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000)
   let articles: Array<{ slug?: string | null; headline?: string | null; publishedAt?: string | null }>
   if (process.env.FAULTLINE_D1_READS === 'true') {
-    const endpoint = process.env.FAULTLINE_D1_API_URL
-    if (!endpoint) throw new Error('FAULTLINE_D1_API_URL must be set for D1 reads')
-    const response = await fetch(endpoint.replace(/\/$/, '') + '/v1/articles?limit=100', { cache: 'no-store' })
-    if (!response.ok) throw new Error('D1 news sitemap request failed: ' + response.status)
-    const data = await response.json() as { items: typeof articles }
-    articles = data.items
+    articles = await getAllD1Articles<typeof articles[number]>()
   } else {
     const payload = await getPayload({ config })
     const result = await payload.find({
@@ -40,6 +36,7 @@ export async function GET(): Promise<Response> {
   }
 
   const items = articles
+    .slice(0, MAX_ARTICLES)
     .filter((article) => article.slug && article.headline && article.publishedAt)
     .map((article) => {
       const publicationDate = new Date(article.publishedAt!)
