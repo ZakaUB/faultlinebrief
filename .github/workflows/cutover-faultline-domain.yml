@@ -36,7 +36,9 @@ jobs:
           for host in faultlinebrief.com www.faultlinebrief.com; do
             echo "Attaching $host to Cloudflare Worker"
             payload=$(jq -nc --arg h "$host" --arg z "$ZONE_ID" '{hostname:$h,zone_id:$z,service:"faultlinebrief-website-d1-isolated",environment:"production"}')
-            curl -fsS -X PUT "$api/accounts/$CF_ACCOUNT/workers/domains" -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" --data "$payload" > result.json
+            status=$(curl -sS -o result.json -w "%{http_code}" -X PUT "$api/accounts/$CF_ACCOUNT/workers/domains" -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" --data "$payload")
+            echo "Cloudflare API HTTP $status"
+            jq '{success, errors, messages}' result.json
             jq -e '.success==true' result.json
           done
       - name: Check live domain
