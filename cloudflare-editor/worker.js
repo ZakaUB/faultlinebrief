@@ -53,9 +53,16 @@ export default {
         const articleText=typeof input.article_text==='string'?input.article_text.trim():''
         const body=input.body && typeof input.body==='object'?input.body:articleText?{root:{type:'root',format:'',indent:0,version:1,direction:'ltr',children:articleText.split(/\\n\\s*\\n/).map(t=>({type:'paragraph',format:'',indent:0,version:1,direction:'ltr',children:[{type:'text',text:t,detail:0,format:0,mode:'normal',style:'',version:1}]}))}}:existingForEdit?JSON.parse(existingForEdit.content_json||'{}'):{root:{type:'root',children:[]}}
         const sources=Array.isArray(input.sources)?input.sources:[]
-        const featured=input.featuredImage && typeof input.featuredImage==='object'?input.featuredImage:existingForEdit?JSON.parse(existingForEdit.image_json||'{}'):{}
+        let featured=input.featuredImage && typeof input.featuredImage==='object'?input.featuredImage:existingForEdit?JSON.parse(existingForEdit.image_json||'{}'):{}
+        if (input.featured_image_id) {
+          const mediaRow=await env.D1.prepare('SELECT raw_json FROM migration_media WHERE id=?').bind(String(input.featured_image_id)).first()
+          if (!mediaRow) return json({ok:false,error:'featured-image-not-found'},400)
+          const media=JSON.parse(mediaRow.raw_json)
+          const token=String(media.id||'').replace(/^cf-media-/,'')
+          featured={id:media.id,alt:media.alt||'',filename:media.filename||'',url:/^[a-f0-9]{32}$/.test(token)?url.origin+'/public/media/'+token:media.url||''}
+        }
         const oldMetadata=existingForEdit?JSON.parse(existingForEdit.metadata_json||'{}'):{}
-        const metadata={...oldMetadata,deck:String(input.deck||''),source_article:{...(oldMetadata.source_article||{}),headline:title,deck:String(input.deck||''),seo_title:String(input.seo_title||''),seo_description:String(input.seo_description||'')}}
+        const metadata={...oldMetadata,deck:String(input.deck||''),editorial_placement:['news','featured','lead'].includes(input.editorial_placement)?input.editorial_placement:(oldMetadata.editorial_placement||'news'),source_article:{...(oldMetadata.source_article||{}),headline:title,deck:String(input.deck||''),seo_title:String(input.seo_title||''),seo_description:String(input.seo_description||'')}}
         const now=new Date().toISOString()
         const id=url.pathname.startsWith('/editor/articles/')?url.pathname.split('/').pop():'cf-'+crypto.randomUUID()
         if(request.method==='PATCH') {
