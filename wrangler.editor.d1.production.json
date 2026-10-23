@@ -19,7 +19,7 @@
     }
   ],
   "vars": {
-    "EDITOR_PRODUCTION_MODE": "read-only"
+    "EDITOR_PRODUCTION_MODE": "live"
   },
   "observability": {
     "enabled": true
