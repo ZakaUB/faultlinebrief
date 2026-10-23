@@ -19,8 +19,12 @@ jobs:
           jq -e '.success == true and (.result|length)==1 and .result[0].status=="active"' zone.json
           zone=$(jq -r '.result[0].id' zone.json)
           echo "Cloudflare zone found: $zone"
-          curl -fsS -H "Authorization: Bearer $CF_TOKEN" "$api/zones/$zone/dns_records?per_page=100" > dns-before.json
-          jq -r '.result[] | select(.name=="faultlinebrief.com" or .name=="www.faultlinebrief.com") | [.name,.type,.proxied] | @tsv' dns-before.json
+          for host in faultlinebrief.com www.faultlinebrief.com; do
+            echo "Public DNS snapshot for $host"
+            dig +noall +answer "$host" A || true
+            dig +noall +answer "$host" AAAA || true
+            dig +noall +answer "$host" CNAME || true
+          done
           echo "ZONE_ID=$zone" >> "$GITHUB_ENV"
       - name: Attach apex and www to isolated Cloudflare Worker
         env:
