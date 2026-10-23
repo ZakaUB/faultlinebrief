@@ -48,3 +48,36 @@ jobs:
             curl --fail-with-body --location --silent --show-error --max-time 35 --retry 2 --output /tmp/faultline-response --write-out "HTTP %{http_code}; bytes %{size_download}; content-type %{content_type}\\n" "$base$route"
             test -s /tmp/faultline-response
           done
+
+      - name: Verify isolated Latest News renders published article links
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import urllib.request,json,re
+          from html.parser import HTMLParser
+          base='https://faultlinebrief-website-d1-isolated.zakria25.workers.dev'
+          api='https://faultlinebrief-public-d1-preview.zakria25.workers.dev/v1/articles?limit=100'
+          class Links(HTMLParser):
+            def __init__(self):super().__init__();self.hrefs=[];self.text=[]
+            def handle_starttag(self,t,a):
+              if t=='a':
+                d=dict(a)
+                if d.get('href'):self.hrefs.append(d['href'])
+            def handle_data(self,t):self.text.append(t)
+          def get(url):
+            req=urllib.request.Request(url,headers={'User-Agent':'FaultlineBrief-Deployment-Verification/1.0'})
+            with urllib.request.urlopen(req,timeout=30) as r:return r.read().decode('utf-8','replace')
+          items=json.loads(get(api))['items']
+          news=[x for x in items if x.get('editorialPlacement')=='news']
+          page=get(base+'/latest-news')
+          parsed=Links();parsed.feed(page)
+          links=set(parsed.hrefs)
+          expected=['/articles/'+x['slug'] for x in news[:20]]
+          missing=[link for link in expected if link not in links]
+          print('D1_PUBLISHED_NEWS',len(news),'EXPECTED_FIRST_PAGE',len(expected),'RENDERED_NEWS_LINKS',sum(1 for link in expected if link in links))
+          print('MISSING',missing[:10])
+          print('UNAVAILABLE_MESSAGE_PRESENT','News updates temporarily unavailable' in page)
+          assert 'News updates temporarily unavailable' not in page,'Latest News still showing query error'
+          assert not missing,'Published D1 news links missing from page'
+          print('PASS Latest News D1 article links and no unavailable message')
+          PY
