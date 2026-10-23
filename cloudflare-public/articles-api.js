@@ -41,7 +41,7 @@ export default {
     return response({ slug: row.slug, headline: row.title, publishedAt: row.published_at,
       updatedAt: row.updated_at, body: parse(row.content_json, {}), sources: parse(row.source_json, []),
       featuredImage: parse(row.image_json, null), deck: meta.deck ?? null,
-      editorialPlacement: meta.editorial_placement ?? null, seoTitle: meta.seo_title ?? null,
-      seoDescription: meta.seo_description ?? null, categoryRelationships: meta.category_relationships ?? [] })
+      editorialPlacement: meta.editorial_placement ?? null, seoTitle: meta.seo_title ?? meta.source_article?.seo_title ?? null,
+      seoDescription: meta.seo_description ?? meta.source_article?.seo_description ?? null, categoryRelationships: meta.category_relationships ?? [] })
   },
 }
