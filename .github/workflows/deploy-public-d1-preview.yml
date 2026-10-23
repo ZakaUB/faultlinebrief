@@ -2,7 +2,7 @@ name: Deploy isolated public D1 preview
 on:
   push:
     branches: [emergency-neon-to-cloudflare-20261021]
-    paths: [.github/workflows/deploy-public-d1-preview.yml]
+    paths: [.github/workflows/deploy-public-d1-preview.yml, cloudflare-public/articles-api.js]
   workflow_dispatch:
 permissions:
   contents: read
