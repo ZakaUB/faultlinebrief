@@ -31,6 +31,8 @@ jobs:
           NODE
           node --check cloudflare-editor/worker.js
           node --check cloudflare-editor/d1-staging-adapter.js
+      - name: Install legacy editor build dependency
+        run: npm install --no-save --no-package-lock pg@8
       - name: Deploy existing editor with production bindings
         run: npx --yes wrangler@4.45.4 deploy --config wrangler.editor.d1.production.json
       - name: Confirm Worker health
