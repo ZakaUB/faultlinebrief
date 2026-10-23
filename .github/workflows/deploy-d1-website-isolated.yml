@@ -4,6 +4,7 @@ on:
     branches: [emergency-neon-to-cloudflare-20261021]
     paths: [.github/workflows/deploy-d1-website-isolated.yml, open-next.config.ts, wrangler.website.d1.isolated.json, 'src/app/(frontend)/api/media/file/**', 'src/app/(frontend)/page.tsx']
   workflow_dispatch:
+  # Redeploy original Faultline Brief logo
 permissions:
   contents: read
 jobs:
