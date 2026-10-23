@@ -18,7 +18,7 @@ export function stagingDb(env) {
     const row = await env.D1.prepare('SELECT * FROM migration_articles WHERE id=?').bind(String(id)).first()
     if (!row) return null
     const meta=parse(row.metadata_json,{})
-    return { ...meta.source_article, id:row.id,headline:row.title,slug:row.slug,status:row.status,
+    return { ...meta.source_article, id:row.id,headline:row.title,slug:row.slug,status:row.status,published_at:row.published_at,deck:meta.deck||meta.source_article?.deck||'',editorialPlacement:meta.editorial_placement||'news',
       body:parse(row.content_json,{}), sources:parse(row.source_json,[]),
       featuredImage:parse(row.image_json,{}), categoryRelationships:meta.category_relationships || [] }
   }
