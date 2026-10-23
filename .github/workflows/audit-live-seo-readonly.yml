@@ -1,4 +1,5 @@
 name: Audit live Faultline Brief SEO without production changes
+# Read-only live endpoint validation; no production writes.
 on:
   workflow_dispatch:
   push:
