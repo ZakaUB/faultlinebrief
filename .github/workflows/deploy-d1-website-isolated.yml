@@ -25,10 +25,12 @@ jobs:
           node-version: '22'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Install OpenNext Cloudflare adapter
+        run: pnpm add -D --no-frozen-lockfile @opennextjs/cloudflare@1.20.13
       - name: Build Next.js
         run: pnpm run build
       - name: Convert Next.js to Cloudflare Worker
-        run: pnpm dlx @opennextjs/cloudflare@latest build
+        run: pnpm exec opennextjs-cloudflare build
       - name: Deploy isolated Cloudflare website
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
