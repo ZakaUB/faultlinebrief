@@ -1,0 +1,50 @@
+name: Preflight production CMS D1 read-only
+on:
+  push:
+    branches: [emergency-neon-to-cloudflare-20261021]
+    paths: [.github/workflows/preflight-production-editor-d1.yml, wrangler.editor.d1.production.json]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate production config and audit D1 schema without writes
+        run: |
+          python3 - <<'PY'
+          import json,os,urllib.request
+          c=json.load(open('wrangler.editor.d1.production.json'))
+          assert c['name']=='faultlinebrief-editor-d1-isolated'
+          assert c['vars']['EDITOR_PRODUCTION_MODE']=='read-only'
+          assert c['routes']==[]
+          assert c['d1_databases'][0]['database_id']=='cc4cf967-6c3a-4c7d-a5a1-ca3cd9f2d8a9'
+          assert c['r2_buckets'][0]['bucket_name']=='faultlinebriefq-media'
+          account=os.environ['CLOUDFLARE_ACCOUNT_ID']
+          token=os.environ['CLOUDFLARE_API_TOKEN']
+          assert account and token
+          url=f'https://api.cloudflare.com/client/v4/accounts/{account}/d1/database/cc4cf967-6c3a-4c7d-a5a1-ca3cd9f2d8a9/query'
+          def query(sql):
+            request=urllib.request.Request(url,data=json.dumps({'sql':sql}).encode(),headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'},method='POST')
+            with urllib.request.urlopen(request,timeout=30) as response: data=json.load(response)
+            if not data.get('success'): raise RuntimeError('D1 query failed: '+str(data.get('errors')))
+            return [row for part in data['result'] for row in part.get('results',[])]
+          tables={x['name'] for x in query("SELECT name FROM sqlite_master WHERE type='table'")}
+          required={'migration_articles','migration_media','migration_categories'}
+          print('Tables present:',sorted(tables & required))
+          missing=required-tables
+          if missing: raise RuntimeError('Missing tables: '+', '.join(sorted(missing)))
+          for table in sorted(required):
+            cols={x['name'] for x in query('PRAGMA table_info('+table+')')}
+            print(table,'columns:',sorted(cols))
+          articles=query('SELECT COUNT(*) AS count FROM migration_articles')
+          media=query('SELECT COUNT(*) AS count FROM migration_media')
+          print('Article records:',articles[0]['count'],'Media records:',media[0]['count'])
+          print('PASS: read-only schema preflight. No Worker deployment, database writes, or production cutover.')
+          PY
