@@ -147,20 +147,26 @@ export default {
     // No listing, upload, admin access, or non-staging media exposure.
     const publishedImagePath = /^\/public\/staging-media\/([a-f0-9]{32})$/.exec(url.pathname)
     if (publishedImagePath && request.method === 'GET') {
-      if (!env.DATABASE_URL || !new URL(env.DATABASE_URL).hostname.startsWith('ep-red-dream-b42nh8xe')) return json({ ok:false, error:'staging-database-required' },503)
-      const { Client } = await import('pg')
-      const client = new Client({ connectionString:env.DATABASE_URL, connectionTimeoutMillis:8000 })
+      if (!env.D1) return json({ ok:false, error:'staging-d1-required' },503)
       try {
-        await client.connect()
-        const key = 'editor-media/staging/' + publishedImagePath[1]
-        const allowed = await client.query("SELECT 1 FROM public.media m JOIN public.articles a ON a.featured_image_id=m.id WHERE m._objectkey=$1 AND a.status='published' AND a.slug LIKE 'cf-staging-test-%' LIMIT 1",[key])
-        if (!allowed.rowCount) return json({ok:false,error:'image-not-found'},404)
-        const object = await env.R2.get(key)
+        const mediaId = 'cf-media-' + publishedImagePath[1]
+        const media = await env.D1.prepare('SELECT raw_json FROM migration_media WHERE id=?').bind(mediaId).first()
+        if (!media) return json({ok:false,error:'image-not-found'},404)
+        const { results } = await env.D1.prepare("SELECT image_json FROM migration_articles WHERE status='published' AND slug LIKE 'cf-staging-test-%'").all()
+        const referenced = results.some(row => {
+          try {
+            const image = JSON.parse(row.image_json || '{}')
+            return image.id === mediaId || image.mediaId === mediaId || image.url === '/editor/images/' + publishedImagePath[1] || image.url === '/public/staging-media/' + publishedImagePath[1]
+          } catch { return false }
+        })
+        if (!referenced) return json({ok:false,error:'image-not-found'},404)
+        const record = JSON.parse(media.raw_json)
+        const object = await env.R2.get(record.objectKey)
         if (!object) return json({ok:false,error:'image-not-found'},404)
         return new Response(object.body,{headers:{'Content-Type':object.httpMetadata?.contentType||'application/octet-stream','Cache-Control':'public, max-age=300','X-Content-Type-Options':'nosniff','X-Robots-Tag':'noindex, nofollow'}})
       } catch { return json({ok:false,error:'staging-media-unavailable'},503) }
-      finally { await client.end().catch(()=>{}) }
     }
+
     // Stage 5: isolated, authenticated staging website preview and sitemap previews.
     // Never expose these routes to crawlers or serve real editorial articles.
     if (request.method === 'GET' && (url.pathname.startsWith('/preview/articles/') || url.pathname === '/preview/sitemap.xml' || url.pathname === '/preview/news-sitemap.xml')) {
