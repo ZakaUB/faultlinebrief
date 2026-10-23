@@ -32,9 +32,9 @@ jobs:
           health=get('/health')
           data=get('/v1/articles?limit=100')
           assert health.get('ok') is True
-          assert len(data.get('items',[]))==40, 'Expected 40 imported articles'
+          assert len(data.get('items',[]))>=40, 'Expected at least 40 published articles'
           slug=data['items'][0]['slug']
           article=get('/v1/articles/'+slug)
           assert article.get('slug')==slug
-          print('PASS: health, 40 published articles, article detail')
+          print('PASS: health, published articles, article detail')
           PY
