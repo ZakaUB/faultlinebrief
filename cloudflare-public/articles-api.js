@@ -21,6 +21,7 @@ export default {
         const meta = parse(row.metadata_json, {})
         return { slug: row.slug, headline: row.title, publishedAt: row.published_at, updatedAt: row.updated_at,
           deck: meta.deck ?? null, editorialPlacement: meta.editorial_placement ?? null,
+          categories: meta.category_relationships ?? [],
           featuredImage: parse(row.image_json, null) }
       }) })
     }
