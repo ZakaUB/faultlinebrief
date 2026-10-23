@@ -58,7 +58,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   let articles: CmsArticle[] = []
   try {
     if (process.env.FAULTLINE_D1_READS === 'true') {
-      articles = (await getEditorialStories(100)).filter(story => belongsTo(story, slug)) as CmsArticle[]
+      articles = (await getEditorialStories(50000)).filter(story => belongsTo(story, slug)) as CmsArticle[]
     } else {
     const payload = await getPayload({ config })
     const categoryResult = await payload.find({
