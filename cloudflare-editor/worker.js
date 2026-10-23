@@ -136,7 +136,10 @@ export default {
     }
     if (imagePath && request.method === 'GET') {
       if (!await authenticated()) return json({ ok: false, error: 'unauthorized' }, 401)
-      const object = await env.R2.get('editor-media/staging/' + imagePath[1])
+      const media = await env.D1.prepare('SELECT raw_json FROM migration_media WHERE id=?').bind('cf-media-' + imagePath[1]).first()
+      if (!media) return json({ ok: false, error: 'image-not-found' }, 404)
+      const record = JSON.parse(media.raw_json)
+      const object = await env.R2.get(record.objectKey)
       if (!object) return json({ ok: false, error: 'image-not-found' }, 404)
       return new Response(object.body, { status: 200, headers: { ...headers, 'Content-Type': object.httpMetadata?.contentType || 'application/octet-stream', 'Content-Length': String(object.size) } })
     }
