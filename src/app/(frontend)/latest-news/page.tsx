@@ -38,7 +38,7 @@ export default async function LatestNewsPage({ searchParams }: { searchParams: P
   try {
     if (process.env.FAULTLINE_D1_READS === 'true') {
       // Use the same published D1 feed as the homepage sidebar, not the retired Neon connection.
-      const stories = await getLatestNewsStories(100)
+      const stories = await getLatestNewsStories(50000)
       totalDocs = stories.length
       updates = stories.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
       hasNextPage = page * PAGE_SIZE < stories.length
