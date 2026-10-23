@@ -44,7 +44,7 @@ export default async function HomePage() {
               <p>{lead.deck}</p>
               <Link className="read-link" href={`/articles/${lead.slug}`}>READ THE STORY →</Link>
             </div>
-            {imageFor(lead) ? <Image className="lead-image" src={imageFor(lead)!} alt={typeof lead.featuredImage === 'object' ? lead.featuredImage?.alt || lead.headline : lead.headline} width={900} height={530} sizes="(max-width: 700px) 92vw, (max-width: 1100px) 46vw, 600px" priority /> : <div className="image-placeholder">FAULTLINE / BRIEF</div>}
+            {imageFor(lead) ? <Image className="lead-image" src={imageFor(lead)!} alt={typeof lead.featuredImage === 'object' ? lead.featuredImage?.alt || lead.headline : lead.headline} width={900} height={530} sizes="(max-width: 700px) 92vw, (max-width: 1100px) 46vw, 600px" unoptimized priority /> : <div className="image-placeholder">FAULTLINE / BRIEF</div>}
           </section>
         ) : (
           <section className="lead-story"><div className="lead-copy"><span className="eyebrow">LATEST REPORTING</span><h1>Independent geopolitical reporting and analysis</h1><p>Published stories will appear here as they become available.</p></div></section>
@@ -57,7 +57,7 @@ export default async function HomePage() {
             <div className="homepage-story-grid">
               {more.map(story => <article className="story-card story-card-overlay" key={story.id}>
                 <Link className="story-card-overlay-link" href={`/articles/${story.slug}`}>
-                  {imageFor(story) ? <Image src={imageFor(story)!} alt={typeof story.featuredImage === 'object' ? story.featuredImage?.alt || story.headline : story.headline} width={480} height={600} sizes="(max-width: 700px) 92vw, (max-width: 900px) 46vw, (max-width: 1100px) 22vw, 24vw" /> : <span className="story-card-image-fallback" aria-hidden="true" />}
+                  {imageFor(story) ? <Image src={imageFor(story)!} alt={typeof story.featuredImage === 'object' ? story.featuredImage?.alt || story.headline : story.headline} width={480} height={600} sizes="(max-width: 700px) 92vw, (max-width: 900px) 46vw, (max-width: 1100px) 22vw, 24vw" unoptimized /> : <span className="story-card-image-fallback" aria-hidden="true" />}
                   <span className="story-card-overlay-shade" aria-hidden="true" />
                   <h2>{story.headline}</h2>
                 </Link>
