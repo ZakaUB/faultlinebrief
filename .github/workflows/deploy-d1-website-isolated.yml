@@ -28,7 +28,7 @@ jobs:
       - name: Build Next.js
         run: pnpm run build
       - name: Convert Next.js to Cloudflare Worker
-        run: pnpm dlx @opennextjs/cloudflare@1.15.1 build
+        run: pnpm dlx @opennextjs/cloudflare@latest build
       - name: Deploy isolated Cloudflare website
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
