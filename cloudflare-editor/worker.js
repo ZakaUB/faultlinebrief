@@ -184,8 +184,8 @@ export default {
       } catch { return json({ok:false,error:'staging-media-unavailable'},503) }
     }
 
-    const publicImageMatch = new RegExp('^/public/media/([a-f0-9]{32})
-    if (publicImageMatch && request.method === 'GET' && env.EDITOR_PRODUCTION_MODE === 'live') {
+    const publicImageMatch = url.pathname.startsWith('/public/media/') ? [null, url.pathname.slice('/public/media/'.length)] : null
+    if (publicImageMatch && /^[a-f0-9]{32}$/.test(publicImageMatch[1]) && request.method === 'GET' && env.EDITOR_PRODUCTION_MODE === 'live') {
       const mediaId='cf-media-'+publicImageMatch[1]
       const article=await env.D1.prepare("SELECT id FROM migration_articles WHERE status='published' AND image_json LIKE ? LIMIT 1").bind('%'+mediaId+'%').first()
       if (!article) return json({ok:false,error:'image-not-published'},404)
