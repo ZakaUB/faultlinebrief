@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { getAllD1Articles } from '@/app/(frontend)/newsroom'
 
 type RelatedArticle = {
   slug: string
@@ -12,10 +13,7 @@ export default async function RelatedCoverage({ currentSlug, currentCategories }
   if (!endpoint) return null
   let articles: RelatedArticle[] = []
   try {
-    const response = await fetch(endpoint.replace(/\/$/, '') + '/v1/articles?limit=100', { next: { revalidate: 60 } })
-    if (!response.ok) return null
-    const data = await response.json() as { items?: RelatedArticle[] }
-    articles = (data.items || []).filter(item => item.slug && item.headline && item.slug !== currentSlug)
+    articles = (await getAllD1Articles<RelatedArticle>()).filter(item => item.slug && item.headline && item.slug !== currentSlug)
   } catch {
     return null
   }
