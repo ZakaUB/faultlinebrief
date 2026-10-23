@@ -1,9 +1,6 @@
 name: Deploy isolated D1 editor read-only staging
 # Retry after restoring required editor UI module
 on:
-  push:
-    branches: [emergency-neon-to-cloudflare-20261021]
-    paths: [.github/workflows/deploy-d1-editor-isolated.yml, cloudflare-editor/worker.js, cloudflare-editor/d1-staging-adapter.js]
   workflow_dispatch:
 permissions:
   contents: read
