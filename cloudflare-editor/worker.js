@@ -45,7 +45,7 @@ export default {
         const input=await request.json()
         if (!input || typeof input!=='object') return json({ok:false,error:'invalid-json'},400)
         const slug=String(input.slug||'')
-        if (!/^cf-staging-test-[a-z0-9-]{1,80}$/.test(slug)) return json({ok:false,error:'staging-test-slug-required'},405)
+        if (!(env.EDITOR_PRODUCTION_MODE === 'live' ? /^[a-z0-9][a-z0-9-]{1,159}$/.test(slug) : /^cf-staging-test-[a-z0-9-]{1,80}$/.test(slug))) return json({ok:false,error:'invalid-slug'},405)
         const title=String(input.headline||input.title||'').trim()
         if (!title || title.length>220) return json({ok:false,error:'invalid-headline'},400)
         const status=input.status==='published'?'published':'draft'
@@ -57,7 +57,7 @@ export default {
         const id=url.pathname.startsWith('/editor/articles/')?url.pathname.split('/').pop():'cf-'+crypto.randomUUID()
         if(request.method==='PATCH') {
           const existing=await env.D1.prepare('SELECT id,slug FROM migration_articles WHERE id=?').bind(id).first()
-          if (!existing || existing.slug!==slug || !existing.slug.startsWith('cf-staging-test-')) return json({ok:false,error:'staging-test-article-not-found'},404)
+          if (!existing || existing.slug!==slug || (env.EDITOR_PRODUCTION_MODE !== 'live' && !existing.slug.startsWith('cf-staging-test-'))) return json({ok:false,error:'article-not-found'},404)
           await env.D1.prepare('UPDATE migration_articles SET title=?,status=?,published_at=CASE WHEN ?=\'published\' THEN COALESCE(published_at,?) ELSE NULL END,updated_at=?,content_json=?,metadata_json=?,source_json=?,image_json=? WHERE id=? AND slug=?')
             .bind(title,status,status,now,now,JSON.stringify(body),JSON.stringify(metadata),JSON.stringify(sources),JSON.stringify(featured),id,slug).run()
         } else {
