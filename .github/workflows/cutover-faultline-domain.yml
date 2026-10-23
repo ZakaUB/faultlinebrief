@@ -1,0 +1,42 @@
+name: Cut over Faultline Brief domain to Cloudflare
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cutover:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    steps:
+      - name: Locate authoritative Cloudflare zone and preserve DNS snapshot
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          api=https://api.cloudflare.com/client/v4
+          curl -fsS -H "Authorization: Bearer $CF_TOKEN" "$api/zones?name=faultlinebrief.com&account.id=$CF_ACCOUNT" > zone.json
+          jq -e '.success == true and (.result|length)==1 and .result[0].status=="active"' zone.json
+          zone=$(jq -r '.result[0].id' zone.json)
+          echo "Cloudflare zone found: $zone"
+          curl -fsS -H "Authorization: Bearer $CF_TOKEN" "$api/zones/$zone/dns_records?per_page=100" > dns-before.json
+          jq -r '.result[] | select(.name=="faultlinebrief.com" or .name=="www.faultlinebrief.com") | [.name,.type,.proxied] | @tsv' dns-before.json
+          echo "ZONE_ID=$zone" >> "$GITHUB_ENV"
+      - name: Attach apex and www to isolated Cloudflare Worker
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          api=https://api.cloudflare.com/client/v4
+          for host in faultlinebrief.com www.faultlinebrief.com; do
+            echo "Attaching $host to Cloudflare Worker"
+            payload=$(jq -nc --arg h "$host" --arg z "$ZONE_ID" '{hostname:$h,zone_id:$z,service:"faultlinebrief-website-d1-isolated",environment:"production"}')
+            curl -fsS -X PUT "$api/accounts/$CF_ACCOUNT/workers/domains" -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" --data "$payload" > result.json
+            jq -e '.success==true' result.json
+          done
+      - name: Check live domain
+        run: |
+          for host in faultlinebrief.com www.faultlinebrief.com; do
+            curl -L -sS -o /dev/null -w "$host HTTP %{http_code}\\n" --max-time 30 "https://$host/"
+          done
