@@ -128,3 +128,46 @@ jobs:
             print('ENDPOINT',path,code,typ,'bytes',len(body))
           print('READ_ONLY_AUDIT_COMPLETE')
           PY
+
+      - name: Inspect isolated article pages and media endpoints without writes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import urllib.request,urllib.error,html.parser,xml.etree.ElementTree as ET
+          from urllib.parse import urljoin,urlparse
+          base='https://faultlinebrief-website-d1-isolated.zakria25.workers.dev'
+          class Scan(html.parser.HTMLParser):
+            def __init__(self):super().__init__();self.images=[];self.canonical=[];self.h1=0;self.sources=[];self.title=''
+            def handle_starttag(self,t,a):
+              d=dict(a)
+              if t=='img':self.images.append((d.get('src',''),d.get('alt')))
+              if t=='link' and d.get('rel')=='canonical':self.canonical.append(d.get('href'))
+              if t=='h1':self.h1+=1
+              if t=='a' and d.get('href','').startswith('http'):self.sources.append(d['href'])
+          def fetch(url):
+            req=urllib.request.Request(url,headers={'User-Agent':'FaultlineBrief-Isolated-Media-Audit/1.0'})
+            try:
+              with urllib.request.urlopen(req,timeout=25) as r:return r.status,r.headers.get('Content-Type',''),r.read(1000000)
+            except urllib.error.HTTPError as e:return e.code,e.headers.get('Content-Type',''),e.read(1000)
+            except Exception as e:return 0,'',str(e).encode()
+          paths=['/articles/putin-european-security-framework-ukraine-peace-talks','/articles/houthi-missile-strike-yemen-shabwa-soldiers-killed','/articles/pakistan-qatar-us-iran-compromise-nuclear-inspections','/articles/colombia-farc-leaders-war-crimes-indigenous-groups-october-2026','/articles/putin-trump-xi-summit-ukraine-peace-talks']
+          images=set()
+          for path in paths:
+            for attempt in range(2):
+              status,ct,body=fetch(base+path)
+              print('ARTICLE',path,'attempt',attempt+1,'status',status,'type',ct,'bytes',len(body))
+              if status==200:
+                p=Scan();p.feed(body.decode('utf-8','replace'))
+                print('META',path,'h1',p.h1,'canonical',p.canonical,'images',len(p.images),'missing_alt',sum(1 for _,alt in p.images if alt is None),'blank_alt',sum(1 for _,alt in p.images if alt==''))
+                for src,alt in p.images:
+                  if src.startswith('/') or src.startswith(base):images.add(urljoin(base,src))
+                break
+          for path in ['/api/media/file/logo.jpg','/api/media/file/who-are-the-houthis-history-sanaa-2014-saudi-arabia-conflict.jpg','/api/media/file/this-file-should-not-exist-20261023.jpg']:
+            for attempt in range(2):
+              code,ct,body=fetch(base+path)
+              print('MEDIA',path,'attempt',attempt+1,'status',code,'type',ct,'bytes_sampled',len(body))
+          for url in sorted(images)[:15]:
+            code,ct,body=fetch(url)
+            print('ARTICLE_IMAGE',code,ct,url)
+          print('ISOLATED_READONLY_AUDIT_DONE')
+          PY
