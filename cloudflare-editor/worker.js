@@ -49,7 +49,7 @@ export default {
         if (!(env.EDITOR_PRODUCTION_MODE === 'live' ? /^[a-z0-9][a-z0-9-]{1,159}$/.test(slug) : /^cf-staging-test-[a-z0-9-]{1,80}$/.test(slug))) return json({ok:false,error:'invalid-slug'},405)
         const title=String(input.headline||input.title||'').trim()
         if (!title || title.length>220) return json({ok:false,error:'invalid-headline'},400)
-        const status=(input.status==='published'||input.action==='publish')?'published':'draft'
+        const status=(input.status==='published'||input.action==='publish'||(request.method==='PATCH'&&input.action==='edit'&&(await env.D1.prepare('SELECT status FROM migration_articles WHERE id=?').bind(url.pathname.split('/').pop()).first())?.status==='published'))?'published':'draft'
         const articleText=typeof input.article_text==='string'?input.article_text.trim():''
         const body=input.body && typeof input.body==='object'?input.body:articleText?{root:{type:'root',format:'',indent:0,version:1,direction:'ltr',children:articleText.split(/\\n\\s*\\n/).map(t=>({type:'paragraph',format:'',indent:0,version:1,direction:'ltr',children:[{type:'text',text:t,detail:0,format:0,mode:'normal',style:'',version:1}]}))}}:existingForEdit?JSON.parse(existingForEdit.content_json||'{}'):{root:{type:'root',children:[]}}
         const sources=Array.isArray(input.sources)?input.sources:[]
