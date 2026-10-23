@@ -63,6 +63,11 @@ export default {
         }
         const oldMetadata=existingForEdit?JSON.parse(existingForEdit.metadata_json||'{}'):{}
         const metadata={...oldMetadata,deck:String(input.deck||''),editorial_placement:['news','featured','lead'].includes(input.editorial_placement)?input.editorial_placement:(oldMetadata.editorial_placement||'news'),source_article:{...(oldMetadata.source_article||{}),headline:title,deck:String(input.deck||''),seo_title:String(input.seo_title||''),seo_description:String(input.seo_description||'')}}
+        if (['geopolitics','conflict','security'].includes(input.category_slug)) {
+          const category=await env.D1.prepare('SELECT id,slug,name FROM migration_categories WHERE slug=?').bind(input.category_slug).first()
+          if (!category) return json({ok:false,error:'category-not-found'},400)
+          metadata.category_relationships=[{id:category.id,categories_id:category.id,slug:category.slug,name:category.name}]
+        }
         const now=new Date().toISOString()
         const id=url.pathname.startsWith('/editor/articles/')?url.pathname.split('/').pop():'cf-'+crypto.randomUUID()
         if(request.method==='PATCH') {
