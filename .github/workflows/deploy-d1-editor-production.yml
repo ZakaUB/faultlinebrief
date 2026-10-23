@@ -35,13 +35,17 @@ jobs:
         run: npm install --no-save --no-package-lock pg@8
       - name: Deploy existing editor with production bindings
         run: npx --yes wrangler@4.45.4 deploy --config wrangler.editor.d1.production.json
-      - name: Confirm Worker health
+      - name: Verify deployed Worker via Cloudflare API
         run: |
           python3 - <<'PY'
-          import urllib.request,json
-          url='https://faultlinebrief-editor-d1-isolated.zakria25.workers.dev/health'
-          with urllib.request.urlopen(url,timeout=30) as r:
-            data=json.load(r)
-            assert r.status==200 and data.get('ok') is True
-            print('Production-connected editor Worker responds successfully')
+          import os,urllib.request,json
+          account=os.environ['CLOUDFLARE_ACCOUNT_ID']
+          token=os.environ['CLOUDFLARE_API_TOKEN']
+          url=f'https://api.cloudflare.com/client/v4/accounts/{account}/workers/workers/faultlinebrief-editor-d1-isolated'
+          req=urllib.request.Request(url,headers={'Authorization':'Bearer '+token})
+          with urllib.request.urlopen(req,timeout=30) as response:
+            data=json.load(response)
+            assert data.get('success'), data.get('errors')
+            print('PASS: existing CMS Worker deployed in Cloudflare account')
+          print('Public workers.dev health endpoint is separately protected; no HTTP access assertion.')
           PY
