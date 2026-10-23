@@ -1,5 +1,5 @@
 import SiteNav from '@/app/(frontend)/SiteNav'
 import Brand from '@/app/(frontend)/Brand'
 import Link from 'next/link'
-export const metadata = { title: 'Contact | Faultline Brief' }
+export const metadata = { title: 'Contact | Faultline Brief', alternates: { canonical: 'https://faultlinebrief.com/contact' } }
 export default function Page(){return <div className="site"><div className="utility"><span>FAULTLINE BRIEF / INFORMATION</span></div><header className="masthead"><Brand /><p>Understand what happened. Know why it matters.</p></header><SiteNav /><main className="policy-page"><span className="eyebrow">FAULTLINE BRIEF</span><h1>Contact</h1><p>For factual corrections, editorial feedback, sourcing questions or general inquiries, contact the Faultline Brief Editorial Desk at <a href="mailto:editorial@faultlinebrief.com">editorial@faultlinebrief.com</a>.</p><p>We do not publish confidential submissions or identifying information without appropriate editorial review.</p></main><footer><strong>FAULTLINE BRIEF<span>.</span></strong><div className="legal-links"><Link href="/privacy">Privacy</Link><Link href="/editorial-standards">Standards</Link><Link href="/contact">Contact</Link></div></footer></div>}
