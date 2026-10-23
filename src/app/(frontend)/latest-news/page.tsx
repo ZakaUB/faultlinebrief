@@ -6,7 +6,7 @@ import { getPayload } from 'payload'
 import config from '@/payload.config'
 import type { Metadata } from 'next'
 import type { Story } from '@/app/(frontend)/newsroom'
-import { storyDate } from '@/app/(frontend)/newsroom'
+import { getLatestNewsStories, storyDate } from '@/app/(frontend)/newsroom'
 
 export const dynamic = 'force-dynamic'
 const PAGE_SIZE = 20
@@ -36,22 +36,30 @@ export default async function LatestNewsPage({ searchParams }: { searchParams: P
   let totalDocs = 0
   let failed = false
   try {
-    const payload = await getPayload({ config })
-    const result = await payload.find({
-      collection: 'articles' as any,
-      where: { and: [
-        { status: { equals: 'published' } },
-        { editorialPlacement: { equals: 'news' } },
-      ] },
-      sort: '-publishedAt',
-      page,
-      limit: PAGE_SIZE,
-      depth: 0,
-    })
+    if (process.env.FAULTLINE_D1_READS === 'true') {
+      // Use the same published D1 feed as the homepage sidebar, not the retired Neon connection.
+      const stories = await getLatestNewsStories(100)
+      totalDocs = stories.length
+      updates = stories.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+      hasNextPage = page * PAGE_SIZE < stories.length
+    } else {
+      const payload = await getPayload({ config })
+      const result = await payload.find({
+        collection: 'articles' as any,
+        where: { and: [
+          { status: { equals: 'published' } },
+          { editorialPlacement: { equals: 'news' } },
+        ] },
+        sort: '-publishedAt',
+        page,
+        limit: PAGE_SIZE,
+        depth: 0,
+      })
       updates = result.docs as unknown as Story[]
       hasNextPage = result.hasNextPage
       hasPrevPage = result.hasPrevPage
       totalDocs = result.totalDocs
+    }
   } catch (error) {
     failed = true
     console.error('[Faultline Brief] Latest news query failed:', error)
