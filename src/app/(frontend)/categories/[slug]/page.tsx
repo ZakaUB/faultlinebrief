@@ -7,6 +7,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
+import { getEditorialStories, belongsTo } from '@/app/(frontend)/newsroom'
 import { previews, storyPhotos } from '@/app/(frontend)/archive-preview/page'
 
 export const dynamic = 'force-dynamic'
@@ -56,6 +57,9 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   type CmsArticle = { id: number | string; headline: string; slug: string; deck?: string }
   let articles: CmsArticle[] = []
   try {
+    if (process.env.FAULTLINE_D1_READS === 'true') {
+      articles = (await getEditorialStories(100)).filter(story => belongsTo(story, slug)) as CmsArticle[]
+    } else {
     const payload = await getPayload({ config })
     const categoryResult = await payload.find({
       collection: 'categories' as any,
@@ -77,6 +81,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
         depth: 1,
       })
       articles = result.docs as unknown as CmsArticle[]
+    }
     }
   } catch (error) {
     console.error('[Faultline Brief] Category CMS query failed; serving existing briefings:', error)
