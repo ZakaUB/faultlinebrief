@@ -24,7 +24,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ fil
   const headers = new Headers()
   object.writeHttpMetadata(headers)
   headers.set('etag', object.httpEtag)
-  headers.set('cache-control', 'public, max-age=3600')
+  // Uploaded media is addressed by its filename. Keep originals intact and cache
+  // at the browser and CDN to avoid repeatedly downloading multi-megabyte images.
+  headers.set('cache-control', 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400')
   headers.set('x-content-type-options', 'nosniff')
   return new Response(object.body, { headers })
 }
