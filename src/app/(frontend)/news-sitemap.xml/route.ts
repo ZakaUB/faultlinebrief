@@ -20,10 +20,17 @@ export async function GET(): Promise<Response> {
   if (process.env.FAULTLINE_D1_READS === 'true') {
     const endpoint = process.env.FAULTLINE_D1_API_URL
     if (!endpoint) throw new Error('FAULTLINE_D1_API_URL must be set for D1 reads')
-    const response = await fetch(endpoint.replace(/\/$/, '') + '/v1/articles?limit=100', { cache: 'no-store' })
-    if (!response.ok) throw new Error('D1 news sitemap request failed: ' + response.status)
-    const data = await response.json() as { items: typeof articles }
-    articles = data.items
+    articles = []
+    for (let offset = 0; offset < 10000; offset += 100) {
+      const response = await fetch(endpoint.replace(/\\/$/, '') + '/v1/articles?limit=100&offset=' + offset, { cache: 'no-store' })
+      if (!response.ok) throw new Error('D1 news sitemap request failed: ' + response.status)
+      const data = await response.json() as { items: typeof articles }
+      if (!Array.isArray(data.items)) throw new Error('Invalid D1 news sitemap response')
+      articles.push(...data.items)
+      // Public API sorts newest first; stop once the last item is older than 48 hours.
+      if (data.items.length < 100 || (data.items[data.items.length - 1]?.publishedAt && new Date(data.items[data.items.length - 1].publishedAt!) < cutoff)) break
+      if (offset >= 9900) throw new Error('News sitemap scan limit reached')
+    }
   } else {
     const payload = await getPayload({ config })
     const result = await payload.find({
@@ -39,6 +46,8 @@ export async function GET(): Promise<Response> {
     articles = result.docs as typeof articles
   }
 
+  const recentCount = articles.filter(article => article.publishedAt && new Date(article.publishedAt) >= cutoff && new Date(article.publishedAt) <= now).length
+  if (recentCount > MAX_ARTICLES) throw new Error('News sitemap exceeds 1,000 articles; split into multiple files')
   const items = articles
     .filter((article) => article.slug && article.headline && article.publishedAt)
     .map((article) => {

@@ -36,10 +36,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (process.env.FAULTLINE_D1_READS === 'true') {
     const endpoint = process.env.FAULTLINE_D1_API_URL
     if (!endpoint) throw new Error('FAULTLINE_D1_API_URL must be set for D1 reads')
-    const response = await fetch(`${endpoint.replace(/\/$/, '')}/v1/articles?limit=100`, { cache: 'no-store' })
-    if (!response.ok) throw new Error(`D1 sitemap request failed: ${response.status}`)
-    const data = await response.json() as { items: Array<{ slug: string; updatedAt?: string | null }> }
-    return [...fixed, ...data.items.map(article => ({
+    const articles: Array<{ slug: string; updatedAt?: string | null }> = []
+    for (let offset = 0; offset < MAX_SITEMAP_URLS; offset += 100) {
+      const response = await fetch(`${endpoint.replace(/\\/$/, '')}/v1/articles?limit=100&offset=${offset}`, { cache: 'no-store' })
+      if (!response.ok) throw new Error(`D1 sitemap request failed: ${response.status}`)
+      const data = await response.json() as { items: Array<{ slug: string; updatedAt?: string | null }> }
+      if (!Array.isArray(data.items)) throw new Error('Invalid D1 sitemap response')
+      articles.push(...data.items)
+      if (data.items.length < 100) break
+      if (offset + 100 >= MAX_SITEMAP_URLS) throw new Error('D1 sitemap reached URL cap; implement sitemap index')
+    }
+    return [...fixed, ...articles.filter(article => article.slug).map(article => ({
       url: `${base}/articles/${encodeURIComponent(article.slug)}`,
       ...(article.updatedAt && !Number.isNaN(new Date(article.updatedAt).getTime()) ? { lastModified: new Date(article.updatedAt) } : {}),
       changeFrequency: 'weekly' as const,
