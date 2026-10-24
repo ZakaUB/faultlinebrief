@@ -365,3 +365,15 @@ body{background:var(--bg)}
 .article-body h2{font-size:clamp(23px,2.1vw,29px);margin:38px 0 18px}
 .article-body h3{font-size:22px;margin:30px 0 14px}
 .article-body h4{font-size:20px;margin:26px 0 12px}
+
+/* Mobile performance: avoid painting the long below-the-fold newsroom during first viewport render. */
+@supports (content-visibility: auto) {
+  .homepage-discover,.homepage-context,.homepage-topic-grid,.coverage .homepage-newsroom-layout,.about {
+    content-visibility:auto;
+    contain-intrinsic-size:auto 650px;
+  }
+}
+@media(max-width:700px){
+  .homepage-discover,.homepage-context,.about{contain-intrinsic-size:auto 850px}
+  .coverage .homepage-newsroom-layout{contain-intrinsic-size:auto 1800px}
+}
