@@ -1,4 +1,3 @@
-import { unstable_cache } from 'next/cache'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
 
@@ -34,7 +33,7 @@ async function queryStoriesByPlacement(placement: 'news' | 'editorial', limit: n
   if (process.env.FAULTLINE_D1_READS === 'true') {
     const endpoint = process.env.FAULTLINE_D1_API_URL
     if (!endpoint) throw new Error('FAULTLINE_D1_API_URL must be set for D1 reads')
-    const response = await fetch(endpoint.replace(/\/$/, '') + '/v1/articles?limit=100', { next: { revalidate: 60 } })
+    const response = await fetch(endpoint.replace(/\/$/, '') + '/v1/articles?limit=100', { cache: 'no-store' })
     if (!response.ok) throw new Error('D1 article list request failed: ' + response.status)
     const data = await response.json() as { items: Array<Partial<Story>> }
     return data.items.filter(item => placement === 'news'
@@ -60,24 +59,14 @@ async function queryStoriesByPlacement(placement: 'news' | 'editorial', limit: n
 }
 
 
-// Share published listing results across requests and server instances for 60 seconds.
-// The cache key includes placement and limit, so the homepage and feeds stay isolated.
-const cachedStoriesByPlacement = unstable_cache(
-  queryStoriesByPlacement,
-  ['faultlinebrief-published-story-list-v1'],
-  { revalidate: 60, tags: ['faultlinebrief-stories'] },
-)
-
-async function getStoriesByPlacement(placement: 'news' | 'editorial', limit: number): Promise<Story[]> {
-  return cachedStoriesByPlacement(placement, limit)
-}
-
+// Read fresh published D1 listings on every request so CMS publication is visible
+// on the homepage and Latest News without waiting for a server-side cache.
 export function getEditorialStories(limit = 100) {
-  return getStoriesByPlacement('editorial', limit)
+  return queryStoriesByPlacement('editorial', limit)
 }
 
 export function getLatestNewsStories(limit = 5) {
-  return getStoriesByPlacement('news', limit)
+  return queryStoriesByPlacement('news', limit)
 }
 
 export function storyDate(date?: string | null) {
