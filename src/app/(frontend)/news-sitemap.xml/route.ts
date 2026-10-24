@@ -22,7 +22,7 @@ export async function GET(): Promise<Response> {
     if (!endpoint) throw new Error('FAULTLINE_D1_API_URL must be set for D1 reads')
     articles = []
     for (let offset = 0; offset < 10000; offset += 100) {
-      const response = await fetch(endpoint.replace(/\\/$/, '') + '/v1/articles?limit=100&offset=' + offset, { cache: 'no-store' })
+      const response = await fetch(endpoint.replace(/\/$/, '') + '/v1/articles?limit=100&offset=' + offset, { cache: 'no-store' })
       if (!response.ok) throw new Error('D1 news sitemap request failed: ' + response.status)
       const data = await response.json() as { items: typeof articles }
       if (!Array.isArray(data.items)) throw new Error('Invalid D1 news sitemap response')

@@ -38,7 +38,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     if (!endpoint) throw new Error('FAULTLINE_D1_API_URL must be set for D1 reads')
     const articles: Array<{ slug: string; updatedAt?: string | null }> = []
     for (let offset = 0; offset < MAX_SITEMAP_URLS; offset += 100) {
-      const response = await fetch(`${endpoint.replace(/\\/$/, '')}/v1/articles?limit=100&offset=${offset}`, { cache: 'no-store' })
+      const response = await fetch(`${endpoint.replace(/\/$/, '')}/v1/articles?limit=100&offset=${offset}`, { cache: 'no-store' })
       if (!response.ok) throw new Error(`D1 sitemap request failed: ${response.status}`)
       const data = await response.json() as { items: Array<{ slug: string; updatedAt?: string | null }> }
       if (!Array.isArray(data.items)) throw new Error('Invalid D1 sitemap response')
