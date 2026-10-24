@@ -12,7 +12,7 @@ export async function GET(): Promise<Response> {
   if (process.env.FAULTLINE_D1_READS === 'true') {
     const endpoint = process.env.FAULTLINE_D1_API_URL
     if (!endpoint) throw new Error('FAULTLINE_D1_API_URL must be set')
-    const response = await fetch(endpoint.replace(/\\/$/, '') + '/v1/articles?limit=100', { cache: 'no-store' })
+    const response = await fetch(endpoint.replace(/\/$/, '') + '/v1/articles?limit=100', { cache: 'no-store' })
     if (!response.ok) throw new Error('RSS article query failed: ' + response.status)
     const data = await response.json() as { items?: Entry[] }
     if (!Array.isArray(data.items)) throw new Error('Invalid RSS article response')
