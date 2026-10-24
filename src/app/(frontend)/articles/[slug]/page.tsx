@@ -91,7 +91,8 @@ function legacySubheading(node: LexicalNode, next?: LexicalNode): boolean {
  return words.every((word, index) => minor.has(word.toLowerCase()) && index > 0 || /^[A-Z][a-zA-Z’'-]*$/.test(word) || /^[A-Z]{2,}$/.test(word) || /^\d{2,4}$/.test(word))
 }
 function renderNodes(nodes: LexicalNode[] = []): React.ReactNode {
- return nodes.map((node, i) => {\n   if (legacySubheading(node, nodes[i + 1])) return <h2 key={i}>{renderNodes(node.children || [])}</h2>
+ return nodes.map((node, i) => {
+   if (legacySubheading(node, nodes[i + 1])) return <h2 key={i}>{renderNodes(node.children || [])}</h2>
    if (node.type === 'linebreak') return <br key={i} />
    if (node.type === 'text') {
      let content: React.ReactNode = node.text || ''
@@ -106,7 +107,22 @@ function renderNodes(nodes: LexicalNode[] = []): React.ReactNode {
      return <React.Fragment key={i}>{content}</React.Fragment>
    }
    const content = renderNodes(node.children || [])
-   if (node.type === 'paragraph') return <p key={i}>{content}</p>
+   if (node.type === 'paragraph') {
+     // Imported legacy records may contain multiple paragraphs and headings
+     // inside one text node, rather than separate Lexical blocks.
+     if (node.children?.length === 1 && node.children[0].type === 'text' && typeof node.children[0].text === 'string') {
+       const raw = node.children[0].text.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n')
+       const blocks = raw.split(/\n\s*\n/).map(v => v.trim()).filter(Boolean)
+       if (blocks.length > 1) return <React.Fragment key={i}>{blocks.map((block, j) => {
+         const marked = block.match(/^#{2,4}\s+(.+)$/)
+         if (marked) return <h2 key={j}>{marked[1]}</h2>
+         const candidate: LexicalNode = {type:'paragraph',children:[{type:'text',text:block}]}
+         if (legacySubheading(candidate, {type:'paragraph'})) return <h2 key={j}>{block}</h2>
+         return <p key={j}>{block}</p>
+       })}</React.Fragment>
+     }
+     return <p key={i}>{content}</p>
+   }
    if (node.type === 'heading') {
      switch (node.tag) {
        case 'h1': return <h2 key={i}>{content}</h2> // Article title is the only page h1.
