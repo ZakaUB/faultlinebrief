@@ -81,3 +81,5 @@ jobs:
           assert not missing,'Published D1 news links missing from page'
           print('PASS Latest News D1 article links and no unavailable message')
           PY
+
+# Redeploy corrected legacy article formatting (2026-10-24).
