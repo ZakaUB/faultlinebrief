@@ -1,5 +1,36 @@
 import { stagingDb } from './d1-staging-adapter.js'
 import { adminHtml } from './admin-page.js'
+
+// Preserve semantic headings and inline emphasis when a newsroom article is pasted.
+// Input is treated as text, never trusted HTML; public rendering escapes it.
+const inlineNodes = value => {
+  const nodes = []
+  const pattern = /\*\*([^*\n]+)\*\*|\*([^*\n]+)\*|\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g
+  let last = 0, match
+  const leaf = (text, format = 0) => ({type:'text',text,detail:0,format,mode:'normal',style:'',version:1})
+  while ((match = pattern.exec(value))) {
+    if (match.index > last) nodes.push(leaf(value.slice(last,match.index)))
+    if (match[1]) nodes.push(leaf(match[1],1))
+    else if (match[2]) nodes.push(leaf(match[2],2))
+    else if (match[3]) nodes.push({type:'link',version:3,fields:{url:match[4],newTab:true,linkType:'custom'},children:[leaf(match[3])]})
+    last = pattern.lastIndex
+  }
+  if (last < value.length) nodes.push(leaf(value.slice(last)))
+  return nodes.length ? nodes : [leaf('')]
+}
+const articleLexical = value => {
+  const text = String(value || '').replace(/\r\n?/g,'\n').replace(/\\n/g,'\n')
+  const blocks = text.split(/\n\s*\n/).map(s=>s.trim()).filter(Boolean)
+  const children = blocks.map(block => {
+    const m = block.match(/^(#{2,4})\s+([^\n]+)$/)
+    const tag = m ? 'h'+m[1].length : 'p'
+    const value = m ? m[2] : block
+    return {type:m?'heading':'paragraph',...(m?{tag}:{}),format:'',indent:0,version:1,direction:'ltr',children:inlineNodes(value)}
+  })
+  return {root:{type:'root',format:'',indent:0,version:1,direction:'ltr',children}}
+}
+const lexicalPlainText = body => (body?.root?.children || []).map(n => (n.type==='heading' ? '## ' : '')+(n.children||[]).map(c=>c.text??(c.children||[]).map(t=>t.text||'').join('')).join('')).join('\n\n')
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
@@ -51,7 +82,7 @@ export default {
         if (!title || title.length>220) return json({ok:false,error:'invalid-headline'},400)
         const status=(input.status==='published'||input.action==='publish'||(request.method==='PATCH'&&input.action==='edit'&&(await env.D1.prepare('SELECT status FROM migration_articles WHERE id=?').bind(url.pathname.split('/').pop()).first())?.status==='published'))?'published':'draft'
         const articleText=typeof input.article_text==='string'?input.article_text.trim():''
-        const body=input.body && typeof input.body==='object'?input.body:articleText?{root:{type:'root',format:'',indent:0,version:1,direction:'ltr',children:articleText.split(/\\n\\s*\\n/).map(t=>({type:'paragraph',format:'',indent:0,version:1,direction:'ltr',children:[{type:'text',text:t,detail:0,format:0,mode:'normal',style:'',version:1}]}))}}:existingForEdit?JSON.parse(existingForEdit.content_json||'{}'):{root:{type:'root',children:[]}}
+        const body=input.body && typeof input.body==='object'?input.body:articleText?articleLexical(articleText):existingForEdit?JSON.parse(existingForEdit.content_json||'{}'):{root:{type:'root',children:[]}}
         const sources=Array.isArray(input.sources)?input.sources:[]
         let featured=input.featuredImage && typeof input.featuredImage==='object'?input.featuredImage:existingForEdit?JSON.parse(existingForEdit.image_json||'{}'):{}
         if (input.featured_image_id) {
@@ -101,7 +132,7 @@ export default {
         const description=source.seo_description || source.seo?.description || source.deck || ''
         const canonical='https://faultlinebrief.com/articles/'+encodeURIComponent(slug)
         const nodes=(body.root?.children||[])
-        const renderText=n=>(n.children||[]).map(c=>esc(c.text||'')).join('')
+        const renderText=n=>(n.children||[]).map(c=>{const content=esc(c.text??(c.children||[]).map(t=>t.text||'').join(''));if(c.type==='link'){const href=c.fields?.url||c.url||'';return /^https?:\/\//.test(href)?'<a href="'+esc(href)+'" rel="noopener noreferrer nofollow">'+content+'</a>':content}return (c.format&1?'<strong>':'')+(c.format&2?'<em>':'')+content+(c.format&2?'</em>':'')+(c.format&1?'</strong>':'')}).join('')
         const paragraphs=nodes.map(n=>{
           const tag=n.type==='heading' && ['h2','h3','h4','h5','h6'].includes(n.tag)?n.tag:'p'
           return '<'+tag+'>'+renderText(n)+'</'+tag+'>'
@@ -217,7 +248,7 @@ export default {
           const mediaRows = await client.query('SELECT m.alt,m.url,m.filename FROM public.media m JOIN public.articles a ON a.featured_image_id=m.id WHERE a.slug=$1 LIMIT 1',[slug])
           const normalize = value => String(value ?? '').replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\r\n/g, '\n')
           const paragraphs = (article.body?.root?.children || []).map(n => {
-            const content = normalize((n.children || []).map(c => c.text || '').join(''))
+            const content = normalize((n.children || []).map(c => c.text || (c.children || []).map(t=>t.text||'').join('')).join(''))
             const tag = n.type === 'heading' ? (['h2','h3','h4'].includes(n.tag) ? n.tag : 'h2') : 'p'
             return content.split(/\n\s*\n/).filter(Boolean).map(t => '<'+tag+'>'+escape(t).replace(/\n/g,'<br>')+'</'+tag+'>').join('')
           }).join('')
@@ -339,7 +370,7 @@ export default {
       if (imageId !== undefined && (!Number.isSafeInteger(imageId) || imageId < 1)) return json({ ok: false, error: 'invalid-featured-image' }, 400)
       const normalizedText = articleText.trim().replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\r\n/g, '\n')
       const paragraphTexts = (normalizedText || 'Isolated Cloudflare staging editorial workflow test. Not a real news report.').split(/\n\s*\n/).map(t=>t.trim()).filter(Boolean)
-      const lexical = { root: { type: 'root', format: '', indent: 0, version: 1, direction: 'ltr', children: paragraphTexts.map(t => ({ type: 'paragraph', format: '', indent: 0, version: 1, direction: 'ltr', children: [{ type: 'text', text: t, detail: 0, format: 0, mode: 'normal', style: '', version: 1 }] })) } }
+      const lexical = articleLexical(normalizedText || 'Isolated Cloudflare staging editorial workflow test. Not a real news report.')
       const { Client } = await import('pg')
       const client = new Client({ connectionString: env.DATABASE_URL, connectionTimeoutMillis: 8000 })
       try {
@@ -360,7 +391,7 @@ export default {
           // until a structure-aware editor is available.
           const originalNodes = existing.rows[0].body?.root?.children || []
           const flatten = node => node.type === 'linebreak' ? '\n' : typeof node.text === 'string' ? node.text : (node.children || []).map(flatten).join('')
-          const originalText = originalNodes.map(flatten).join('\n\n').replace(/\r\n/g, '\n').trim()
+          const originalText = lexicalPlainText(existing.rows[0].body).replace(/\r\n/g, '\n').trim()
           const incomingText = articleText.replace(/\r\n/g, '\n').trim()
           const hasRichText = originalNodes.some(node => node.type !== 'paragraph' || (node.children || []).some(child => child.type !== 'text' || child.format || child.children?.length))
           if (hasRichText && incomingText && incomingText !== originalText) {
