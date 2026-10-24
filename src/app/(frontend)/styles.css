@@ -377,19 +377,3 @@ body{background:var(--bg)}
   .homepage-discover,.homepage-context,.about{contain-intrinsic-size:auto 850px}
   .coverage .homepage-newsroom-layout{contain-intrinsic-size:auto 1800px}
 }
-
-/* Mobile-only rendering optimization. Desktop styles and media URLs are unchanged.
-   Skip paint/layout work for off-screen featured cards until they approach view. */
-@media (max-width: 700px) {
-  @supports (content-visibility: auto) {
-    .homepage-newsroom-primary .story-card,
-    .homepage-topic,
-    .sidebar-panel {
-      content-visibility: auto;
-      contain-intrinsic-size: auto 480px;
-    }
-    .homepage-newsroom-primary .story-card-overlay {
-      contain-intrinsic-size: auto 420px;
-    }
-  }
-}
