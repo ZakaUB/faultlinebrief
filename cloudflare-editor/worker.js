@@ -62,7 +62,7 @@ export default {
       if (request.method !== 'GET') return json({ ok:false,error:'d1-write-not-enabled' },405)
       try {
         const db=stagingDb(env)
-        if (url.pathname === '/articles') { const items=await db.articles();return json({ok:true,items,count:items.length}) }
+        if (url.pathname === '/articles') { const items=await db.articles(url.searchParams.get('search') || '');return json({ok:true,items,count:items.length}) }
         if (url.pathname === '/categories') { const items=await db.categories();return json({ok:true,items,count:items.length}) }
         if (url.pathname === '/editor/media-library') { const items=await db.media();return json({ok:true,items,count:items.length}) }
         const article=await db.article(url.pathname.split('/').pop())
