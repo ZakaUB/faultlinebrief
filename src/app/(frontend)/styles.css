@@ -359,3 +359,9 @@ body{background:var(--bg)}
 .preferred-source-invite{margin:20px 0 18px;font-size:14px;line-height:1.6;color:var(--muted)}
 .preferred-source-invite a{color:var(--cyan);font-weight:700;text-decoration:underline;text-underline-offset:3px}
 .preferred-source-invite a:hover,.preferred-source-invite a:focus-visible{text-decoration-thickness:2px}
+
+/* Make article section headings visibly distinct on dark article pages. */
+.article-body h2,.article-body h3,.article-body h4{font-weight:750;line-height:1.35;color:#fff;letter-spacing:-.012em}
+.article-body h2{font-size:clamp(23px,2.1vw,29px);margin:38px 0 18px}
+.article-body h3{font-size:22px;margin:30px 0 14px}
+.article-body h4{font-size:20px;margin:26px 0 12px}

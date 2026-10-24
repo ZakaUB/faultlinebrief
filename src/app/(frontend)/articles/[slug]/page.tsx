@@ -77,8 +77,21 @@ type LexicalNode = {
  url?: string
  fields?: { url?: string; newTab?: boolean; linkType?: string; doc?: unknown }
 }
+// Backward-compatible presentation for older CMS articles saved as plain paragraphs.
+// No database writes: only promote clearly identifiable standalone title-case lines.
+function legacySubheading(node: LexicalNode, next?: LexicalNode): boolean {
+ if (node.type !== 'paragraph' || next?.type !== 'paragraph') return false
+ const children = node.children || []
+ if (children.length !== 1 || children[0].type !== 'text') return false
+ const line = (children[0].text || '').trim()
+ if (line.length < 18 || line.length > 90 || /[.!?:;,]$/.test(line) || /[\n\r]/.test(line)) return false
+ const words = line.split(/\s+/)
+ if (words.length < 3 || words.length > 12) return false
+ const minor = new Set(['a','an','the','and','or','but','for','nor','to','of','in','on','at','by','with','from','as','vs'])
+ return words.every((word, index) => minor.has(word.toLowerCase()) && index > 0 || /^[A-Z][a-zA-Z’'-]*$/.test(word) || /^[A-Z]{2,}$/.test(word) || /^\d{2,4}$/.test(word))
+}
 function renderNodes(nodes: LexicalNode[] = []): React.ReactNode {
- return nodes.map((node, i) => {
+ return nodes.map((node, i) => {\n   if (legacySubheading(node, nodes[i + 1])) return <h2 key={i}>{renderNodes(node.children || [])}</h2>
    if (node.type === 'linebreak') return <br key={i} />
    if (node.type === 'text') {
      let content: React.ReactNode = node.text || ''
