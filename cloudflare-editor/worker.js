@@ -211,7 +211,7 @@ export default {
         const record = JSON.parse(media.raw_json)
         const object = await env.R2.get(record.objectKey)
         if (!object) return json({ok:false,error:'image-not-found'},404)
-        return new Response(object.body,{headers:{'Content-Type':object.httpMetadata?.contentType||'application/octet-stream','Cache-Control':'public, max-age=300','X-Content-Type-Options':'nosniff','X-Robots-Tag':'noindex, nofollow'}})
+        return new Response(object.body,{headers:{'Content-Type':object.httpMetadata?.contentType||'application/octet-stream','Cache-Control':'public, max-age=31536000, immutable','X-Content-Type-Options':'nosniff','X-Robots-Tag':'noindex, nofollow'}})
       } catch { return json({ok:false,error:'staging-media-unavailable'},503) }
     }
 

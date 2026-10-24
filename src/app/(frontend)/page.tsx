@@ -44,7 +44,7 @@ export default async function HomePage() {
               <p>{lead.deck}</p>
               <Link className="read-link" href={`/articles/${lead.slug}`}>READ THE STORY →</Link>
             </div>
-            {imageFor(lead) ? <Image className="lead-image" src={imageFor(lead)!} alt={typeof lead.featuredImage === 'object' ? lead.featuredImage?.alt || lead.headline : lead.headline} width={900} height={530} sizes="(max-width: 700px) 92vw, (max-width: 1100px) 46vw, 600px" unoptimized priority /> : <div className="image-placeholder">FAULTLINE / BRIEF</div>}
+            {imageFor(lead) ? <Image className="lead-image" src={imageFor(lead)!} alt={typeof lead.featuredImage === 'object' ? lead.featuredImage?.alt || lead.headline : lead.headline} width={900} height={530} sizes="(max-width: 700px) 92vw, (max-width: 1100px) 46vw, 600px" unoptimized priority fetchPriority="high" loading="eager" /> : <div className="image-placeholder">FAULTLINE / BRIEF</div>}
           </section>
         ) : (
           <section className="lead-story"><div className="lead-copy"><span className="eyebrow">LATEST REPORTING</span><h1>Independent geopolitical reporting and analysis</h1><p>Published stories will appear here as they become available.</p></div></section>
