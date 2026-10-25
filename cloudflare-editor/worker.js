@@ -1,3 +1,4 @@
+import { draftIntegration } from './draft-integration.js'
 import { stagingDb } from './d1-staging-adapter.js'
 import { adminHtml } from './admin-page.js'
 
@@ -37,6 +38,7 @@ export default {
     const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' }
     const json = (value, status = 200, extra = {}) => new Response(JSON.stringify(value), { status, headers: { ...headers, 'Content-Type': 'application/json', ...extra } })
     if (!env.EDITOR_BOOTSTRAP_PASSWORD || env.EDITOR_BOOTSTRAP_PASSWORD.length < 24 || !env.EDITOR_SESSION_SECRET || env.EDITOR_SESSION_SECRET.length < 32 || !env.R2) return json({ ok: false, error: 'staging-configuration' }, 503)
+    if (url.pathname.startsWith('/integration/v1/drafts')) return draftIntegration(request, env)
     // Production preflight is strictly read-only until an explicitly reviewed cutover.
     if (env.EDITOR_PRODUCTION_MODE === 'read-only' && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return json({ok:false,error:'production-writes-disabled'},405)
     const encoder = new TextEncoder()
