@@ -6,6 +6,12 @@ import Image from 'next/image'
 import { belongsTo, getEditorialStories, getLatestNewsStories, imageFor, storyDate } from '@/app/(frontend)/newsroom'
 import type { Story } from '@/app/(frontend)/newsroom'
 
+// Homepage-only canonical: article routes supply their own canonical URLs.
+// Keep this out of the shared layout to avoid pointing article pages at the homepage.
+export const metadata = {
+  alternates: { canonical: 'https://faultlinebrief.com/' },
+}
+
 export const dynamic = 'force-dynamic'
 
 const coverageSections = [
