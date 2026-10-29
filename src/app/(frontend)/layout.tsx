@@ -28,5 +28,5 @@ const publisherJsonLd = JSON.stringify({
 }).replace(/</g, '\\u003c')
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="en"><body className={`${masthead.variable} ${headline.variable} ${body.variable}`}><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: publisherJsonLd }} />{children}<GoogleAnalyticsConsent /><Script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9312061045365351" crossOrigin="anonymous" strategy="afterInteractive" /><Script src="https://static.cloudflareinsights.com/beacon.min.js" strategy="lazyOnload" type="module" data-cf-beacon='{"token":"daaccaf854aa4fdfad93987ae530ee6b"}' /></body></html>
+  return <html lang="en"><body className={`${masthead.variable} ${headline.variable} ${body.variable}`}><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: publisherJsonLd }} />{children}<GoogleAnalyticsConsent /><Script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9312061045365351" crossOrigin="anonymous" strategy="beforeInteractive" /><Script src="https://static.cloudflareinsights.com/beacon.min.js" strategy="lazyOnload" type="module" data-cf-beacon='{"token":"daaccaf854aa4fdfad93987ae530ee6b"}' /></body></html>
 }
