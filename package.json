@@ -30,10 +30,11 @@
     "cross-env": "^7.0.3",
     "dotenv": "16.4.7",
     "graphql": "^16.8.1",
-    "next": "16.3.3",
+    "next": "16.4.5",
     "payload": "3.90.2",
     "react": "19.2.6",
-    "react-dom": "19.2.6"
+    "react-dom": "19.2.6",
+    "@opennextjs/cloudflare": "1.20.16"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
