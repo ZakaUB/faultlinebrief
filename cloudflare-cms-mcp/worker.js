@@ -49,4 +49,4 @@ export default {async fetch(request,env){
   const text=await res.text();let value;try{value=JSON.parse(text)}catch{value={error:"Unexpected CMS response"}}
   return result(id,{content:[{type:"text",text:JSON.stringify(value)}],isError:!res.ok});
  }catch{return result(id,{content:[{type:"text",text:"CMS unavailable or request timed out"}],isError:true})}
-}}};
+}};
