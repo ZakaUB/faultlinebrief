@@ -45,3 +45,18 @@ Recommended: use Cloudflare Workers OAuth Provider with a GitHub or Google login
 ChatGPT custom MCP **write** connections currently require a Business or Enterprise/Edu workspace according to OpenAI's published support documentation. A personal Plus account cannot be assumed to support publishing through a custom MCP app. Alternative: an independent OpenAI API client invoking this MCP server after user approval.
 
 See https://developers.openai.com/plugins/build/auth and https://developers.cloudflare.com/agents/model-context-protocol/protocol/authorization/ for requirements.
+
+## GitHub OAuth implementation (development branch)
+
+Entry point is now `cloudflare-cms-mcp/oauth-worker.js`. It wraps the existing JSON-RPC handler with `@cloudflare/workers-oauth-provider` 1.x. OAuth requests use GitHub login, a short-lived KV-backed state, an explicit per-client consent page, and Cloudflare-issued audience-bound MCP tokens. Each tool checks `cms:read`, `cms:draft` or `cms:publish`; GitHub numeric user ID must match `EDITOR_GITHUB_ID`. The separate CMS one-time approval is still mandatory for publishing.
+
+**Required manual Cloudflare/GitHub setup before staging deploy:**
+1. Create a dedicated GitHub OAuth App with callback `https://STAGING-MCP-HOST/oauth/github/callback`. GitHub login alone does not give publishing permission; the GitHub numeric user ID is allowlisted.
+2. Create a dedicated staging KV namespace and replace `OAUTH_KV` placeholder in `wrangler.cms.mcp.json`. Replace `MCP_RESOURCE_URL` and `OAUTH_ISSUER` placeholders with canonical HTTPS staging URL.
+3. Add Worker secrets `GITHUB_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_SECRET`, `EDITOR_GITHUB_ID`, `CMS_DRAFT_API_URL`, `CMS_DRAFT_API_TOKEN`, and (only after staging validation) `CMS_PUBLISH_API_URL`, `CMS_PUBLISH_API_TOKEN`.
+4. Install the dependency and update the lockfile before building; CI currently checks syntax and authentication-unit tests, **not** a full OAuth handshake or workerd integration.
+5. Verify PKCE, client metadata registration, consent-denial, token revocation, wrong-audience tokens, scope denial, and full publish flow in staging. Do not merge or deploy production until these pass.
+
+The old `MCP_ACCESS_TOKEN` static bearer is no longer used by the OAuth entrypoint. Do not enable the old development-only `REQUIRE_OAUTH=false` bypass.
+
+**Warning:** This is untested OAuth integration code, not a deployed or verified authentication service. GitHub OAuth App registration and KV namespace creation require Cloudflare/GitHub account configuration.
