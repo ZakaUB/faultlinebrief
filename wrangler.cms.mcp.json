@@ -1,0 +1,11 @@
+{
+  "name": "faultlinebrief-cms-mcp",
+  "main": "cloudflare-cms-mcp/worker.js",
+  "compatibility_date": "2026-10-15",
+  "workers_dev": true,
+  "routes": [],
+  "vars": {},
+  "observability": {
+    "enabled": true
+  }
+}
