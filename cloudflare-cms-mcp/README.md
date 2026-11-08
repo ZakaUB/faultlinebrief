@@ -27,3 +27,11 @@ The remote endpoint is `POST /mcp` (JSON-RPC). The `GET /health` endpoint report
 The `publish_approved_draft` tool is **disabled by default**. Its optional `CMS_PUBLISH_API_URL` and `CMS_PUBLISH_API_TOKEN` settings intentionally point to a **future** CMS-side endpoint that must independently verify an explicit, single-use, short-lived editorial approval, the draft ID, expected slug, and the requester's permissions. Never equate an LLM-supplied approval string with proof of user approval. Build the CMS endpoint and OAuth/identity layer, test against staging, and review before enabling production publication.
 
 No existing production Worker, route, D1 schema, R2 bucket, or secret is changed by this branch. No production deployment is performed.
+
+## Approval endpoint implemented (not deployed)
+
+- Editor session (cookie) plus same-origin POST to `/editor/approve-publish` with JSON `{"id":"cf-...","expectedSlug":"..."}` returns a random 5-minute approval token. This call must be made from the authenticated editor interface, never from ChatGPT.
+- Bearer-protected POST to `/integration/v1/approved-publish` with JSON `{"id":"cf-...","expectedSlug":"...","approvalToken":"..."}` performs a conditional D1 publication, only for drafts with a featured image.
+- Apply `cloudflare-cms-mcp/cms_publish_approvals.sql` to staging D1 before testing.
+- Configure `CMS_PUBLISH_API_TOKEN` (40+ characters) as an editor Worker secret, and the same value as the connector's `CMS_PUBLISH_API_TOKEN` secret. Configure connector `CMS_PUBLISH_API_URL` as the editor Worker HTTPS origin.
+- **Not yet production-ready:** OAuth identity and ChatGPT connector registration, automated tests, staging deployment, verified public publication/RSS/sitemap behavior, and an editor UI approval button are still required. The static bearer token alone is not user OAuth. Do not deploy or expose publicly until those are complete.
