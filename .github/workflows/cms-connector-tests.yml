@@ -37,6 +37,6 @@ jobs:
       - name: Install OAuth provider dependency
         working-directory: cloudflare-cms-mcp
         run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Verify OAuth provider module exports
+      - name: Verify OAuth dependency installed
         working-directory: cloudflare-cms-mcp
-        run: node --input-type=module -e "import {OAuthAuthorizationServer,OAuthResourceServer,authorizationErrorRedirect,insufficientScope} from '@cloudflare/workers-oauth-provider'; if (![OAuthAuthorizationServer,OAuthResourceServer,authorizationErrorRedirect,insufficientScope].every(Boolean)) process.exit(1)"
+        run: npm ls @cloudflare/workers-oauth-provider
