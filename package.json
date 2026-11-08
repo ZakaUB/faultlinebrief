@@ -34,7 +34,8 @@
     "payload": "3.90.2",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "@opennextjs/cloudflare": "1.20.16"
+    "@opennextjs/cloudflare": "1.20.16",
+    "@cloudflare/workers-oauth-provider": "^1.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
