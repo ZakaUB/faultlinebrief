@@ -29,5 +29,6 @@ jobs:
           node --check cloudflare-editor/approval-page.js
           node --check cloudflare-editor/worker.js
           node --check cloudflare-cms-mcp/worker.js
+          node --check cloudflare-cms-mcp/oauth-worker.js
       - name: Run approval authentication tests
         run: node --test tests/cms-approval.test.mjs
