@@ -1,0 +1,17 @@
+{
+  "name": "faultlinebrief-cms-auth-staging",
+  "main": "cloudflare-cms-mcp/oauth-auth-server.js",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": [
+    "global_fetch_strictly_public"
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      "id": "REPLACE_WITH_STAGING_KV_ID"
+    }
+  ],
+  "vars": {
+    "EDITOR_GITHUB_ID": "REPLACE_WITH_APPROVED_GITHUB_NUMERIC_ID"
+  }
+}
