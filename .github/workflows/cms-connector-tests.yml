@@ -29,6 +29,14 @@ jobs:
           node --check cloudflare-editor/approval-page.js
           node --check cloudflare-editor/worker.js
           node --check cloudflare-cms-mcp/worker.js
+          node --check cloudflare-cms-mcp/oauth-auth-server.js
+          node --check cloudflare-cms-mcp/oauth-resource.js
           node --check cloudflare-cms-mcp/oauth-worker.js
       - name: Run approval authentication tests
         run: node --test tests/cms-approval.test.mjs
+      - name: Install OAuth provider dependency
+        working-directory: cloudflare-cms-mcp
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Verify OAuth provider module exports
+        working-directory: cloudflare-cms-mcp
+        run: node --input-type=module -e "import {OAuthAuthorizationServer,OAuthResourceServer,authorizationErrorRedirect,insufficientScope} from '@cloudflare/workers-oauth-provider'; if (![OAuthAuthorizationServer,OAuthResourceServer,authorizationErrorRedirect,insufficientScope].every(Boolean)) process.exit(1)"
