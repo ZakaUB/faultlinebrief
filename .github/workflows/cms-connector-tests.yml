@@ -1,0 +1,33 @@
+name: CMS connector security checks
+on:
+  push:
+    branches:
+      - feature/faultlinebrief-cms-mcp-20261108
+    paths:
+      - 'cloudflare-editor/**'
+      - 'cloudflare-cms-mcp/**'
+      - 'tests/cms-approval.test.mjs'
+      - '.github/workflows/cms-connector-tests.yml'
+  pull_request:
+    paths:
+      - 'cloudflare-editor/**'
+      - 'cloudflare-cms-mcp/**'
+      - 'tests/cms-approval.test.mjs'
+jobs:
+  security-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify JavaScript syntax
+        run: |
+          node --check cloudflare-editor/publish-approval.js
+          node --check cloudflare-editor/approval-page.js
+          node --check cloudflare-editor/worker.js
+          node --check cloudflare-cms-mcp/worker.js
+      - name: Run approval authentication tests
+        run: node --test tests/cms-approval.test.mjs
