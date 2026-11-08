@@ -1,11 +1,24 @@
 {
   "name": "faultlinebrief-cms-mcp",
-  "main": "cloudflare-cms-mcp/worker.js",
+  "main": "cloudflare-cms-mcp/oauth-worker.js",
   "compatibility_date": "2026-10-15",
   "workers_dev": true,
   "routes": [],
-  "vars": {},
+  "vars": {
+    "MCP_RESOURCE_URL": "https://REPLACE-WITH-STAGING-MCP-HOST/mcp",
+    "OAUTH_ISSUER": "https://REPLACE-WITH-STAGING-MCP-HOST"
+  },
   "observability": {
     "enabled": true
-  }
+  },
+  "compatibility_flags": [
+    "nodejs_compat",
+    "global_fetch_strictly_public"
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      "id": "REPLACE_WITH_STAGING_OAUTH_KV_NAMESPACE_ID"
+    }
+  ]
 }
