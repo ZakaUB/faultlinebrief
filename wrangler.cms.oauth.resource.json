@@ -1,0 +1,15 @@
+{
+  "name": "faultlinebrief-cms-mcp-staging",
+  "main": "cloudflare-cms-mcp/oauth-resource.js",
+  "compatibility_date": "2026-11-01",
+  "services": [
+    {
+      "binding": "AUTH_SERVER",
+      "service": "faultlinebrief-cms-auth-staging",
+      "entrypoint": "AuthServer"
+    }
+  ],
+  "vars": {
+    "EDITOR_GITHUB_ID": "REPLACE_WITH_APPROVED_GITHUB_NUMERIC_ID"
+  }
+}
