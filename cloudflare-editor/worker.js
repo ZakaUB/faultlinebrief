@@ -1,3 +1,4 @@
+import { approvalEndpoint } from './publish-approval.js'
 import { draftIntegration } from './draft-integration.js'
 import { stagingDb } from './d1-staging-adapter.js'
 import { adminHtml } from './admin-page.js'
@@ -54,6 +55,7 @@ export default {
       const expires = Number(await object.text())
       return Number.isFinite(expires) && expires > Date.now()
     }
+    if (url.pathname === '/editor/approve-publish' || url.pathname === '/integration/v1/approved-publish') return approvalEndpoint(request,env,authenticated)
     if ((url.pathname === '/' || url.pathname === '/admin') && request.method === 'GET') {
       return new Response(adminHtml, { headers: { ...headers, 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'noindex, nofollow', 'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'" } })
     }
