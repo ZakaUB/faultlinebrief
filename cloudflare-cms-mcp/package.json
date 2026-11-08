@@ -1,0 +1,11 @@
+{
+  "name": "faultlinebrief-cms-oauth",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@cloudflare/workers-oauth-provider": "^1.0.0"
+  },
+  "scripts": {
+    "check": "node --check oauth-auth-server.js && node --check oauth-resource.js && node --check worker.js"
+  }
+}
