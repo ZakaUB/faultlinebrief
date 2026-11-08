@@ -35,3 +35,13 @@ No existing production Worker, route, D1 schema, R2 bucket, or secret is changed
 - Apply `cloudflare-cms-mcp/cms_publish_approvals.sql` to staging D1 before testing.
 - Configure `CMS_PUBLISH_API_TOKEN` (40+ characters) as an editor Worker secret, and the same value as the connector's `CMS_PUBLISH_API_TOKEN` secret. Configure connector `CMS_PUBLISH_API_URL` as the editor Worker HTTPS origin.
 - **Not yet production-ready:** OAuth identity and ChatGPT connector registration, automated tests, staging deployment, verified public publication/RSS/sitemap behavior, and an editor UI approval button are still required. The static bearer token alone is not user OAuth. Do not deploy or expose publicly until those are complete.
+
+## OAuth integration gate (November 2026)
+
+The MCP Worker now advertises `/.well-known/oauth-protected-resource` when `OAUTH_ISSUER` and `MCP_RESOURCE_URL` are configured. **Metadata is not token verification.** Until a real OAuth provider and resource-server token validator are installed, `POST /mcp` fails closed by default (`oauth-verifier-not-configured`). `REQUIRE_OAUTH=false` is an explicit development-only bypass and must NEVER be set on a publicly reachable production Worker.
+
+Recommended: use Cloudflare Workers OAuth Provider with a GitHub or Google login, consent page, PKCE S256, audience-bound access tokens, scopes `cms:read`, `cms:draft`, `cms:publish`, and a service-binding token verifier. Verify the exact issuer, audience, expiry, and scopes for each tool call. Restrict editor identity to an allowlist; do not grant publish scope merely because someone can log in. The authorization server must publish its own RFC 8414 metadata and support client registration (CIMD or DCR). This remains unimplemented.
+
+ChatGPT custom MCP **write** connections currently require a Business or Enterprise/Edu workspace according to OpenAI's published support documentation. A personal Plus account cannot be assumed to support publishing through a custom MCP app. Alternative: an independent OpenAI API client invoking this MCP server after user approval.
+
+See https://developers.openai.com/plugins/build/auth and https://developers.cloudflare.com/agents/model-context-protocol/protocol/authorization/ for requirements.
