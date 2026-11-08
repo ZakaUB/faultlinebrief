@@ -1,8 +1,8 @@
 import { WorkerEntrypoint } from "cloudflare:workers";
 import { OAuthAuthorizationServer, AuthorizationError, authorizationErrorRedirect } from "@cloudflare/workers-oauth-provider";
 
-const ISSUER="https://faultlinebrief-cms-auth.example.workers.dev";
-const RESOURCE="https://faultlinebrief-cms-mcp.example.workers.dev/mcp";
+const ISSUER="https://cms-auth.faultlinebrief.com";
+const RESOURCE="https://cms-mcp.faultlinebrief.com/mcp";
 const server=new OAuthAuthorizationServer({
  issuer:ISSUER,resources:[RESOURCE],
  scopesSupported:["cms:read","cms:draft","cms:publish","offline_access"],
@@ -11,7 +11,7 @@ const server=new OAuthAuthorizationServer({
 const htmlEscape=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const b64url=bytes=>btoa(String.fromCharCode(...bytes)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 async function challenge(verifier){return b64url(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(verifier))))}
-const page=(client,request,handle)=>`<!doctype html><html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Faultline Brief authorization</title><body style="font:16px system-ui;max-width:600px;margin:5vh auto"><h1>Authorize Faultline Brief CMS</h1><p>Client: <strong>${htmlEscape(client.clientName||request.clientId)}</strong></p><p>Requested permissions: ${htmlEscape(request.scope.join(", "))}</p><p>Only authorize clients you trust. Publishing still requires a separate editorial approval token.</p><form method="POST" action="/authorize"><input type="hidden" name="handle" value="${htmlEscape(handle)}"><button name="decision" value="allow">Continue with GitHub</button> <button name="decision" value="deny">Deny</button></form></body></html>`;
+const page=(client,request,handle)=>`<!doctype html><html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Faultline Brief authorization</title><body style="font:16px system-ui;max-width:600px;margin:5vh auto"><h1>Authorize Faultline Brief CMS</h1><p>Client: <strong>${htmlEscape(client.clientName||request.clientId)}</strong></p><p>Requested permissions: ${htmlEscape(request.scope.join(", "))}</p><p>Redirect destination: <strong>${htmlEscape(new URL(request.redirectUri).hostname)}</strong></p><p>Client ID: ${htmlEscape(request.clientId)}</p><p>Only authorize clients you trust. Publishing still requires a separate editorial approval token.</p><form method="POST" action="/authorize"><input type="hidden" name="handle" value="${htmlEscape(handle)}"><button name="decision" value="allow">Continue with GitHub</button> <button name="decision" value="deny">Deny</button></form></body></html>`;
 const errorResponse=(error)=>error instanceof AuthorizationError&&error.redirectTo?Response.redirect(error.redirectTo,302):new Response("Invalid OAuth authorization request",{status:400});
 async function authorize(request,env){
  const oauth=server.getOAuthApi(env);
@@ -26,7 +26,7 @@ async function authorize(request,env){
  const form=await request.formData(),handle=form.get("handle");
  if(typeof handle!=="string")return new Response("Invalid consent",{status:400});
  if(form.get("decision")==="deny"){
-  try{const denied=await oauth.denyConsent(request,handle);return Response.redirect(denied.redirectTo,302)}catch{return new Response("Consent expired",{status:400})}
+  try{const denied=await oauth.denyConsent(request,handle);return new Response(null,{status:302,headers:denied.headers})}catch{return new Response("Consent expired",{status:400})}
  }
  if(form.get("decision")!=="allow")return new Response("Invalid consent",{status:400});
  let approved;try{approved=await oauth.approveConsent(request,handle)}catch{return new Response("Consent expired",{status:400})}
