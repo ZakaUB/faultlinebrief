@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { webcrypto } from 'node:crypto';
+import { approvalEndpoint } from '../cloudflare-editor/publish-approval.js';
+if (!globalThis.crypto) globalThis.crypto=webcrypto;
+const url='https://editor.example.test';
+const token='a'.repeat(64);
+const env={EDITOR_PRODUCTION_MODE:'live',D1:{prepare(sql){return {bind(...args){return {async first(){if(sql.includes('SELECT id,slug,status,image_json'))return {id:'cf-123',slug:'test-story',status:'draft',image_json:'{"url":"/media/test.webp"}'};if(sql.includes('SELECT token_hash'))return null;return null},async run(){return {success:true}}}}}}},CMS_PUBLISH_API_TOKEN:'a'.repeat(48)};
+test('rejects missing editor session for approval',async()=>{const r=await approvalEndpoint(new Request(url+'/editor/approve-publish',{method:'POST',headers:{origin:url,'content-type':'application/json'},body:JSON.stringify({id:'cf-123',expectedSlug:'test-story'})}),env,async()=>false);assert.equal(r.status,401)});
+test('rejects cross-origin approval even with editor session',async()=>{const r=await approvalEndpoint(new Request(url+'/editor/approve-publish',{method:'POST',headers:{origin:'https://attacker.test','content-type':'application/json'},body:JSON.stringify({id:'cf-123',expectedSlug:'test-story'})}),env,async()=>true);assert.equal(r.status,401)});
+test('rejects unauthorized publishing',async()=>{const r=await approvalEndpoint(new Request(url+'/integration/v1/approved-publish',{method:'POST',headers:{authorization:'Bearer invalid','content-type':'application/json'},body:JSON.stringify({id:'cf-123',expectedSlug:'test-story',approvalToken:token})}),env,async()=>false);assert.equal(r.status,401)});
+test('fails closed when production mode disabled',async()=>{const r=await approvalEndpoint(new Request(url+'/editor/approve-publish',{method:'POST',headers:{origin:url,'content-type':'application/json'},body:JSON.stringify({id:'cf-123',expectedSlug:'test-story'})}),{...env,EDITOR_PRODUCTION_MODE:'read-only'},async()=>true);assert.equal(r.status,503)});
