@@ -34,7 +34,7 @@ export default {async fetch(request,env){
  if(name==="create_draft"){
   if(typeof args.title!=="string"||args.title.length<10||args.title.length>250||typeof args.slug!=="string"||!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(args.slug)||args.slug.length>200||typeof args.body!=="string"||args.body.length<100||args.body.length>100000)return err(id,-32602,"Invalid draft fields");
   endpoint=base+"/integration/v1/drafts";method="POST";
-  body=JSON.stringify({title:args.title,slug:args.slug,body:args.body,deck:args.deck||"",seoTitle:args.seoTitle||"",seoDescription:args.seoDescription||"",sources:args.sources||[],status:"draft"});
+  body=JSON.stringify({slug:args.slug,headline:args.title,article_text:args.body,deck:args.deck||"",seo_title:args.seoTitle||"",seo_description:args.seoDescription||"",sources:args.sources||[],status:"draft"});
  }
  if(name==="publish_approved_draft"){
   if(!validId||typeof args.expectedSlug!=="string"||!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(args.expectedSlug)||typeof args.approvalToken!=="string"||args.approvalToken.length<32)return err(id,-32602,"Invalid approval details");
