@@ -30,14 +30,20 @@ export async function approvalEndpoint(request,env,authenticated){
   if(typeof body.approvalToken!=="string"||!/^[a-f0-9]{64}$/.test(body.approvalToken))return respond({error:"invalid-approval"},400);
   const tokenHash=await hash(body.approvalToken);
   try{
-   // D1 batch executes atomically. The DELETE consumes approval exactly once.
-   const results=await env.D1.batch([
-    env.D1.prepare("DELETE FROM cms_publish_approvals WHERE token_hash=? AND article_id=? AND slug=? AND expires_at>? RETURNING token_hash").bind(tokenHash,id,slug,new Date().toISOString()),
-    env.D1.prepare("UPDATE migration_articles SET status='published',published_at=COALESCE(published_at,?),updated_at=? WHERE id=? AND slug=? AND status='draft' AND EXISTS (SELECT 1 FROM cms_publish_approvals WHERE token_hash=?) RETURNING id,slug,status").bind(new Date().toISOString(),new Date().toISOString(),id,slug,tokenHash)
-   ]);
-   // Fail closed: the DELETE is performed first; second statement sees no approval.
-   // This placeholder intentionally prevents publication until a transactional gate is implemented.
-   return respond({error:"publish-transaction-gate-not-enabled",approvalConsumed:!!results[0]?.results?.length},503);
+   const approved=await env.D1.prepare("SELECT token_hash FROM cms_publish_approvals WHERE token_hash=? AND article_id=? AND slug=? AND expires_at>?").bind(tokenHash,id,slug,new Date().toISOString()).first();
+   if(!approved)return respond({error:"approval-expired-or-used"},409);
+   const article=await env.D1.prepare("SELECT image_json FROM migration_articles WHERE id=? AND slug=? AND status='draft'").bind(id,slug).first();
+   if(!article)return respond({error:"draft-not-found"},404);
+   let image;try{image=JSON.parse(article.image_json||"{}")}catch{image={}}
+   if(!image?.url&&!image?.id)return respond({error:"featured-image-required"},409);
+   const now=new Date().toISOString();
+   // Single conditional UPDATE is atomic and idempotent under concurrent requests.
+   // The approval record is consumed after a successful publication; status='draft' prevents reuse.
+   const published=await env.D1.prepare("UPDATE migration_articles SET status='published',published_at=COALESCE(published_at,?),updated_at=? WHERE id=? AND slug=? AND status='draft' AND EXISTS (SELECT 1 FROM cms_publish_approvals WHERE token_hash=? AND article_id=? AND slug=? AND expires_at>?) RETURNING id,slug,status").bind(now,now,id,slug,tokenHash,id,slug,now).first();
+   if(!published)return respond({error:"approval-expired-or-draft-changed"},409);
+   await env.D1.prepare("DELETE FROM cms_publish_approvals WHERE token_hash=?").bind(tokenHash).run().catch(()=>{});
+   return respond({ok:true,article:published,url:"https://faultlinebrief.com/articles/"+slug});
+
   }catch{return respond({error:"publish-transaction-failed"},503)}
  }
  return respond({error:"not-found"},404);
