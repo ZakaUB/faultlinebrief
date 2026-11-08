@@ -1,8 +1,8 @@
 import { OAuthResourceServer, insufficientScope } from "@cloudflare/workers-oauth-provider";
 import cms from "./worker.js";
-const resource="https://faultlinebrief-cms-mcp.example.workers.dev/mcp";
+const resource="https://cms-mcp.faultlinebrief.com/mcp";
 export default new OAuthResourceServer({
- resourceMetadata:{resource,authorization_servers:["https://faultlinebrief-cms-auth.example.workers.dev"]},
+ resourceMetadata:{resource,authorization_servers:["https://cms-auth.faultlinebrief.com"]},
  requiredScopes:["cms:read"],
  validateToken:env=>env.AUTH_SERVER.validateToken,
  handler:{
