@@ -33,5 +33,8 @@
       "binding": "MEDIA_BUCKET",
       "bucket_name": "faultlinebriefq-media"
     }
-  ]
+  ],
+  "images": {
+    "binding": "IMAGES"
+  }
 }
