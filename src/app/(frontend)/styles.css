@@ -377,3 +377,14 @@ body{background:var(--bg)}
   .homepage-discover,.homepage-context,.about{contain-intrinsic-size:auto 850px}
   .coverage .homepage-newsroom-layout{contain-intrinsic-size:auto 1800px}
 }
+
+/* Homepage recent stories: headlines and dates only, after category panels. */
+.homepage-recent{margin:0 0 56px}
+.homepage-recent-list{list-style:none;padding:0;margin:20px 0 16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:34px}
+.homepage-recent-list li{min-width:0;display:flex;flex-direction:column;gap:9px;padding:17px 0;border-bottom:1px solid var(--line)}
+.homepage-recent-list li a{font-size:clamp(15px,1.4vw,18px);line-height:1.4;font-weight:700;color:var(--white);overflow-wrap:anywhere;text-decoration:none}
+.homepage-recent-list li a:hover,.homepage-recent-list li a:focus-visible{color:var(--cyan);text-decoration:underline}
+.homepage-recent-list time{font-size:12px;color:var(--muted)}
+.homepage-recent-more{display:inline-block;color:var(--cyan);font:700 12px var(--font-masthead),Arial,sans-serif;letter-spacing:1px;margin-top:12px}
+@media(max-width:700px){.homepage-recent-list{grid-template-columns:1fr;margin-top:12px}.homepage-recent{margin-bottom:40px}}
+@supports(content-visibility:auto){.homepage-recent{content-visibility:auto;contain-intrinsic-size:auto 650px}}
