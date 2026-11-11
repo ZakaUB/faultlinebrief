@@ -12,6 +12,7 @@ export const metadata = {
   title: 'Faultline Brief | Geopolitics, Conflict & Security',
   description: 'Independent geopolitical reporting and analysis on conflict, security and the forces shaping our world.',
   metadataBase: new URL('https://faultlinebrief.com'),
+  other: { 'google-adsense-account': 'ca-pub-3288698849515533' },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large' as const } },
 }
 
