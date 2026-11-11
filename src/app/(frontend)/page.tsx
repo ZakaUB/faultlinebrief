@@ -24,13 +24,19 @@ export default async function HomePage() {
   let analysis: Story[] = []
   let updates: Story[] = []
   try {
-    [analysis, updates] = await Promise.all([getEditorialStories(100), getLatestNewsStories(5)])
+    [analysis, updates] = await Promise.all([getEditorialStories(100), getLatestNewsStories(100)])
   } catch (error) {
     console.error('[Faultline Brief] Homepage CMS query failed:', error)
   }
   // Preserve today's lead until the editor explicitly marks a Lead Story.
   const lead = analysis.find(story => story.editorialPlacement === 'lead') ?? analysis[0]
   const more = analysis.filter(story => story.editorialPlacement === 'featured' && story.id !== lead?.id).slice(0, 6)
+  const displayedIds = new Set([lead, ...more].filter((story): story is Story => Boolean(story)).map(story => String(story.id)))
+  const recentStories = [...analysis, ...updates]
+    .filter(story => !displayedIds.has(String(story.id)))
+    .filter((story, index, all) => all.findIndex(other => other.slug === story.slug) === index)
+    .sort((a, b) => Date.parse(b.publishedAt ?? '') - Date.parse(a.publishedAt ?? ''))
+    .slice(0, 10)
 
   return (
     <div className="site">
@@ -111,6 +117,16 @@ export default async function HomePage() {
               </article>
             })}
           </div>
+        </section>
+        <section className="homepage-recent" aria-labelledby="homepage-recent-title">
+          <div className="section-heading"><span id="homepage-recent-title">LATEST NEWS</span><span>MORE FROM FAULTLINE BRIEF</span></div>
+          {recentStories.length ? <ol className="homepage-recent-list">
+            {recentStories.map(story => <li key={story.slug}>
+              <Link href={'/articles/' + encodeURIComponent(story.slug)}>{story.headline}</Link>
+              {story.publishedAt && <time dateTime={story.publishedAt}>{storyDate(story.publishedAt)}</time>}
+            </li>)}
+          </ol> : <p className="no-stories">More published stories will appear here.</p>}
+          <Link className="homepage-recent-more" href="/analysis">BROWSE ALL STORIES →</Link>
         </section>
         <section className="homepage-context" aria-labelledby="context-title">
           <span className="eyebrow">BEYOND THE HEADLINES</span>
