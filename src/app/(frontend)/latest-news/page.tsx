@@ -40,7 +40,7 @@ export default async function LatestNewsPage({ searchParams }: { searchParams: P
       // Query the D1 public API by page; do not truncate the archive to 100 stories.
       const endpoint = process.env.FAULTLINE_D1_API_URL
       if (!endpoint) throw new Error('FAULTLINE_D1_API_URL must be set for D1 reads')
-      const apiUrl = endpoint.replace(/\\/$/, '') + '/v1/articles?placement=news&limit=' + PAGE_SIZE + '&offset=' + ((page - 1) * PAGE_SIZE)
+      const apiUrl = endpoint.replace(/\/$/, '') + '/v1/articles?placement=news&limit=' + PAGE_SIZE + '&offset=' + ((page - 1) * PAGE_SIZE)
       const response = await fetch(apiUrl, { cache: 'no-store' })
       if (!response.ok) throw new Error('D1 paginated news request failed: ' + response.status)
       const result = await response.json() as { items: Story[]; total: number }
