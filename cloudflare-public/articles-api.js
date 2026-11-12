@@ -15,8 +15,15 @@ export default {
     if (url.pathname === '/v1/articles') {
       const limit = Math.max(1, Math.min(100, Number(url.searchParams.get('limit')) || 40))
       const offset = Math.max(0, Math.min(1000000, Math.floor(Number(url.searchParams.get('offset')) || 0)))
+      const placement = url.searchParams.get('placement')
+      if (placement && placement !== 'news') return response({ error: 'invalid-placement' }, 400)
+      // Editorial placement is stored in metadata_json, not a dedicated SQL column.
+      const where = placement === 'news'
+        ? "status='published' AND json_extract(metadata_json, '$.editorial_placement')='news'"
+        : "status='published'"
+      const countRow = await env.PRODUCTION_D1.prepare('SELECT COUNT(*) AS total FROM migration_articles WHERE ' + where).first()
       const { results } = await env.PRODUCTION_D1.prepare(
-        "SELECT slug,title,published_at,updated_at,metadata_json,image_json FROM migration_articles WHERE status='published' ORDER BY published_at DESC, slug DESC LIMIT ? OFFSET ?"
+        'SELECT slug,title,published_at,updated_at,metadata_json,image_json FROM migration_articles WHERE ' + where + ' ORDER BY published_at DESC, slug DESC LIMIT ? OFFSET ?'
       ).bind(limit, offset).all()
       const categories=await env.PRODUCTION_D1.prepare('SELECT id,slug,name FROM migration_categories').all()
       const byId=new Map(categories.results.map(category=>[String(category.id),category]))
@@ -24,7 +31,7 @@ export default {
         const id=typeof item==='object'&&item!==null?(item.categories_id??item.id):item
         return byId.get(String(id))||item
       })
-      return response({ items: results.map(row => {
+      return response({ total: Number(countRow?.total || 0), limit, offset, items: results.map(row => {
         const meta = parse(row.metadata_json, {})
         return { slug: row.slug, headline: row.title, publishedAt: row.published_at, updatedAt: row.updated_at,
           deck: meta.deck ?? null, editorialPlacement: meta.editorial_placement ?? null,
