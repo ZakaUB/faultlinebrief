@@ -93,11 +93,6 @@ export default async function HomePage() {
               ) : <p className="sidebar-intro">Verified short news updates will appear here once published.</p>}
               <Link className="sidebar-more-link" href="/latest-news">ALL LATEST NEWS →</Link>
             </section>
-            <section className="sidebar-panel"><h2>EXPLORE COVERAGE</h2>
-              <Link href="/categories/geopolitics">Geopolitics →</Link>
-              <Link href="/categories/conflict">Conflict →</Link>
-              <Link href="/categories/security">Security →</Link>
-            </section>
           </aside>
           </div>
         </section>
