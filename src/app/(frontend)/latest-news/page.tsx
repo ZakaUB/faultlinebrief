@@ -37,11 +37,16 @@ export default async function LatestNewsPage({ searchParams }: { searchParams: P
   let failed = false
   try {
     if (process.env.FAULTLINE_D1_READS === 'true') {
-      // Use the same published D1 feed as the homepage sidebar, not the retired Neon connection.
-      const stories = await getLatestNewsStories(100)
-      totalDocs = stories.length
-      updates = stories.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-      hasNextPage = page * PAGE_SIZE < stories.length
+      // Query the D1 public API by page; do not truncate the archive to 100 stories.
+      const endpoint = process.env.FAULTLINE_D1_API_URL
+      if (!endpoint) throw new Error('FAULTLINE_D1_API_URL must be set for D1 reads')
+      const apiUrl = endpoint.replace(/\\/$/, '') + '/v1/articles?placement=news&limit=' + PAGE_SIZE + '&offset=' + ((page - 1) * PAGE_SIZE)
+      const response = await fetch(apiUrl, { cache: 'no-store' })
+      if (!response.ok) throw new Error('D1 paginated news request failed: ' + response.status)
+      const result = await response.json() as { items: Story[]; total: number }
+      updates = result.items
+      totalDocs = result.total
+      hasNextPage = page * PAGE_SIZE < totalDocs
     } else {
       const payload = await getPayload({ config })
       const result = await payload.find({
