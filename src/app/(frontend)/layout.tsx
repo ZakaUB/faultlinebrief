@@ -22,6 +22,7 @@ const publisherJsonLd = JSON.stringify({
   '@id': 'https://faultlinebrief.com/#organization',
   name: 'Faultline Brief',
   url: 'https://faultlinebrief.com',
+  logo: { '@type': 'ImageObject', url: 'https://faultlinebrief.com/api/media/file/logo.jpg' },
   description: 'Independent geopolitical reporting and analysis on conflict, security and the forces shaping our world.',
   publishingPrinciples: 'https://faultlinebrief.com/editorial-standards',
   contactPoint: { '@type': 'ContactPoint', contactType: 'editorial inquiries', email: 'editorial@faultlinebrief.com' },
