@@ -24,7 +24,7 @@ const getPublishedArticle = unstable_cache(async (slug: string) => {
   const item = await response.json() as Record<string, unknown>
   return {
    ...item, id: item.slug, status: 'published',
-   seo: { title: item.seoTitle, description: item.seoDescription },
+   seo: { title: item.seoTitle ?? (item.seo as { title?: string } | undefined)?.title, description: item.seoDescription ?? (item.seo as { description?: string } | undefined)?.description },
    content: item.body,
    categories: item.categoryRelationships,
   }
@@ -50,6 +50,17 @@ function imageUrl(media: unknown): string | undefined {
   return url.href
  } catch { return undefined }
 }
+// Respect a CMS-selected byline when the article response exposes it.
+// The D1 read-only API currently omits author fields; do not infer an author from placement.
+function articleAuthor(article: any): { name: string; url?: string; type: 'Person' | 'Organization' } {
+ const candidate = article.authorName ?? article.byline ?? article.author
+ const name = typeof candidate === 'string' ? candidate.trim() :
+  candidate && typeof candidate === 'object' ? String(candidate.displayName ?? candidate.name ?? '').trim() : ''
+ if (!name || name === 'Faultline Brief Editorial Desk')
+  return { name: 'Faultline Brief Editorial Desk', url: `${siteUrl}/editorial-team`, type: 'Organization' }
+ return { name, type: 'Person' }
+}
+
 export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
  const {slug}=await params
  const article=await getPublishedArticle(slug) as any
@@ -157,6 +168,7 @@ export default async function ArticlePage({params}:{params:Promise<{slug:string}
  const isNewsUpdate = article.editorialPlacement === 'news' || (!article.editorialPlacement && Array.isArray(article.categories) && article.categories.some((category: any) => typeof category === 'object' && category?.slug === 'latest-news'))
  const articleUrl=`${siteUrl}/articles/${encodeURIComponent(slug)}`
  const modifiedAt = article.updatedAt && (!article.publishedAt || Date.parse(article.updatedAt) >= Date.parse(article.publishedAt)) ? article.updatedAt : article.publishedAt
+ const author=articleAuthor(article)
  const structuredData={
   '@context':'https://schema.org',
   '@type':'NewsArticle',
@@ -167,9 +179,9 @@ export default async function ArticlePage({params}:{params:Promise<{slug:string}
   ...(image?{image:[image]}:{}),
   ...(article.publishedAt?{datePublished:article.publishedAt}:{}),
   ...(modifiedAt?{dateModified:modifiedAt}:{}),
-  author:{'@type':'Organization',name:'Faultline Brief Editorial Desk',url:`${siteUrl}/editorial-team`},
+  author:{'@type':author.type,name:author.name,...(author.url?{url:author.url}:{})},
   publisher:{'@type':'NewsMediaOrganization','@id':`${siteUrl}/#organization`,name:'Faultline Brief',url:siteUrl},
  }
  const structuredDataJson=JSON.stringify(structuredData).replace(/</g,'\\u003c')
- return <div className="site"><script type="application/ld+json" dangerouslySetInnerHTML={{__html:structuredDataJson}} /><div className="utility"><span>FAULTLINE BRIEF / INTELLIGENCE</span><span>GEOPOLITICS · CONFLICT · SECURITY</span></div><header className="masthead"><div className="masthead-identity"><Brand /><p>Understand what happened. Know why it matters.</p></div><HeaderGlobe /></header><SiteNav /><div className="article-content-layout"><main className="article-page"><span className="eyebrow">{isNewsUpdate ? "FAULTLINE BRIEF / NEWS UPDATE" : "FAULTLINE BRIEF / ANALYSIS"}</span><h1>{article.headline}</h1><p className="deck">{article.deck}</p><p className="article-byline"><span>By <Link href="/editorial-team">Faultline Brief Editorial Desk</Link></span>{article.publishedAt && <> · <time dateTime={article.publishedAt}>Published {new Date(article.publishedAt).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric',timeZone:'Asia/Karachi'})}</time></>}</p>{image && (image.startsWith(siteUrl + "/api/media/file/") ? <Image className="hero-image" src={image.slice(siteUrl.length)} alt={media.alt||article.headline} width={1200} height={675} sizes="(max-width: 700px) 92vw, (max-width: 1100px) 72vw, 1000px" quality={78} priority fetchPriority="high" style={{width:"100%",height:"auto"}}/> : <img className="hero-image" src={image} alt={media.alt||article.headline} width={1200} height={675} loading="eager" fetchPriority="high" decoding="async" style={{width:"100%",height:"auto"}}/>)}<div className="article-body">{renderNodes(article.body?.root?.children||[])}</div>{article.sources?.length>0 && <section><h2>Sources</h2><ul>{article.sources.map((s:any,i:number)=><li key={i}>{s.url?<a href={s.url} rel="noopener noreferrer nofollow" target="_blank">{s.name}</a>:s.name}</li>)}</ul></section>}<RelatedCoverage currentSlug={slug} currentCategories={(Array.isArray(article.categories) ? article.categories : []).map((c: any) => typeof c === 'object' ? c?.id : c)} /><p className="preferred-source-invite">Follow our reporting: <a href="https://www.google.com/preferences/source?q=faultlinebrief.com" target="_blank" rel="noopener noreferrer">Add Faultline Brief as a Preferred Source on Google →</a></p><p><Link className="read-link" href="/">← BACK TO LATEST</Link></p></main></div><footer><strong>FAULTLINE BRIEF<span>.</span></strong><div className="legal-links"><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/privacy">Privacy</Link><Link href="/editorial-standards">Standards</Link></div></footer></div>
+ return <div className="site"><script type="application/ld+json" dangerouslySetInnerHTML={{__html:structuredDataJson}} /><div className="utility"><span>FAULTLINE BRIEF / INTELLIGENCE</span><span>GEOPOLITICS · CONFLICT · SECURITY</span></div><header className="masthead"><div className="masthead-identity"><Brand /><p>Understand what happened. Know why it matters.</p></div><HeaderGlobe /></header><SiteNav /><div className="article-content-layout"><main className="article-page"><span className="eyebrow">{isNewsUpdate ? "FAULTLINE BRIEF / NEWS UPDATE" : "FAULTLINE BRIEF / ANALYSIS"}</span><h1>{article.headline}</h1><p className="deck">{article.deck}</p><p className="article-byline"><span>By {author.url ? <Link href="/editorial-team">{author.name}</Link> : author.name}</span>{article.publishedAt && <> · <time dateTime={article.publishedAt}>Published {new Date(article.publishedAt).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric',timeZone:'Asia/Karachi'})}</time></>}</p>{image && (image.startsWith(siteUrl + "/api/media/file/") ? <Image className="hero-image" src={image.slice(siteUrl.length)} alt={media.alt||article.headline} width={1200} height={675} sizes="(max-width: 700px) 92vw, (max-width: 1100px) 72vw, 1000px" quality={78} priority fetchPriority="high" style={{width:"100%",height:"auto"}}/> : <img className="hero-image" src={image} alt={media.alt||article.headline} width={1200} height={675} loading="eager" fetchPriority="high" decoding="async" style={{width:"100%",height:"auto"}}/>)}<div className="article-body">{renderNodes(article.body?.root?.children||[])}</div>{article.sources?.length>0 && <section><h2>Sources</h2><ul>{article.sources.map((s:any,i:number)=><li key={i}>{s.url?<a href={s.url} rel="noopener noreferrer nofollow" target="_blank">{s.name}</a>:s.name}</li>)}</ul></section>}<RelatedCoverage currentSlug={slug} currentCategories={(Array.isArray(article.categories) ? article.categories : []).map((c: any) => typeof c === 'object' ? c?.id : c)} /><p className="preferred-source-invite">Follow our reporting: <a href="https://www.google.com/preferences/source?q=faultlinebrief.com" target="_blank" rel="noopener noreferrer">Add Faultline Brief as a Preferred Source on Google →</a></p><p><Link className="read-link" href="/">← BACK TO LATEST</Link></p></main></div><footer><strong>FAULTLINE BRIEF<span>.</span></strong><div className="legal-links"><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/privacy">Privacy</Link><Link href="/editorial-standards">Standards</Link></div></footer></div>
 }
