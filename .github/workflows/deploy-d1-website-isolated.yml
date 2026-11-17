@@ -86,3 +86,5 @@ jobs:
           PY
 
 # Redeploy corrected legacy article formatting (2026-10-24).
+
+# Incident recovery 2026-11-17: redeploy existing isolated production website Worker after accidental deletion; preserve D1 and R2 resources.
