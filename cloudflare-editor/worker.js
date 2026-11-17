@@ -57,6 +57,24 @@ export default {
     if ((url.pathname === '/' || url.pathname === '/admin') && request.method === 'GET') {
       return new Response(adminHtml, { headers: { ...headers, 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'noindex, nofollow', 'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'" } })
     }
+    if (env.D1 && url.pathname === '/editor/authors') {
+      if (!await authenticated()) return json({ok:false,error:'unauthorized'},401)
+      try {
+        if (request.method === 'GET') {
+          const rows=await env.D1.prepare('SELECT id,display_name,slug,bio,active FROM editorial_authors ORDER BY display_name').all()
+          return json({ok:true,items:rows.results||[]})
+        }
+        if (request.method !== 'POST') return json({ok:false,error:'method-not-allowed'},405)
+        const input=await request.json()
+        const name=typeof input?.display_name==='string'?input.display_name.trim():''
+        const bio=typeof input?.bio==='string'?input.bio.trim():''
+        const slug=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')
+        if(name.length<2||name.length>120||bio.length>2000||!slug||slug.length>100)return json({ok:false,error:'invalid-author'},400)
+        const id='author-'+crypto.randomUUID()
+        await env.D1.prepare('INSERT INTO editorial_authors (id,display_name,slug,bio) VALUES (?,?,?,?)').bind(id,name,slug,bio).run()
+        return json({ok:true,author:{id,display_name:name,slug}},201)
+      } catch {return json({ok:false,error:'editorial-authors-unavailable'},503)}
+    }
     // D1 staging mode: preserve the existing CMS interface and authentication.
     // Only read endpoints are enabled until D1-safe editorial writes are implemented.
     if (env.D1 && (url.pathname === '/articles' || url.pathname === '/categories' || url.pathname === '/editor/media-library' || url.pathname.startsWith('/editor/articles/') && request.method === 'GET')) {
@@ -68,6 +86,7 @@ export default {
         if (url.pathname === '/categories') { const items=await db.categories();return json({ok:true,items,count:items.length}) }
         if (url.pathname === '/editor/media-library') { const items=await db.media();return json({ok:true,items,count:items.length}) }
         const article=await db.article(url.pathname.split('/').pop())
+        if(article){const assigned=await env.D1.prepare('SELECT a.id,a.display_name,a.slug FROM editorial_article_authors x JOIN editorial_authors a ON a.id=x.author_id WHERE x.article_slug=?').bind(article.slug).first();article.author=assigned||{id:'editorial-desk',display_name:'Faultline Brief Editorial Desk',slug:'editorial-desk'}}
         return article?json({ok:true,article}):json({ok:false,error:'article-not-found'},404)
       } catch { return json({ok:false,error:'staging-d1-read-failed'},503) }
     }
@@ -101,6 +120,9 @@ export default {
           if (!category) return json({ok:false,error:'category-not-found'},400)
           metadata.category_relationships=[{id:category.id,categories_id:category.id,slug:category.slug,name:category.name}]
         }
+        const authorId=String(input.author_id||'editorial-desk')
+        const author=await env.D1.prepare('SELECT id FROM editorial_authors WHERE id=? AND active=1').bind(authorId).first()
+        if(!author)return json({ok:false,error:'invalid-author'},400)
         const now=new Date().toISOString()
         const id=url.pathname.startsWith('/editor/articles/')?url.pathname.split('/').pop():'cf-'+crypto.randomUUID()
         if(request.method==='PATCH') {
@@ -112,7 +134,8 @@ export default {
           await env.D1.prepare('INSERT INTO migration_articles (id,slug,title,status,published_at,updated_at,content_json,metadata_json,source_json,image_json) VALUES (?,?,?,?,?,?,?,?,?,?)')
             .bind(id,slug,title,status,status==='published'?now:null,now,JSON.stringify(body),JSON.stringify(metadata),JSON.stringify(sources),JSON.stringify(featured)).run()
         }
-        return json({ok:true,article:{id,slug,headline:title,status}},request.method==='POST'?201:200)
+        await env.D1.prepare('INSERT INTO editorial_article_authors (article_slug,author_id) VALUES (?,?) ON CONFLICT(article_slug) DO UPDATE SET author_id=excluded.author_id,updated_at=CURRENT_TIMESTAMP').bind(slug,authorId).run()
+        return json({ok:true,article:{id,slug,headline:title,status,author_id:authorId}},request.method==='POST'?201:200)
       } catch {return json({ok:false,error:'staging-d1-write-failed'},400)}
     }
     // Isolated D1-only public delivery rehearsal; never indexed or routed to production.
