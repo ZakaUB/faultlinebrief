@@ -1,0 +1,58 @@
+name: Migrate editorial authors on isolated staging D1
+on:
+  push:
+    branches: [cms-d1-author-management-20261117]
+    paths:
+      - .github/workflows/migrate-editorial-authors-staging.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: faultlinebrief-editorial-authors-staging-migration
+  cancel-in-progress: false
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify credentials and exact staging D1 target
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const c=JSON.parse(fs.readFileSync('wrangler.editor.d1.staging.jsonc','utf8'))
+          const d=c.d1_databases?.[0]
+          if(c.name!=='faultlinebrief-editor-d1-isolated'||d?.database_name!=='faultlinebrief-d1-staging'||d?.database_id!=='d296847d-9bf7-490d-bc95-48345022a938'||c.d1_databases.length!==1)throw Error('Unexpected D1 target')
+          console.log('Verified staging-only target')
+          NODE
+      - name: Check editor JavaScript syntax
+        run: |
+          node --check cloudflare-editor/worker.js
+          node --check cloudflare-editor/admin-page.js
+      - name: Install Wrangler
+        run: npm install --no-save --ignore-scripts wrangler@4
+      - name: Execute additive migration against staging D1
+        run: npx wrangler d1 execute faultlinebrief-d1-staging --remote --config wrangler.editor.d1.staging.jsonc --file migrations/d1/20261117_editorial_authors.sql --yes
+      - name: Verify author records and new tables
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute faultlinebrief-d1-staging --remote --config wrangler.editor.d1.staging.jsonc --command "SELECT id,display_name FROM editorial_authors ORDER BY id" --json > /tmp/authors.json
+          python3 - <<'PY'
+          import json
+          obj=json.load(open('/tmp/authors.json'))
+          rows=[r for part in (obj if isinstance(obj,list) else [obj]) for r in part.get('results',[])]
+          names={r['id'] for r in rows}
+          expected={'editorial-desk','news-desk','za-ayoubi'}
+          if not expected.issubset(names):raise SystemExit('Missing default authors: '+str(expected-names))
+          print('PASS staging authors:',sorted(names))
+          PY
+          echo "Staging D1 author migration and seed verification passed. Production unchanged." >> "$GITHUB_STEP_SUMMARY"
