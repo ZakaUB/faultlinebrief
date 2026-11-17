@@ -1,7 +1,7 @@
 name: Deploy isolated public D1 preview
 on:
   push:
-    branches: [emergency-neon-to-cloudflare-20261021]
+    branches: [faultline-brief-website]
     paths: [.github/workflows/deploy-public-d1-preview.yml, cloudflare-public/articles-api.js]
   workflow_dispatch:
 permissions:
@@ -12,6 +12,14 @@ jobs:
     environment: cloudflare-staging
     steps:
       - uses: actions/checkout@v4
+      - name: Restore public article API Worker without changing production D1
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const c=JSON.parse(fs.readFileSync('wrangler.public.d1.preview.json','utf8'))
+          if(c.name!=='faultlinebrief-public-d1-preview'||c.d1_databases?.length!==1||c.d1_databases[0].binding!=='PRODUCTION_D1'||c.d1_databases[0].database_id!=='cc4cf967-6c3a-4c7d-a5a1-ca3cd9f2d8a9'||c.vars?.PUBLIC_ARTICLES_ENABLED!=='true'||c.routes?.length)throw Error('Unexpected API recovery target')
+          NODE
+          node --check cloudflare-public/articles-api.js
       - name: Deploy isolated Worker without custom domain
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
@@ -27,7 +35,7 @@ jobs:
               try:
                 with urllib.request.urlopen(urllib.request.Request(base+path,headers={'User-Agent':'Mozilla/5.0 (compatible; FaultlineBriefMigrationCheck/1.0)'}),timeout=30) as r:return json.load(r)
               except urllib.error.HTTPError as e:
-                if e.code in (403,429,502,503) and attempt<4:time.sleep(3*(attempt+1));continue
+                if e.code in (403,404,429,502,503) and attempt<4:time.sleep(3*(attempt+1));continue
                 raise
           health=get('/health')
           data=get('/v1/articles?limit=100')
