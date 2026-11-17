@@ -1,0 +1,72 @@
+name: Deploy CMS author management to existing production Worker
+on:
+  push:
+    branches: [cms-d1-author-management-20261117]
+    paths:
+      - .github/workflows/deploy-editorial-authors-production.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: faultlinebrief-editor-production-cutover
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: cloudflare-staging
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify exact existing production Worker and D1 targets
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const c=JSON.parse(fs.readFileSync('wrangler.editor.d1.production.json','utf8'))
+          if(c.name!=='faultlinebrief-editor-d1-isolated'||c.d1_databases?.length!==1||c.d1_databases[0].database_id!=='cc4cf967-6c3a-4c7d-a5a1-ca3cd9f2d8a9'||c.d1_databases[0].database_name!=='faultlinebrief-d1-production'||c.r2_buckets?.length!==1||c.r2_buckets[0].bucket_name!=='faultlinebriefq-media'||c.vars?.EDITOR_PRODUCTION_MODE!=='live'||c.routes?.length)throw Error('Unexpected production target')
+          console.log('PASS exact production Worker, D1 and R2 bindings')
+          NODE
+          node --check cloudflare-editor/worker.js
+          node --check cloudflare-editor/admin-page.js
+      - name: Install existing Worker dependency and Wrangler
+        run: npm install --no-save --no-package-lock pg@8
+      - name: Back up production D1 before additive schema migration
+        run: |
+          mkdir -p /tmp/faultlinebrief-backup
+          npx --yes wrangler@4.151.1 d1 export faultlinebrief-d1-production --remote --config wrangler.editor.d1.production.json --output /tmp/faultlinebrief-backup/production-before-authors.sql
+          test -s /tmp/faultlinebrief-backup/production-before-authors.sql
+      - name: Save D1 backup as restricted workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: faultlinebrief-production-d1-before-authors-${{ github.run_id }}
+          path: /tmp/faultlinebrief-backup/production-before-authors.sql
+          retention-days: 7
+      - name: Apply additive editorial author schema to production D1
+        run: npx --yes wrangler@4.151.1 d1 execute faultlinebrief-d1-production --remote --config wrangler.editor.d1.production.json --file migrations/d1/20261117_editorial_authors.sql --yes
+      - name: Verify production D1 seeded authors
+        run: |
+          npx --yes wrangler@4.151.1 d1 execute faultlinebrief-d1-production --remote --config wrangler.editor.d1.production.json --command "SELECT id FROM editorial_authors ORDER BY id" --json > /tmp/production-authors.json
+          python3 - <<'PY'
+          import json
+          obj=json.load(open('/tmp/production-authors.json'))
+          rows=[r for part in (obj if isinstance(obj,list) else [obj]) for r in part.get('results',[])]
+          ids={r['id'] for r in rows}
+          assert {'editorial-desk','news-desk','za-ayoubi'}<=ids,ids
+          print('PASS production editorial author seeds')
+          PY
+      - name: Deploy updated existing CMS Worker preserving authentication secrets
+        run: npx --yes wrangler@4.151.1 deploy --config wrangler.editor.d1.production.json --keep-vars
+      - name: Verify Worker exists using authenticated Cloudflare API
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request
+          url='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/workers/workers/faultlinebrief-editor-d1-isolated'
+          req=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_API_TOKEN']})
+          with urllib.request.urlopen(req,timeout=30) as response: data=json.load(response)
+          assert data.get('success'),data.get('errors')
+          print('PASS existing production editor Worker API reachable')
+          PY
+          echo "Production D1 author schema applied and existing CMS Worker deployed; authenticated author workflow and public bylines still require separate verification." >> "$GITHUB_STEP_SUMMARY"
