@@ -1,4 +1,4 @@
-name: Deploy existing CMS Worker with D1 author management to staging
+name: Deploy isolated author-management CMS staging Worker
 on:
   push:
     branches: [cms-d1-author-management-20261117]
@@ -8,7 +8,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: faultlinebrief-editorial-authors-staging-deploy
+  group: faultlinebrief-author-cms-staging
   cancel-in-progress: false
 jobs:
   deploy:
@@ -20,33 +20,33 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
-      - name: Validate existing Worker and staging database target
+      - name: Verify staging isolation and source syntax
         run: |
           node --input-type=module <<'NODE'
           import fs from 'node:fs'
-          const c=JSON.parse(fs.readFileSync('wrangler.editor.d1.staging.jsonc','utf8'))
-          if(c.name!=='faultlinebrief-editor-d1-isolated'||c.d1_databases?.length!==1||c.d1_databases[0].database_id!=='d296847d-9bf7-490d-bc95-48345022a938'||c.routes?.length)throw Error('Unsafe staging Worker target')
-          console.log('PASS existing editor Worker staging binding')
+          const c=JSON.parse(fs.readFileSync('wrangler.editor.authors.staging.json','utf8'))
+          if(c.name!=='faultlinebrief-editor-authors-staging'||c.d1_databases?.length!==1||c.d1_databases[0].database_id!=='d296847d-9bf7-490d-bc95-48345022a938'||c.r2_buckets?.[0]?.bucket_name!=='faultlinebrief-staging-media'||c.routes?.length)throw Error('Unsafe staging Worker configuration')
+          console.log('PASS staging Worker is distinct from production')
           NODE
           node --check cloudflare-editor/worker.js
           node --check cloudflare-editor/admin-page.js
-      - name: Install Worker dependency
+      - name: Install CMS dependency
         run: npm install --no-save --no-package-lock pg@8
-      - name: Deploy existing editor Worker (staging D1 bindings)
-        run: npx --yes wrangler@4.151.1 deploy --config wrangler.editor.d1.staging.jsonc
-      - name: Verify existing CMS Worker and author API authentication
+      - name: Deploy isolated staging Worker (never production Worker)
+        run: npx --yes wrangler@4.151.1 deploy --config wrangler.editor.authors.staging.json
+      - name: Verify staging CMS page and author controls
         run: |
           python3 - <<'PY'
           import urllib.request,urllib.error
-          base='https://faultlinebrief-editor-d1-isolated.zakria25.workers.dev'
-          for path in ['/me','/editor/authors']:
-              try:
-                  with urllib.request.urlopen(base+path,timeout=30) as r:status=r.status
-              except urllib.error.HTTPError as e:status=e.code
-              if status!=401:raise SystemExit(f'Unexpected anonymous access: {path} {status}')
-              print('PASS unauthorized request blocked:',path)
+          base='https://faultlinebrief-editor-authors-staging.zakria25.workers.dev'
           with urllib.request.urlopen(base+'/admin',timeout=30) as r:
               page=r.read().decode()
-              assert r.status==200 and 'addAuthor' in page and 'newAuthor' in page
-          print('PASS CMS author controls deployed')
+              assert r.status==200 and 'addAuthor' in page and 'newAuthor' in page and 'editAuthor' in page
+          print('PASS isolated staging CMS author controls rendered')
+          try:
+              with urllib.request.urlopen(base+'/editor/authors',timeout=30) as r:status=r.status
+          except urllib.error.HTTPError as e:status=e.code
+          if status not in (401,403):raise SystemExit('Anonymous author endpoint unexpectedly accessible: '+str(status))
+          print('PASS anonymous author endpoint denied:',status)
           PY
+          echo "Isolated author-management staging Worker deployed. Existing production CMS Worker untouched. Authenticated author creation still requires staging session secrets and validation." >> "$GITHUB_STEP_SUMMARY"
