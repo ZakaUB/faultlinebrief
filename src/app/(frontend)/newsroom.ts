@@ -33,14 +33,27 @@ async function queryStoriesByPlacement(placement: 'news' | 'editorial', limit: n
   if (process.env.FAULTLINE_D1_READS === 'true') {
     const endpoint = process.env.FAULTLINE_D1_API_URL
     if (!endpoint) throw new Error('FAULTLINE_D1_API_URL must be set for D1 reads')
-    const response = await fetch(endpoint.replace(/\/$/, '') + '/v1/articles?limit=100', { cache: 'no-store' })
-    if (!response.ok) throw new Error('D1 article list request failed: ' + response.status)
-    const data = await response.json() as { items: Array<Partial<Story>> }
-    return data.items.filter(item => placement === 'news'
-      ? item.editorialPlacement === 'news'
-      : item.editorialPlacement !== 'news').slice(0, limit).map(item => ({
-        ...item, id: item.slug!, slug: item.slug!, headline: item.headline!,
-      })) as Story[]
+    // Scan the paginated published feed rather than silently limiting archives to 100.
+    // The placement filter is applied after fetching, so a mixed feed needs
+    // pagination even when the requested category has fewer than 100 articles.
+    const selected: Story[] = []
+    const pageSize = 100
+    const maxScanned = 5000
+    for (let offset = 0; offset < maxScanned && selected.length < limit; offset += pageSize) {
+      const response = await fetch(endpoint.replace(/\/$/, '') + '/v1/articles?limit=' + pageSize + '&offset=' + offset, { cache: 'no-store' })
+      if (!response.ok) throw new Error('D1 article list request failed: ' + response.status)
+      const data = await response.json() as { items?: Array<Partial<Story>> }
+      if (!Array.isArray(data.items)) throw new Error('Invalid D1 article list response')
+      for (const item of data.items) {
+        if (!item.slug || !item.headline) continue
+        if (placement === 'news' ? item.editorialPlacement !== 'news' : item.editorialPlacement === 'news') continue
+        selected.push({ ...item, id: item.slug, slug: item.slug, headline: item.headline } as Story)
+        if (selected.length >= limit) break
+      }
+      if (data.items.length < pageSize) return selected
+    }
+    if (selected.length < limit) throw new Error('D1 article listing exceeded safety scan limit')
+    return selected
   }
   const payload = await getPayload({ config })
   const result = await payload.find({

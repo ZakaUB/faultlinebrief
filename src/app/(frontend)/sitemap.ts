@@ -16,6 +16,7 @@ const fixedPaths = [
   '/contact',
   '/privacy',
   '/editorial-standards',
+  '/editorial-team',
   '/categories/geopolitics',
   '/categories/conflict',
   '/categories/security',
